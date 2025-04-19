@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+<newcropprescriptions>
+	<NewCropPrescription>
+		<id>1</id>
+		<description>Hard Bed with Cervical pillow or No pillow in Supine Posture x 10 Days</description>
+		<dose>1</dose>
+		<frequency>3</frequency>
+		<drug_id>1</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>2</id>
+		<description>Ultrasound Therapy x 10 Days</description>
+		<dose>1</dose>
+		<frequency>2</frequency>
+		<drug_id>2</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>3</id>
+		<description>Intermittent Cervical Traction x 10 Days</description>
+		<dose>1</dose>
+		<frequency>4</frequency>
+		<drug_id>3</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>4</id>
+		<description>Isometric Cervical exercises x 10 Days</description>
+		<dose>1</dose>
+		<frequency>4</frequency>
+		<drug_id>4</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Cervical Spondylosis Collar / Philadelphia Collar x 10 Days</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Avoid Forward Bending &amp; Side Tilting of the Neck x 10 Days</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Inj. Symbol 50 mg  - I/M Stat &amp; Fortnightly x 10 Days</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Inj. Cobina 1500 mcg – I/M alternate day x 5</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Romazol – once a day before breakfast x 10 Days</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Thiocam / or Flexispaz 8 - Twice a day after meals x 10 Days</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Romazyme / or Disperzyme – Twice a day before meals x 10 Days</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Cap Nutroma – Once a day after Breakfast x 10 Days</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Roma-Q  -  Once a day after Breakfast x 10 Days</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Fludac / Flunil – Once a day after breakfast x 10 Days</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+</newcropprescriptions>
+</template>

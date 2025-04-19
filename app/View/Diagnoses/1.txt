@@ -1,0 +1,344 @@
+<h3 style="display:<?php echo $display ;?>" >
+		<a href="#">Allergies</a>
+	</h3>
+	<div class="section" style="display:<?php echo $display ;?>">
+		<table class="tdLabel"  border="0" width="100%">
+			<!-- BOF alleries -->
+			<tr>
+				<td  valign="top" class="tdLabel" id="boxSpace"
+					style="padding-top:10px;">Drug Allergies</td><td align="right" style="padding-right:20px">
+					<span style="text-align:right;float:right;cursor:pointer;" id="displayDrugAllergy"><?php echo $this->Html->image('icons/plus-icon.png'); ?></span>
+					</td>
+				</tr>
+				<tr>
+				<td width="100%" align="center" id="displayDrugAllergyId" style="display:<?php echo $displayeditboxdrug?>" colspan="2">
+				<!-- Drug allergy form start -->
+		<table width="60%" align="center" cellpadding="0" cellspacing="1" border="0" class="tabularForm " >
+		 
+<tr>
+<th colspan="2"><?php echo __('Add Drug Allergy',true); ?></th>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Drug',true); ?></td>
+<td><?php echo $this->Form->input('allergyfrom',array('legend'=>false,'label'=>false,'class' => 'validate[required] drugText','id' => 'drugval','value'=>$drugallergy_data["0"]["DrugAllergy"]["from"],'autocomplete'=>"off"));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Severity',true); ?></td>
+<td><?php echo $this->Form->radio('severity', array('Very Mild'=>'Very Mild','Mild'=>'Mild','Moderate'=>'Moderate','Severe'=>'Severe'),array('value'=>(isset($this->data['PatientAllergy']['drugallergies'])?$this->data['PatientAllergy']['drugallergies']:0),'legend'=>false,'label'=>false,'id' => 'drugallergies','class' => 'validate[required]' ));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Active',true); ?></td>
+<td valign="middle"><input type="checkbox" name="data[Diagnosis][active]" checked value="Active" <?php if($drugallergy_data["0"]["DrugAllergy"]["from"])?>></td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Location',true); ?></td>
+<td><?php 
+echo $this->Form->input('allergylocation', array('empty'=>__('Please Select'),'label'=>false,'options'=>$allergylocationlist,'class' => 'validate[optional,custom[mandatory-select]]','id' => 'allergylocation'));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Reaction',true); ?></td>
+<td><?php echo $this->Form->input('reaction', array('empty'=>__('Please Select'),'label'=>false,'options'=>$allergyreactionlist,'class' => 'validate[optional,custom[mandatory-select]]','id' => 'reaction'));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Start Date',true); ?></td>
+<td><?php echo $this->Form->input('startdate',array('value' => date("d/m/Y"),'class' => 'validate[required,custom[customrequired]]','legend'=>false,'label'=>false,'id' => 'startdate'));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Onset',true); ?></td>
+<td><?php echo $this->Form->radio('onsets', array('Unknown'=>'Unknown','Adulthood'=>'Adulthood','Childhood'=>'Childhood'),array('value'=>(isset($this->data['PatientAllergy']['drugallergies'])?$this->data['PatientAllergy']['drugallergies']:0),'legend'=>false,'label'=>false,'id' => 'onsets' ));?>&nbsp;&nbsp;<?php 
+echo $this->Form->input('onsets_date',array('value' => date("d/m/Y"),'legend'=>false,'label'=>false,'id' => 'onsets_date'));
+?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Comments',true); ?></td>
+<td><?php echo $this->Form->input('comments',array('legend'=>false,'label'=>false,'class' => 'textBoxExpnd','id' => 'reaction2','value'=>''));?>
+</td>
+</tr>
+<tr>
+ <td colspan=2 align="right"><?php echo $this->Html->link(__('Cancel'),"javascript:void(0)",array('id'=>'closedrugallergy','class'=>'grayBtn close-template-form')); ?>
+ <?php echo $this->Html->link(__('Submit'),"javascript:void(0)",array('id'=>'closedrugallergy','class'=>'blueBtn','onclick'=>'javascript:save_allergy("drug");')); ?>
+ <?php //echo $this->Form->submit(__('Submit'),array('class'=>'blueBtn','div'=>false, 'id' => 'submit_drug_allergy')); ?></td>
+</tr>
+</table>
+
+<!-- Form end -->
+				</td>
+				</tr>
+             <?php
+			
+			 if(count($drugallergy_all) > 0) {?>
+				<tr>
+				<td colspan="2">
+				<table border="0" class="table_format"  cellpadding="0" cellspacing="0" width="100%" >
+				   <tr class="row_title">
+					   <td class="table_cell" width="80%"><strong>Allergies</strong></td>
+					   <td class="table_cell" width="20%">Start<strong></strong></td>
+					   <td class="table_cell" width="20%">Action<strong></strong></td>
+					  
+					</tr>
+
+					<?php 
+				  	  $toggle =0;
+				      		foreach($drugallergy_all as $drugall){
+				       
+							      if($toggle == 0) {
+								       	echo "<tr class='row_gray'>";
+								       	$toggle = 1;
+							       }else{
+								       	echo "<tr>";
+								       	$toggle = 0;
+							       }
+								  ?>								  
+								   <td class="row_format" width="80%"><?php echo $drugall['DrugAllergy']['from']; ?><br/><p><span style="color:red"><?php echo $drugall['DrugAllergy']['severity']; ?> allergy</span> resulting in <strong><?php echo $drugall['DrugAllergy']['reaction']; ?></strong> (<?php echo $drugall['DrugAllergy']['allergylocation']; ?>) <?php echo $drugall['DrugAllergy']['active']; ?></p></td>
+								   <td class="row_format" width="20%"><?php echo $drugall['DrugAllergy']['startdate']; ?></td>
+                                   <td class="row_format" width="20%"><span style="text-align:right;float:right;cursor:pointer;"><?php echo $this->Html->image('icons/edit-icon.png',array("title" => "Edit","alt" => "Edit","url" => array('controller' => 'diagnoses', 'action' => 'add',$patient_id,$drugall['DrugAllergy']['id'],'drug'), "style" => "cursor:pointer;")); ?><?php echo $this->Html->image('icons/delete-icon.png',array("title" => "Delete","alt" => "Delete","url" => array('controller' => 'diagnoses', 'action' => 'add',$patient_id,'drug'),"style" => "cursor:pointer;" )); ?></span></td>
+								  
+								   
+								  </tr>
+					  <?php } 
+					 		//$this->Paginator->options(array('url' =>array("?"=>$queryStr))); 	
+					   ?>
+			
+				   </table>
+				</td>
+				</tr>
+				<?php }else {?>
+			<tr><td  style="padding-left:30px;font-weight:normal">There are no recorded allergies for this patient at this time.</td></tr>
+			<?php }?>
+
+		</table><br/>
+
+		
+		<table class="tdLabel" style="text-align: left;" border="0" width="100%">
+			<!-- BOF alleries -->
+			<tr>
+				<td width="50%" valign="top" class="tdLabel" id="boxSpace"
+					style="padding-top: 10px;">Food Allergies</td><td align="right" style="padding-right:20px">
+					<span style="text-align:right;float:right;cursor:pointer;" id="displayFoodAllergy"><?php echo $this->Html->image('icons/plus-icon.png'); ?></span>
+					</td>
+				</tr>
+			<tr>
+				<td width="100%" align="center" id="displayFoodAllergyId" style="display:<?php echo $displayeditboxfood?>" colspan="2">
+				<!-- Drug allergy form start -->
+		<table width="60%" align="center" cellpadding="0" cellspacing="1" border="0" class="tabularForm " >
+		 
+<tr>
+<th colspan="2"><?php echo __('Add Food Allergy',true); ?></th>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Food',true); ?></td>
+<td><?php echo $this->Form->input('allergyfromfood',array('legend'=>false,'label'=>false,'class' => 'validate[required] drugText','id' => 'foodval','value'=>'','autocomplete'=>"off"));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Severity',true); ?></td>
+<td><?php echo $this->Form->radio('severityfood', array('Very Mild'=>'Very Mild','Mild'=>'Mild','Moderate'=>'Moderate','Severe'=>'Severe'),array('value'=>(isset($this->data['PatientAllergy']['drugallergies'])?$this->data['PatientAllergy']['drugallergies']:0),'legend'=>false,'label'=>false,'id' => 'severityfood','class' => 'validate[required]' ));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Active',true); ?></td>
+<td valign="middle"><input type="checkbox" name="data[Diagnosis][activefood]" checked value="Active"></td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Location',true); ?></td>
+<td><?php 
+echo $this->Form->input('allergylocationfood', array('empty'=>__('Please Select'),'label'=>false,'options'=>$allergylocationlist,'class' => 'validate[optional,custom[mandatory-select]]','id' => 'allergylocationfood'));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Reaction',true); ?></td>
+<td><?php echo $this->Form->input('reactionfood', array('empty'=>__('Please Select'),'label'=>false,'options'=>$allergyreactionlist,'class' => 'validate[optional,custom[mandatory-select]]','id' => 'reactionfood'));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Start Date',true); ?></td>
+<td><?php echo $this->Form->input('startdatefood',array('value' => date("d/m/Y"),'class' => 'validate[required,custom[customrequired]]','legend'=>false,'label'=>false,'id' => 'startdatefood'));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Onset',true); ?></td>
+<td><?php echo $this->Form->radio('onsetsfood', array('Unknown'=>'Unknown','Adulthood'=>'Adulthood','Childhood'=>'Childhood'),array('value'=>(isset($this->data['PatientAllergy']['drugallergies'])?$this->data['PatientAllergy']['drugallergies']:0),'legend'=>false,'label'=>false,'id' => 'onsetsfood' ));?>&nbsp;&nbsp;<?php 
+echo $this->Form->input('onsets_date_food',array('value' => date("d/m/Y"),'legend'=>false,'label'=>false,'id' => 'onsets_date_food'));
+?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Comments',true); ?></td>
+<td><?php echo $this->Form->input('commentsfood',array('legend'=>false,'label'=>false,'class' => 'textBoxExpnd','id' => 'commentsfood','value'=>''));?>
+</td>
+</tr>
+<tr>
+ <td colspan=2 align="right"><?php echo $this->Html->link(__('Cancel'),"javascript:void(0)",array('id'=>'closefoodallergy','class'=>'grayBtn close-template-form')); ?>
+ <?php echo $this->Html->link(__('Submit'),"javascript:void(0)",array('id'=>'closefoodallergy','class'=>'blueBtn','onclick'=>'javascript:save_allergy("drug");')); ?>
+ <?php //echo $this->Form->submit(__('Submit'),array('class'=>'blueBtn','div'=>false, 'id' => 'submit_drug_allergy')); ?></td>
+</tr>
+</table>
+
+<!-- Form end -->
+				</td>
+				</tr>
+             <?php
+			
+			 if(count($foodallergy_all) > 0) {?>
+				<tr>
+				<td colspan="2">
+				<table border="0" class="table_format"  cellpadding="0" cellspacing="0" width="100%" >
+				   <tr class="row_title">
+					   <td class="table_cell" width="80%"><strong>Allergies</strong></td>
+					   <td class="table_cell" width="20%">Start<strong></strong></td>
+					   <td class="table_cell" width="20%">Action<strong></strong></td>
+					  
+					</tr>
+
+					<?php 
+				  	  $toggle =0;
+				      		foreach($foodallergy_all as $drugall){
+				       
+							      if($toggle == 0) {
+								       	echo "<tr class='row_gray'>";
+								       	$toggle = 1;
+							       }else{
+								       	echo "<tr>";
+								       	$toggle = 0;
+							       }
+								  ?>								  
+								   <td class="row_format" width="80%"><?php echo $drugall['DrugAllergy']['from']; ?><br/><p><span style="color:red"><?php echo $drugall['DrugAllergy']['severity']; ?> allergy</span> resulting in <strong><?php echo $drugall['DrugAllergy']['reaction']; ?></strong> (<?php echo $drugall['DrugAllergy']['allergylocation']; ?>) <?php echo $drugall['DrugAllergy']['active']; ?></p></td>
+								   <td class="row_format" width="20%"><?php echo $drugall['DrugAllergy']['startdate']; ?></td>
+                                   <td class="row_format" width="20%"><span style="text-align:right;float:right;cursor:pointer;" id="editIntrinsicRiskFactor"><?php echo $this->Html->image('icons/edit-icon.png'); ?></span><span style="text-align:right;float:right;cursor:pointer;" id="editIntrinsicRiskFactor"><?php echo $this->Html->image('icons/delete-icon.png'); ?></span></td>
+								  
+								   
+								  </tr>
+					  <?php } 
+					 		//$this->Paginator->options(array('url' =>array("?"=>$queryStr))); 	
+					   ?>
+			
+				   </table>
+				</td>
+				</tr>
+				<?php }else {?>
+			<tr><td  style="padding-left:30px;font-weight:normal">There are no recorded allergies for this patient at this time.</td></tr>
+			<?php }?>
+
+		</table><br/>
+
+<!-- Form end -->
+
+	<table class="tdLabel" style="text-align: left;" border="0" width="100%">
+			<!-- BOF alleries -->
+			<tr>
+				<td width="50%" valign="top" class="tdLabel" id="boxSpace"
+					style="padding-top: 10px;">Environment Allergies</td><td align="right" style="padding-right:20px">
+					<span style="text-align:right;float:right;cursor:pointer;" id="displayEnvAllergy"><?php echo $this->Html->image('icons/plus-icon.png'); ?></span>
+					</td>
+				</tr>
+			<tr>
+				<td width="100%" align="center" id="displayEnvAllergyId" style="display:<?php echo $displayeditboxenv;?>" colspan="2">
+				<!-- Drug allergy form start -->
+		<table width="60%" align="center" cellpadding="0" cellspacing="1" border="0" class="tabularForm " >
+		 
+<tr>
+<th colspan="2"><?php echo __('Add Environment Allergy',true); ?></th>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Food',true); ?></td>
+<td><?php echo $this->Form->input('allergyfromenv',array('legend'=>false,'label'=>false,'class' => 'validate[required] drugText','id' => 'envval','value'=>'','autocomplete'=>"off"));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Severity',true); ?></td>
+<td><?php echo $this->Form->radio('severityenv', array('Very Mild'=>'Very Mild','Mild'=>'Mild','Moderate'=>'Moderate','Severe'=>'Severe'),array('value'=>(isset($this->data['PatientAllergy']['drugallergies'])?$this->data['PatientAllergy']['drugallergies']:0),'legend'=>false,'label'=>false,'id' => 'severityenv','class' => 'validate[required]' ));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Active',true); ?></td>
+<td valign="middle"><input type="checkbox" name="data[Diagnosis][activeenv]" checked value="Active"></td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Location',true); ?></td>
+<td><?php 
+echo $this->Form->input('allergylocationenv', array('empty'=>__('Please Select'),'label'=>false,'options'=>$allergylocationlist,'class' => 'validate[optional,custom[mandatory-select]]','id' => 'allergylocationenv'));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Reaction',true); ?></td>
+<td><?php echo $this->Form->input('reactionenv', array('empty'=>__('Please Select'),'label'=>false,'options'=>$allergyreactionlist,'class' => 'validate[optional,custom[mandatory-select]]','id' => 'reactionenv'));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Start Date',true); ?></td>
+<td><?php echo $this->Form->input('startdateenv',array('value' => date("d/m/Y"),'class' => 'validate[required,custom[customrequired]]','legend'=>false,'label'=>false,'id' => 'startdateenv'));?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Onset',true); ?></td>
+<td><?php echo $this->Form->radio('onsetsenv', array('Unknown'=>'Unknown','Adulthood'=>'Adulthood','Childhood'=>'Childhood'),array('value'=>(isset($this->data['PatientAllergy']['drugallergies'])?$this->data['PatientAllergy']['drugallergies']:0),'legend'=>false,'label'=>false,'id' => 'onsetsenv' ));?>&nbsp;&nbsp;<?php 
+echo $this->Form->input('onsets_date_env',array('value' => '','legend'=>false,'label'=>false,'id' => 'onsets_date_env'));
+?>
+</td>
+</tr>
+<tr>
+<td valign="middle"><?php echo __('Comments',true); ?></td>
+<td><?php echo $this->Form->input('commentsenv',array('legend'=>false,'label'=>false,'class' => 'textBoxExpnd','id' => 'commentsenv','value'=>''));?>
+</td>
+</tr>
+<tr>
+ <td colspan=2 align="right"><?php echo $this->Html->link(__('Cancel'),"javascript:void(0)",array('id'=>'closeenvallergy','class'=>'grayBtn close-template-form')); ?>
+ <?php echo $this->Html->link(__('Submit'),"javascript:void(0)",array('id'=>'closefoodallergy','class'=>'blueBtn','onclick'=>'javascript:save_allergy("drug");')); ?>
+ <?php //echo $this->Form->submit(__('Submit'),array('class'=>'blueBtn','div'=>false, 'id' => 'submit_drug_allergy')); ?></td>
+</tr>
+</table>
+
+<!-- Form end -->
+				</td>
+				</tr>
+             <?php
+			
+			 if(count($envallergy_all) > 0) {?>
+				<tr>
+				<td colspan="2">
+				<table border="0" class="table_format"  cellpadding="0" cellspacing="0" width="100%" >
+				   <tr class="row_title">
+					   <td class="table_cell" width="80%"><strong>Allergies</strong></td>
+					   <td class="table_cell" width="20%">Start<strong></strong></td>
+					   <td class="table_cell" width="20%">Action<strong></strong></td>
+					  
+					</tr>
+
+					<?php 
+				  	  $toggle =0;
+				      		foreach($envallergy_all as $drugall){
+				       
+							      if($toggle == 0) {
+								       	echo "<tr class='row_gray'>";
+								       	$toggle = 1;
+							       }else{
+								       	echo "<tr>";
+								       	$toggle = 0;
+							       }
+								  ?>								  
+								   <td class="row_format" width="80%"><?php echo $drugall['DrugAllergy']['from']; ?><br/><p><span style="color:red"><?php echo $drugall['DrugAllergy']['severity']; ?> allergy</span> resulting in <strong><?php echo $drugall['DrugAllergy']['reaction']; ?></strong> (<?php echo $drugall['DrugAllergy']['allergylocation']; ?>) <?php echo $drugall['DrugAllergy']['active']; ?></p></td>
+								   <td class="row_format" width="20%"><?php echo $drugall['DrugAllergy']['startdate']; ?></td>
+                                   <td class="row_format" width="20%"><span style="text-align:right;float:right;cursor:pointer;" id="editIntrinsicRiskFactor"><?php echo $this->Html->image('icons/edit-icon.png'); ?></span><span style="text-align:right;float:right;cursor:pointer;" id="editIntrinsicRiskFactor"><?php echo $this->Html->image('icons/delete-icon.png'); ?></span></td>
+								  
+								   
+								  </tr>
+					  <?php } 
+					 		//$this->Paginator->options(array('url' =>array("?"=>$queryStr))); 	
+					   ?>
+			
+				   </table>
+				</td>
+				</tr>
+				<?php }else {?>
+			<tr><td  style="padding-left:30px;font-weight:normal">There are no recorded allergies for this patient at this time.</td></tr>
+			<?php }?>
+
+		</table><br/>	
+			
+	</div>

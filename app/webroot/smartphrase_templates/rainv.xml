@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+<laboratories>
+	<Laboratory>
+		<name>Uric acid</name>
+	</Laboratory>
+	<Laboratory>
+		<name>CRP</name>
+	</Laboratory>
+	<Laboratory>
+		<name>CBC</name>
+	</Laboratory>
+	<Laboratory>
+		<name>RA factor</name>
+	</Laboratory>
+</laboratories>
+<radiologies>
+	<Radiology>
+		<name>X - Ray Both knee in Standing AP and Lat</name>
+	</Radiology>
+	<Radiology>
+		<name></name>
+	</Radiology>
+</radiologies>
+</template>

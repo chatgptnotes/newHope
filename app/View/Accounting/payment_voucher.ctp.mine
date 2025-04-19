@@ -1,0 +1,729 @@
+<?php   
+	echo $this->Html->script(array('jquery.fancybox-1.3.4'));
+  	echo $this->Html->css(array('jquery.fancybox-1.3.4.css'));  
+  	
+  	if($action=='print' && !empty($lastInsertID)){
+  		echo "<script>var openWin = window.open('".$this->Html->url(array("controller" => "Accounting",'action'=>'printPaymentVoucher',$lastInsertID))."', '_blank',
+                       'toolbar=0,scrollbars=1,location=0,status=1,menubar=0,resizable=1,width=900,height=600,left=200,top=200');
+                  window.location='".$this->Html->url(array('action'=>'payment_voucher'))."'  </script>"  ;
+  	}
+?>
+<style>
+.cost{
+	text-align: right;
+}
+</style>
+<div class="inner_title">
+	<h3>
+		<?php echo __('Payment Voucher'); ?>
+	</h3>
+</div>
+<?php 
+if(!empty($errors)) {
+?>
+<table border="0" cellpadding="0" cellspacing="0" width="60%" align="center">
+	<tr>
+		<td colspan="2" align="left">
+			<div class="alert">
+				<?php 
+				foreach($errors as $errorsval){
+			         echo $errorsval[0];
+			         echo "<br />";
+			     }
+			     ?>
+			</div>
+		</td>
+	</tr>
+</table>
+<?php }  
+	echo $this->Form->create('accounting', array('url'=>array('controller'=>'Accounting','action'=>'payment_voucher'),'id'=>'Complaintfrm',
+		'inputDefaults' => array('label' => false,'div' => false,'error'=>false,'legend'=>false,'O'))) ;
+?>
+<table width="100%" cellpadding="1" cellspacing="1" border="0">
+	<tr>
+	<td valign="top" width="5%"><?php echo $this->element('accounting_menu'); ?></td>
+	<td width="95%" valign="top">
+<table width="100%" cellpadding="1" cellspacing="1" border="0">
+	<tr>
+		<td width="10%">
+		<?php if ($dataDetail['VoucherPayment']['id']==null){
+			echo __('Payment No. :'); echo $pv_no;
+		 }else{
+			echo __('Payment No. :'); echo $dataDetail['VoucherPayment']['id'];
+		 }
+			echo $this->Form->hidden('VoucherPayment.payment_voucher_no',array('type'=>'text','id'=>'payment_voucher_no','value'=>$pv_no));
+			echo $this->Form->hidden('VoucherLog.id',array('value'=>$dataDetail['VoucherLog']['id']));?>
+		</td>
+		<td width="10%">
+		<?php 
+		echo __("Is External Payment");
+		echo $this->Form->checkbox('VoucherPayment.isExternal',array('id'=>'isExternal','class'=>'isExternal','legend'=>false,"hiddenField"=>false,'label'=>false,'div'=>false));?></td>
+		<td width="30%"><?php echo __('Day :'); echo date('l', strtotime($date = date('Y-m-d')));?></td>
+		<td width="2%"><?php echo __('Date :')?></td>
+		<?php if(!empty($id)){?>
+		<td width="10%">
+			<?php echo $this->Form->input('VoucherPayment.date', array('label'=>false,'type'=>'text','value'=>$this->data['VoucherPayment']['date'],
+				'id' => 'date' ,'class'=>'textBoxExpnd')); ?>
+		</td>
+		<?php }else {?>
+		<td width="10%">
+			<?php $date = $this->DateFormat->formatDate2Local(date('Y-m-d H:i:s'),Configure::read('date_format'),true);
+			echo $this->Form->input('VoucherPayment.date', array('label'=>false,'type'=>'text','value'=>$date,'id' =>'date',
+				'class'=>'textBoxExpnd')); ?>
+		</td>
+		<?php }?>
+	</tr>
+	
+</table>
+<table width="100%" cellpadding="0" cellspacing="1" border="0" class="tabularForm" id="table">
+	<tbody>
+	<tr>
+		<th width="60%" align="center" valign="top" style="text-align: left; padding: 5px 0 0 50px;"><strong><?php echo __('Particulars');?></strong></th>
+		<th width="20%" align="center" valign="top" style="text-align: center;"><strong><?php echo __('Debit');?></strong></th>
+		<th width="20%" align="center" valign="top" style="text-align: center;"><strong><?php echo __('Credit');?></strong></th>
+	</tr>
+	<?php echo $this->Form->hidden('field',array('id'=>'no_of_field','value'=>'1'));
+	echo $this->Form->hidden('field',array('id'=>'no_of_field-1','value'=>'1'));?>
+	<tr id="row1">
+		<td colspan="3">
+			<table width="100%" cellpadding="0" cellspacing="1" border="0" class="tabularForm">
+			<tr>
+				<td class="searchdiv" style="width:60%;"><?php echo __('Cr :')?><font color="red">*</font>
+				<?php echo $this->Form->input('VoucherPayment.account_name',array('class'=>'validate[required,custom[mandatory-enter]]',
+						'id' => 'account_name','placeholder'=>'Party to be credited','value'=>$this->data['AccountAlias']['name'])); ?>
+				<?php echo $this->Form->input('account_name', array('type'=>'hidden','id' => 'account_name'));
+					 echo $this->Form->hidden('VoucherPayment.id',array('type'=>'text'));
+					 echo $this->Form->hidden('VoucherPayment.account_id', array('type'=>'text','id' => 'account_id'));
+					 echo $this->Form->hidden('VoucherPayment.last_cashier_batch_id', array('type'=>'text','id' => 'last_cashier_batch_id',
+						'value'=>$lastCashierBatchId)); ?>
+				</td>
+				<td style="text-align: right; width:20%;">
+					<?php echo " "; ?>
+				</td>
+				<td style="text-align: right; width:20%;">
+					<?php echo $this->Form->input('VoucherPayment.user.1.credit_amount',array('class'=>'validate[required,custom[onlyNumber]] inputBox cost',
+					'id' =>'credit_amount','type'=>'text','placeholder'=>'Credit Amount','value'=>$this->data["VoucherPayment"]["paid_amount"],'autocomplete'=>'off')); ?>
+				</td>
+			</tr>
+			<tr>
+				<td valign="top" style="text-align: left; padding-left:60px;padding-top:5px; font-style:italic;">
+					<?php echo __('Current Balance :');
+					if(!$this->data['AccountAlias']['balance']){?>
+					<b><span id="account_current_balance" ></span></b>
+					<?php }else{?>
+					<b><span id="account_current_balance" ><?php echo $this->data['AccountAlias']['balance'];?></span></b>
+					<?php }?>
+				</td>
+				<td rowspan="1" colspan="2"></td>
+			</tr>
+			<tr>
+				<td style="width:60%;"><?php echo __('Dr :')?><font color="red">*</font>
+				<?php echo $this->Form->input('VoucherPayment.user.1.username', array('class'=>'validate[required,custom[mandatory-enter]] username',
+				'id' => 'username_1', 'label'=> false, 'div' => false, 'error' => false,'autocomplete'=>false,'placeholder'=>'Party to be debited','value'=>$this->data['Account']['name'])); 
+				echo $this->Form->hidden('VoucherPayment.user.1.user_id', array('type'=>'text','id' => 'userHidden_1','value'=>$this->data['VoucherPayment']['user_id']));?>
+				</td>
+				<td style="text-align: right; width:20%;">
+					<?php echo $this->Form->input('VoucherPayment.user.1.paid_amount',array('class'=>'validate[required,custom[onlyNumber]] paid_amount inputBox cost',
+					'id' =>'paid_amount','type'=>'text','placeholder'=>'Debit Amount','value'=>$this->data["VoucherPayment"]["paid_amount"],'autocomplete'=>'off'));
+					echo $this->Form->hidden('VoucherPayment.user.1.previous_paid_amount', array('type'=>'text','id' =>'previousPaidAmount','value'=>$this->data['VoucherPayment']['paid_amount']));?>
+				</td>
+				<td style="text-align: center; width:20%;">
+					<?php echo " "; ?>
+				</td>
+			</tr>
+			<tr>
+				<td valign="top" style="text-align: left; padding-left:60px;padding-top:5px; font-style:italic;">
+				<?php echo __('Current Balance :')?>
+				<?php if(!$this->data['Account']['balance']){?>
+					<b><span id="user_current_balance-1" ></span>
+					<?php }else{?>
+					<b><span id="user_current_balance-1" ><?php echo $this->data['Account']['balance'];?></span></b>
+				<?php }?>
+				</td>
+				<td rowspan="1" colspan="1"></td>
+				<?php 
+				if(empty($this->data['VoucherReference'][0]['id'])){
+					$style = "display: none;";
+				}else{
+					$style = "display: block;";
+				}
+				?>
+				<td><input type="button" value="Add Row" class="blueBtn add-row_user"  id="add-new-row_1" style="<?php echo $style?>"/></td>
+			</tr>
+
+			<tr>
+				<td> 	
+					<?php 
+					if(empty($this->data['VoucherReference'][0]['id'])){
+						$style = "display: none;";
+					}else{
+						$style = "display: block;";
+					}?>
+				<table cellpadding="0" cellspacing="0" width="100%" border="0" id="ref-area_1" style="<?php echo $style?>">
+					<?php
+						$cnt=1;
+						if(count($this->data['VoucherReference']) > 0){
+						foreach($this->data['VoucherReference'] as $value){  
+				   ?>
+				<tr>
+					<td>
+					<?php echo $this->Form->input("VoucherReference.$cnt.reference_type_id",array('id'=>"reference_1-".$cnt,'type'=>'select','class' =>'validate[required,custom[mandatory-select]] ref-opt',
+							'options'=>array('2'=>'New Reference','3'=>'Against Reference'),'empty'=>'Please Select','value'=>$value['reference_type_id']));?>
+					<?php echo $this->Form->hidden("VoucherReference.$cnt.voucher_reference_id",array('id'=>"voucher_reference_id_1-".$cnt,
+							'type'=>'text','placeHolder'=>'','value'=>$value['voucher_id']));?>
+					<?php echo $this->Form->hidden("VoucherReference.$cnt.id",array('id'=>"id_".$cnt,'type'=>'text','value'=>$value['id']));?>
+					</td>
+					<td><?php echo  $this->Form->input("VoucherReference.$cnt.reference_no",array('id'=>"reference_no_1-".$cnt,'type'=>'input',
+							'class' =>'validate[required,custom[mandatory-enter]] ref_no','type'=>'text',
+							'placeHolder'=>'Refrence No.','autocomplete'=>'off','value'=>$value['reference_no'])); ?>
+					</td>
+					<td><?php echo  $this->Form->input("VoucherReference.$cnt.credit_period",array('id'=>"credit_period_1-".$cnt,'type'=>'input',
+							'class' =>'validate[required,custom[onlyNumber]] ref_prd','type'=>'text',
+							'placeHolder'=>'Credit Period','autocomplete'=>'off','value'=>$value['credit_period'])); ?>
+					</td>
+					<td><?php echo  $this->Form->input("VoucherReference.$cnt.amount",array('id'=>"reference_amount_1-".$cnt,
+							'type'=>'input','class' =>'validate[required,custom[onlyNumber]] ref_amt cost','type'=>'text',
+							'placeHolder'=>'Amount','autocomplete'=>'off','value'=>$value['amount'])); ?>
+					</td>
+					<td>
+						<?php 
+							echo $this->Form->input("VoucherReference.$cnt.payment_type",array('id'=>"payment_type_1-".$cnt,'type'=>'select',
+									'class' =>'validate[required,custom[mandatory-select]] ref-type','options'=>array('Dr'=>'Dr','Cr'=>"Cr")));
+						?>
+					</td>
+				</tr>
+				<?php $cnt++; }
+				}else{?>
+				<tr>
+					<td>
+						<?php echo $this->Form->input("VoucherReference.1.$cnt.reference_type_id",array('id'=>"reference_1-$cnt",'type'=>'select','class' =>'validate[required,custom[mandatory-select]] ref-opt','options'=>array(//'1'=>"Advance",
+						'2'=>'New Reference','3'=>'Against Reference'),'empty'=>'Please Select'));?>
+						<?php echo $this->Form->hidden("VoucherReference.1.$cnt.voucher_reference_id",array('id'=>"voucher_reference_id_1-".$cnt,'type'=>'text','placeHolder'=>''));?>
+						<?php echo $this->Form->hidden("VoucherReference.1.$cnt.id",array('id'=>"id_".$cnt,'type'=>'text'));?>
+					</td>
+					<td><?php echo $this->Form->input("VoucherReference.1.$cnt.reference_no",array('id'=>"reference_no_1-$cnt",'type'=>'input','class' =>'validate[required,custom[mandatory-enter]] ref_no','type'=>'text','placeHolder'=>'Refrence No.','autocomplete'=>'off')); ?></td>
+					<td><?php echo $this->Form->input("VoucherReference.1.$cnt.credit_period",array('id'=>"credit_period_1-$cnt",'type'=>'input','class' =>'validate[required,custom[onlyNumber]] ref_prd','type'=>'text','placeHolder'=>'Credit Period','autocomplete'=>'off')); ?></td>
+					<td><?php echo $this->Form->input("VoucherReference.1.$cnt.amount",array('id'=>"reference_amount_1-$cnt",'type'=>'input','class' =>'validate[required,custom[onlyNumber]] ref_amt cost','type'=>'text','placeHolder'=>'Amount','autocomplete'=>'off')); ?></td>
+					<td><?php echo $this->Form->input("VoucherReference.1.$cnt.payment_type",array('id'=>"payment_type_1-$cnt",'type'=>'select','class' =>'validate[required,custom[mandatory-select]] ref_type','options'=>array('Dr'=>'Dr','Cr'=>"Cr")));?></td>
+				</tr>
+				<?php }?>
+				</table>
+				</td>
+				<td rowspan="1" colspan="2"></td>			
+				</tr>
+			</table>
+		</td>
+	</tr>
+</tbody>
+</table>
+</br>
+<table>
+<tr>
+	<td>
+		<?php echo $this->Html->link(__('Add More'), 'javascript:void(0);', array('title'=>'Add','class'=>'blueBtn addParticular','onclick'=>'AddParticular()','id'=>'addParticular'));?>
+	</td>
+</tr>
+</table>
+</br>
+<table width="100%" class="tabularForm" cellpadding="0" cellspacing="1" border="0">
+	<tr>
+		<td valign="middle" style="width:60%;"><?php echo __('Narration :');?> 
+		 <?php echo $this->Form->input('VoucherPayment.narration', array('class' => 'inputBox','id' => 'narration','type'=>'textarea'));?>
+		</td>
+		<td style="width:20%; padding-left: 40px;" id="debit_total"><?php echo __("Debit Total:");?><?php echo $this->data['JournalEntry']['debit'];?></td>
+		<td style="width:20%; padding-left: 40px;" id="credit_total"><?php echo __("Credit Total:");?><?php echo $this->data['JournalEntry']['credit'];?></td>
+	</tr>
+	<tr>
+		<td colspan="3" align="center" style="padding: 20px 0 20px 0">
+		<?php if(!empty($id)){
+			echo $this->Html->link('Print','javascript:void(0)',
+	   		array('escape' => false,'class'=>'blueBtn printButton','onclick'=>"var openWin = window.open('".$this->Html->url(array('controller'=>'Accounting','action'=>'printPaymentVoucher',
+     		$id))."', '_blank','toolbar=0,scrollbars=1,location=0,status=1,menubar=0,resizable=1,width=900,height=600,left=200,top=200');  return false;"));
+		}?>	
+		<?php if(!empty($id)){ 
+			$style = '';
+		}else{
+			$style = 'display:none';
+		}?>
+		<?php echo $this->Form->submit('Save',array('class'=>'blueBtn','title'=>'Save','style'=>'text-align:right;','id'=>'save','style'=>$style,'div' => false,'name'=>'print')) ; ?>
+		<a class="blueBtn" href="javascript:history.back();">Cancel</a>
+		</td>
+	</tr>
+</table>
+</td>
+</tr>
+</table>
+<?php  echo $this->Form->end(); ?>
+<script>
+// for account
+$(document).ready(function(){
+	$(document).on('keyup','.ref_amt',function(){
+		refCount = 0;daebi_amount=0;credit_amount=0;
+		$( ".ref_amt" ).each(function( index ) {			 
+			refCount += parseInt($(this).val()); 
+		});
+		if(!isNaN(refCount)){
+			$("#paid_amount").val(refCount);
+		}
+		$( ".paid_amount" ).each(function( index ) {				 
+			daebi_amount += parseInt($(this).val()); 
+		});
+					 
+		credit_amount = $("#credit_amount").val(); 
+		
+		if(!isNaN(daebi_amount) && !isNaN(refCount) && !isNaN(credit_amount)){		
+			if(daebi_amount == refCount == credit_amount) {
+				var field = $("#no_of_field").val();
+			    $("#save").show();
+			}else{
+				$("#save").hide();
+			}
+		}
+	});
+
+	$(document).on('keyup','.paid_amount',function(){
+		if (/[^0-9\.]/g.test(this.value)){
+	     	this.value = this.value.replace(/[^0-9\.]/g,'');
+	    } 
+		refCount = 0;daebi_amount=0;credit_amount=0;
+		$( ".paid_amount" ).each(function( index ) {			 
+			daebi_amount  += parseInt($(this).val()); 
+		});
+		credit_amount = $("#credit_amount").val();
+		
+		$( ".ref_amt" ).each(function( index ) {				 
+			refCount+= parseInt($(this).val()); 
+		});
+		
+		if(!isNaN(daebi_amount) && !isNaN(credit_amount)){			
+			if(daebi_amount == credit_amount) {
+				var field = $("#no_of_field").val();
+			    $("#save").show();
+			   // $("#add-new-row_"+field).hide();
+			}else{
+				$("#save").hide();
+			}
+		}
+	});
+	
+	$(document).on('keyup','#credit_amount',function(){
+		if (/[^0-9\.]/g.test(this.value)){
+	     	this.value = this.value.replace(/[^0-9\.]/g,'');
+	    } 
+		daebi_amount=0;credit_amount=0;
+		$( ".paid_amount" ).each(function( index ) {			 
+			daebi_amount  += parseInt($(this).val()); 
+		});
+		credit_amount = $("#credit_amount").val();
+		
+		//$( ".ref_amt" ).each(function( index ) {				 
+		//	refCount+= parseInt($(this).val()); 
+		//});
+		if(!isNaN(daebi_amount) && !isNaN(credit_amount)){			
+			if(daebi_amount == credit_amount) {
+				var field = $("#no_of_field").val();
+			    $("#save").show();
+			}else{
+				$("#save").hide();
+			}
+		}
+	});
+		
+	$("#save").click(function(){
+		var validateForm = jQuery("#Complaintfrm").validationEngine('validate');
+		
+		if(validateForm == true){
+			 if ($("#isExternal").is(":checked")){ 
+				 var isExternal = '1';
+				 addJournal();
+				 return false;
+			 }else{
+				 var isExternal = '0';
+			 }
+			$("#save").hide();
+		}else{
+			return false;
+		}
+	});
+		
+$( "#account_name" ).autocomplete({
+	 source: "<?php echo $this->Html->url(array("controller" => "accounting", "action" => "advance_autocomplete","Account","name",'null',"null",'no','type'=>'CashBankOnly',"admin" => false,"plugin"=>false)); ?>" ,
+	 minLength: 1,
+	 select: function( event, ui ) {
+		 $('#account_id').val(ui.item.id);
+		 var id = ui.item.id;
+			var ajaxUrl = "<?php  echo $this->Html->url(array("controller" => "accounting", "action" => "get_account_current_balance","admin" => false)); ?>";
+				$.ajax({
+			          type: 'POST',
+			          url: ajaxUrl+"/"+id,
+			          data: '',
+			          dataType: 'html',
+			          success: function(data){
+			          	if(data != ''){	 
+			        	  data = jQuery.parseJSON(data);
+			        	  console.log(data);
+				          $('#reference').prop('disabled', false);
+				          if(data.acountType == 'Cr'){ 
+				        	$("#account_current_balance").html('<font color="red">'+data.credit+'</font>');
+				          }else{
+			        		$("#account_current_balance").html(data.credit);
+				          } 
+		
+				          $('#account_name').keydown(function(){
+								//$("#account_id").val('');	 
+								//$("#save").hide();
+								$("#paid_amount").val('');
+							});
+						} 
+			          	$("#credit_amount").focus();
+			        },
+						error: function(message){
+			              alert("Internal Error Occured. Unable to set data.");
+			          }
+			      });
+		 		},
+		 messages: {
+		        noResults: '',
+		        results: function() {}
+		 }
+	});
+});	
+	
+	// for users..
+	var number_of_field=1;
+	var againstReference=[];
+	
+	$(document).ready(function(){
+			$( ".username" ).autocomplete({
+			 source: "<?php echo $this->Html->url(array("controller" => "accounting", "action" => "advance_autocomplete","Account","name",'null',"null",'no','type'=>'Patient',"admin" => false,"plugin"=>false)); ?>",
+			 minLength: 1,
+			 select: function( event, ui ) {
+				 var rowId=$(this).attr('id').split('_')[1];
+				 
+				 $('#userHidden_'+rowId).val(ui.item.id);
+				var id = ui.item.id;
+				var ajaxUrl = "<?php  echo $this->Html->url(array("controller" => "accounting", "action" => "get_account_current_balance","admin" => false)); ?>";
+				$.ajax({
+			          type: 'POST',
+			          url: ajaxUrl+"/"+id,
+			          data: '',
+			          dataType: 'html',
+			          success: function(data){
+			        	  data = jQuery.parseJSON(data);
+				          $('#reference').prop('disabled', false);
+				          
+				          if(data.acountType == 'Cr')
+				          { 
+				        	$("#user_current_balance-1").html('<font color="red">'+data.credit+'</font>');
+				          }else{
+			        		$("#user_current_balance-1").html(data.credit); 
+				          } 
+				          $("#narration").html(data.narrationPayment);  
+							//BOF by amit jain
+							 var field = $("#no_of_field").val();
+				          if(data.referenceNo == '0')
+					          {				        	 
+				        	 	 $("#add-new-row_"+field).hide();
+					        	 $("#ref-area_"+field).hide();
+					        	 $("#save").show();
+					          }else{
+						          $("#add-new-row_"+field).show();
+					        	  $("#ref-area_"+field).show();
+						          $("#save").show();
+						      }
+					      //EOF
+					      $("#paid_amount").focus()
+			        },
+						error: function(message){
+			              alert("Internal Error Occured. Unable to set data.");
+			          }        });
+			 },
+			 messages: {
+			        noResults: '',
+			        results: function() {}
+			 }
+		});
+
+$('.addParticular').on('click',function(){
+	var field = $("#no_of_field").val();
+		$( ".username" ).autocomplete({
+			 source: "<?php echo $this->Html->url(array("controller" => "accounting", "action" => "advance_autocomplete","Account","name",'null',"null",'no','type'=>'Patient',"admin" => false,"plugin"=>false)); ?>",
+			 minLength: 1,
+			 select: function( event, ui ) {
+				 var rowId=$(this).attr('id').split('_')[1];
+				 $('#userHidden_'+rowId).val(ui.item.id);
+				var id = ui.item.id; 
+				var ajaxUrl = "<?php  echo $this->Html->url(array("controller" => "accounting", "action" => "get_account_current_balance","admin" => false)); ?>";
+				$.ajax({
+			          type: 'POST',
+			          url: ajaxUrl+"/"+id,
+			          data: '',
+			          dataType: 'html',
+			          success: function(data){ 
+			        	  var field = $("#no_of_field").val();
+			        	  data = jQuery.parseJSON(data);
+				          $('#reference').prop('disabled', false);
+				          if(data.acountType == 'Dr')
+				          { 
+				        	$("#user_current_balance-"+rowId).html('<font color="red">'+data.credit+'</font>');
+				          }else{
+			        		$("#user_current_balance-"+rowId).html(data.credit); 
+				          } 
+				          $("#narration").html(data.narrationPayment);  
+							//BOF by amit jain
+							
+				          if(data.referenceNo == '0')
+					          { 
+				        	 	 $("#add-row_user_"+field).hide();
+					        	 $("#ref-area_"+field).hide();
+					        	 $("#save").show();
+					          }else{
+						          $("#add-row_user_"+field).show();
+					        	  $("#ref-area_"+field).show();
+						          $("#save").show();
+						      }
+					      //EOF
+			        },
+						error: function(message){
+			              alert("Internal Error Occured. Unable to set data.");
+			          }        });
+			 },
+			 messages: {
+			        noResults: '',
+			        results: function() {}
+			 }
+		});
+		$(".username").attr('placeHolder','Party to be debited.');
+	});
+
+	$(document).on('change','.ref-opt', function() {
+	reference_id = $(this).val();
+	var rowId=$(this).attr('id').split('_')[1];
+	var userId=rowId.split('-')[0];
+	credit_id =$("#userHidden_"+userId).val();
+	currentId = $(this).attr('id'); 
+	payable_type = 0;
+	splittedCurrentId = currentId.split('_'); 
+	if(reference_id==3 && credit_id ) { //against reference
+		$.fancybox({
+			'autoDimensions' : false,
+			'width' : '50%',
+			'height' : '50%',
+			'autoScale' : true,
+			'transitionIn' : 'elastic',
+			'transitionOut' : 'elastic', 
+			'type': 'iframe',
+			'href': "<?php echo $this->Html->url(array("controller" => "accounting", "action" => "getJournalEntryPayment")); ?>"+"/"+credit_id+"/"+splittedCurrentId[1]+"/"+payable_type,
+		});
+	}else if(reference_id==2){
+		var dataArr = [{'value':'2','text':'New Reference'},
+		               {'value':'3','text':'Against Reference'}];
+
+		$(".ref-opt option").remove();
+		// .each loops through the array
+		$.each(dataArr, function(i){
+		    $('.ref-opt').append($("<option></option>")
+		                    .attr("value",dataArr[i]['value'])
+		                    .text(dataArr[i]['text']));
+		});
+		$(".ref_no").val('');
+		$(".ref_prd").val('');
+		$(".ref_amt").val('');
+		$(".ref_type option").remove();
+		var dataArrType = [{'text':'Dr'},
+		               	  {'text':'Cr'}];
+		// .each loops through the array
+		$.each(dataArr, function(i){
+		    $('.ref_type').append($("<option></option>")
+		                    .text(dataArrType[i]['text']));
+		});
+		$("#paid_amount").val('');
+		}else{
+		//no case for advance
+		} 
+
+		if(credit_id == ''){
+			alert('Please select credit account');
+			$(this).val(''); //reset reference dropdown
+			$("#username").focus();
+		}
+	});
+	
+	$("#add-new-row").click(function(){
+		number_of_field = parseInt($("#no_of_field").val())+1;
+		var field = ''; 
+        field +='<tr  id="row'+number_of_field+'"><td><select class="validate[required,custom[mandatory-enter]] ref-opt" id="reference_'+number_of_field+'" name="data[VoucherReference]['+number_of_field+'][reference_type_id]"><option value="">Please Select</option><option value="2">New Reference</option><option value="3">Against Reference</option></select>';
+        field += '<input type="hidden" class="validate[required,custom[mandatory-enter]]" id="voucher_reference_id_'+number_of_field+'" name="data[VoucherReference]['+number_of_field+'][voucher_reference_id]" >'	
+        field += '<input type="hidden" class="validate[required,custom[mandatory-enter]]" id="id_'+number_of_field+'" name="data[VoucherReference]['+number_of_field+'][id]" ></td>';						
+		field +='<td><input type="text" class="validate[required,custom[mandatory-enter]]" id="reference_no_'+number_of_field+'" name="data[VoucherReference]['+number_of_field+'][reference_no]" placeHolder="Refrence No." "autocomplete=off"></td>';
+		field +='<td><input type="text" class="validate[optional,custom[onlyNumber]] " id="credit_period_'+number_of_field+'" name="data[VoucherReference]['+number_of_field+'][credit_period]" placeHolder="Credit Period" "autocomplete=off"></td>';
+		field +='<td><input type="text" class="validate[required,custom[onlyNumber]] ref_amt cost" id="reference_amount_'+number_of_field+'" name="data[VoucherReference]['+number_of_field+'][amount]" placeHolder="Amount" "autocomplete=off"></td>'; 
+		field +='<td><select class="validate[required,custom[mandatory-select]] ref-opt" id="payment_type'+number_of_field+'" name="data[VoucherReference]['+number_of_field+'][payment_type]"><option value="Dr">Dr</option><option value="Cr">Cr</option></select>';
+		field +='<td valign="middle" style="text-align:center;"> <a href="#this" id="deleteRow_'+number_of_field+'" onclick="deletRow('+number_of_field+');"><?php echo $this->Html->image('/img/cross.png');?></a></td>';
+	    field += '</tr>' ;
+	    $("#ref-area").append(field);
+	    number_of_field++;
+	});
+		//BOF cross check	
+			$("#account_name").focus().attr('placeHolder','Party to be credited.');
+			$(".username").attr('placeHolder','Party to be debited.');
+		//EOF autocomplete
+	});
+function deletRow(id){
+	amount = 0;debit_amount=0;credit_amount=0;
+	
+	$("#row"+id).remove();
+	
+	$( ".ref_amt" ).each(function( index ) {			 
+		amount += parseInt($(this).val()); 
+	});
+	if(!isNaN(amount)){
+		$("#paid_amount").val(amount);
+		$("#credit_amount").val(amount);
+	}
+	$( ".paid_amount" ).each(function( index ) {			 
+		debit_amount  += parseInt($(this).val()); 
+	});
+	credit_amount = $("#credit_amount").val();
+
+	if(debit_amount == credit_amount){
+		$("#save").show();
+	}else{
+		$("#save").hide();
+	}
+	
+   number_of_field--;
+}
+
+$(document).on('click','.deleteRow',function(){
+	amount = 0;
+	currID = $(this).attr('id').split("_")[1];
+	$("#row_"+currID).remove();
+	
+	childAddMoreCnt = $("#no_of_field-1").val();
+	$("#no_of_field-1").val(childAddMoreCnt-1);
+	
+	$( ".ref_amt" ).each(function( index ) {			 
+		amount += parseInt($(this).val()); 
+	});
+	if(!isNaN(amount)){
+		$("#paid_amount").val(amount);
+		$("#credit_amount").val(amount);
+	}
+});
+		
+$("#date").datepicker(
+	{
+		showOn : "both",
+		buttonImage : "<?php echo $this->Html->url('/img/js_calendar/calendar.gif'); ?>",
+		buttonImageOnly : true,
+		changeMonth : true,
+		changeYear : true,
+		yearRange: '-100:' + new Date().getFullYear(),
+		//maxDate : new Date(),
+		dateFormat:'<?php echo $this->General->GeneralDate('HH:II:SS');?>',
+		onSelect : function() {
+			$(this).focus();
+			//foramtEnddate(); //is not defined hence commented
+		}
+	});
+
+function AddParticular(){
+	var count = parseInt($("#no_of_field").val())+1;
+	var fields = '';
+		fields += '<tr id="row'+count+'">';
+		fields += 	'<td colspan="3">'
+		fields += 		'<table width="100%" class="tabularForm">';
+		fields += 			'<tr>';
+		fields += 				'<td align="left" valign="top" style="text-align: left;"><?php echo __('Dr :')?><font color="red">*</font> <input type="text" name="data[VoucherPayment][user]['+count+'][username]" class="validate[required,custom[mandatory-enter]] username" id="username_'+count+'" autocomplete="false" placeholder="Party to be debited"/> <input type="hidden" name="data[VoucherPayment][user]['+count+'][user_id]" id="userHidden_'+count+'" /></td>'; 
+		fields +=				'<td style="text-align: right; width:20%;"><input type=""text" class = "validate[required,custom[onlyNumber]] paid_amount cost" name="data[VoucherPayment][user]['+count+'][paid_amount]"  id = "paid_amount_'+count+'" placeholder= "Debit Amount"/></td>';
+		fields +=				'<td style="text-align: center; width:20%;"></td>';
+		fields += 			'</tr>';
+		fields += 			'<tr>';
+		fields +=				'<td valign="top" style="text-align: left;"><?php echo __('Current Balance :')?><b><span id="user_current_balance-'+count+'" ></span></td>';
+		fields +=				'<td><input type="button" value="Add Row" class="blueBtn add-row_user" id="add-new-row_'+count+'"/><input type="hidden" value="0" class="blueBtn " id="no_of_field-'+count+'"/></td>';
+		fields +=				'<td valign="middle" style="text-align:center;"> <a href="javascript:void(0);" id="deleteRow_'+count+'" onclick="deletRow('+count+');"><?php echo $this->Html->image('/img/cross.png');?></a></td>';
+		fields += 			'</tr>';
+		fields += 			'<tr>';
+		fields += 				'<td>'
+		fields += 					'<table id="ref-area_'+count+'">';
+		fields += 					'</table>';
+		fields += 				'</td>';
+		fields += 				'<td rowspan="1" colspan="2"></td>';
+		fields += 			'</tr>';
+		fields += 		'</table>';
+		fields += 	'</td>';	
+		fields += '</tr>';
+		
+		$("#no_of_field").val(count);
+		$("#table").append(fields);	
+}
+	
+	$(document).on('click','.add-row_user',(function(){
+		currIDCnt = $(this).attr('id').split("_")[1];
+		childAddMoreCnt = $("#no_of_field-"+currIDCnt).val();
+		number_of_field = parseInt(childAddMoreCnt)+1 ;
+		var field = '';  
+       	field +='<tr  id="row_'+currIDCnt+"-"+number_of_field+'"><td><select class="validate[required,custom[mandatory-enter]] ref-opt" id="reference_'+currIDCnt+'-'+number_of_field+'" name="data[VoucherReference]['+currIDCnt+']['+number_of_field+'][reference_type_id]"><option value="">Please Select</option><option value="2">New Reference</option><option value="3">Against Reference</option></select>';
+       	field += '<input type="hidden" class="validate[required,custom[mandatory-enter]]" id="voucher_reference_id_'+currIDCnt+'-'+number_of_field+'" name="data[VoucherReference]['+currIDCnt+']['+number_of_field+'][voucher_reference_id]" >'	
+       	field += '<input type="hidden" class="validate[required,custom[mandatory-enter]]" id="id_'+currIDCnt+'-'+number_of_field+'" name="data[VoucherReference]['+currIDCnt+']['+number_of_field+'][id]" ></td>';						
+		field +='<td><input type="text" class="validate[required,custom[mandatory-enter]]" id="reference_no_'+currIDCnt+'-'+number_of_field+'" name="data[VoucherReference]['+currIDCnt+']['+number_of_field+'][reference_no]" placeHolder="Refrence No." "autocomplete=off"></td>';
+		field +='<td><input type="text" class="validate[optional,custom[onlyNumber]] " id="credit_period_'+currIDCnt+'-'+number_of_field+'" name="data[VoucherReference]['+currIDCnt+']['+number_of_field+'][credit_period]" placeHolder="Credit Period" "autocomplete=off"></td>';
+		field +='<td><input type="text" class="validate[required,custom[onlyNumber]] ref_amt cost" id="reference_amount_'+currIDCnt+'-'+number_of_field+'" name="data[VoucherReference]['+currIDCnt+']['+number_of_field+'][amount]" placeHolder="Amount" "autocomplete=off"></td>'; 
+		field +='<td><select class="validate[required,custom[mandatory-select]] ref-opt" id="payment_type_'+currIDCnt+'-'+number_of_field+'" name="data[VoucherReference]['+currIDCnt+']['+number_of_field+'][payment_type]"><option value="Dr">Dr</option><option value="Cr">Cr</option></select>';
+		field +='<td valign="middle" style="text-align:center;"> <a class="deleteRow" href="javascript:void(0);" id="deleteRow_'+currIDCnt+"-"+number_of_field+'"  "><?php echo $this->Html->image('/img/cross.png');?></a></td>';
+      	field += '</tr>' ;
+      	$("#ref-area_"+currIDCnt).append(field);
+      	childAddMoreCnt = $("#no_of_field-"+currIDCnt).val(number_of_field);       	
+	}));
+
+$('#print').click(function(){
+	window.print();	
+});
+$('#credit_amount').keyup( function() {
+	var amount=$('#credit_amount').val();
+	$('#credit_total').html('Credit Total :'+amount);
+});
+$('#paid_amount').keyup( function() {
+	var amount=$('#paid_amount').val();
+	$('#debit_total').html('Debit Total :'+amount);
+});
+
+$(document).ready(function(){
+	$('.inputBox').keypress('',function(e) {
+		var id = $(this).attr('id');
+	    if(e.keyCode==13){		//key enter
+	    	if(id === "credit_amount"){
+	    		$("#username_1").focus();
+	    		e.preventDefault();
+	    	}else if(id === "paid_amount"){
+	    		$("#narration").focus();
+	    		e.preventDefault();	
+	    	}else if(id === "narration"){
+	    				$("#save").focus();
+	    	    		e.preventDefault();
+	    			}
+	    		}
+			});
+		});
+		
+var childSubmitted = false;	
+function addJournal(){
+	$.fancybox({
+		'width' : '70%',
+		'height' : '90%',
+		'autoScale' : true,
+		'transitionIn' : 'fade',
+		'transitionOut' : 'fade',
+		'hideOnOverlayClick':false,
+		'showCloseButton': true,
+		'type' : 'iframe',
+		'href' : "<?php echo $this->Html->url(array("controller"=>'Accounting',"action"=>"journal_entry",'0',"isPayment","admin"=>false)); ?>",
+		'onClosed':function(){
+			if(childSubmitted == true){
+				$('#Complaintfrm').submit();
+			}
+		}
+	});
+};
+</script>

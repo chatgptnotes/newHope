@@ -1,0 +1,387 @@
+<?php
+
+	echo $this->Html->script(array('jquery.ui.widget.js','jquery.ui.mouse.js','jquery.ui.core.js','jquery.ui.slider.js','jquery-ui-timepicker-addon.js'));
+	
+?>
+                    
+                    
+                  	<div class="inner_title">
+                      <div align="center"><img src="images/patient-owner-icon.png"></div>
+                  	</div>
+                   <p class="ht5"></p>
+   <?php echo $this->Form->create('Consent',array('type' => 'file','id'=>'consentfrm','inputDefaults' => array(
+		'label' => false,
+	'div' => false,
+	'error' => false
+	))); ?>
+                
+                   <!-- two column table start here -->
+                   <table width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tbody><tr>
+                        <td width="49%" valign="top" align="left">
+                            <table width="100%" cellspacing="0" cellpadding="0" border="0" class="formFull">
+                              <tbody><tr>
+                              	<th colspan="2"><?php echo __('Patient Information'); ?></th>
+                              </tr>
+                              <tr>
+                                <td width="140" valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Name'); ?></td>
+                                <td align="left">
+<?php echo $this->Form->input('patient_name', array('id' => 'patient_name', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                              </tr>
+                              <tr>
+                                <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Sex'); ?></td>
+                                <td align="left">
+                                <?php	echo $this->Form->input('patient_sex', array('empty'=>__('Please select'),'options'=>array('Male' =>'Male','Female' => 'Female'),'id' => 'patient_sex')); ?>
+                               </td>
+                              </tr>
+                              <tr>
+                                <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Age'); ?> </td>
+                                <td align="left">
+<?php echo $this->Form->input('patient_age', array('id' => 'patient_age', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                              </tr>
+                              <tr>
+                                <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Years'); ?></td>
+                                <td align="left">
+<?php echo $this->Form->input('patient_year', array('id' => 'patient_year', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                              </tr>
+                              <tr>
+                                <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Registration No.'); ?></td>
+                                <td align="left">
+<?php echo $this->Form->input('patient_id', array('type'=>'text','id' => 'patient_id', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                              </tr>
+                              <tr>
+                                <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Diagnosis'); ?></td>
+                                <td align="left">
+<?php echo $this->Form->input('patient_diagnosis', array('id' => 'patient_diagnosis', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                              </tr>
+                              <tr>
+                                <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Operation Title'); ?></td>
+                                <td align="left">
+<?php echo $this->Form->input('patient_operation_title', array('id' => 'patient_operation_title', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                              </tr>
+                            </tbody></table>
+                        </td>
+                        <td width="" valign="top" align="left">&nbsp;</td>
+                        <td width="49%" valign="top" align="left"><table width="100%" cellspacing="0" cellpadding="0" border="0" class="formFull">
+                          <tbody><tr>
+                            <th colspan="2">Relative's Information</th>
+                          </tr>
+                          <tr>
+                            <td width="160" valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Name'); ?></td>
+                            <td align="left">
+<?php echo $this->Form->input('relative_name', array('id' => 'relative_name', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Sex'); ?></td>
+                            <td align="left"><?php	echo $this->Form->input('relative_sex', array('empty'=>__('Please select'),'options'=>array('Male' =>'Male','Female' => 'Female'),'id' => 'relative_sex')); ?>                      </td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Age'); ?></td>
+                            <td align="left">
+<?php echo $this->Form->input('relative_age', array('id' => 'relative_age', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Years'); ?> </td>
+                            <td align="left">
+<?php echo $this->Form->input('relative_year', array('id' => 'relative_year', 'label'=> false,'div' => false, 'error' => false)); ?></td>
+                          </tr>
+
+                          <tr>
+                            <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Address1'); ?></td>
+                            <td align="left">
+<?php echo $this->Form->input('relative_address1', array('id' => 'relative_address1', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Address2'); ?></td>
+                            <td align="left">
+<?php echo $this->Form->input('relative_address2', array('id' => 'relative_address2', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Relation with the Patient');?></td>
+                            <td align="left">
+<?php echo $this->Form->input('relation_with_patient', array('id' => 'relation_with_patient', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                        </tbody></table></td>
+                      </tr>
+                      <tr>
+                        <td valign="top" align="left">&nbsp;</td>
+                        <td valign="top" align="left">&nbsp;</td>
+                        <td valign="top" align="left">&nbsp;</td>
+                      </tr>
+                    </tbody></table>
+					<!-- two column table end here -->
+                    
+                    <!--single column table start here -->
+                    <table width="100%" cellspacing="0" cellpadding="0" border="0" style="border: 0pt none;" class="formFull">
+                    	<tbody><tr>
+                        	<td colspan="2">
+                    			<table width="100%" cellspacing="0" cellpadding="0" border="0">
+                                	<tbody><tr>
+                                   	  	<td width="140">I the undersigned</td>
+                                        <td>
+<?php echo $this->Form->input('consent_owner', array('id' => 'consent_owner', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                                    </tr>
+                                    <tr>
+                                    	<td style="padding-bottom: 7px;" colspan="2">GIVE CONSENT FOR 
+                                   	    
+<?php echo $this->Form->checkbox('consent_for1'); 	?>
+                                   	    MY OWN / 
+<?php echo $this->Form->checkbox('consent_for2'); 	?> 
+                                   	    AFOREMENTIONED PATIENT'S abovementioned operation and / or medication / investigation / anaesthesia / therapy / procedure etc.</td>
+                                    </tr>
+                                </tbody></table>                            </td>
+                        </tr>
+                        <tr>
+                       	  <td width="30" valign="top" align="left">1.</td>
+                            <td style="padding-bottom: 7px;">The necessity of this medication / investigation / anaesthesia / operation / therapy / procuder, the ill effect if this is not performed, hazards and complications in the therapeutic modalities other than operation, have been explained to me by Dr. 
+
+<?php echo $this->Form->input('investigating_dr', array('id' => 'investigating_dr', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                        </tr>
+                        <tr>
+                          <td valign="top" align="left">2. </td>
+                          <td style="padding-bottom: 7px;">I have expalined clearly that any medication / investigation / operation / therapy is not totally safe and that such procedure or anaesthesia can be a risk to life of an otherwise healthy person also.</td>
+                        </tr>
+                        <tr>
+                          <td valign="top" align="left">3.</td>
+                          <td style="padding-bottom: 7px;">Doctors have expalined to me that excessive bleeding, infection, cardiac arrest, pulmonary embolism and complications like this can aries suddenly and unexpectedly while undergoing medication / investigation / operation therapy / procedure or anaesthesia.</td>
+                        </tr>
+                        <tr>
+                          <td valign="top" align="left">4.</td>
+                          <td style="padding-bottom: 7px;">I give consent for any change in the anaesthesia or operative procedure as well as fo removal of any organ as deemed necessary by the Doctors at the time of medication / investigation / operation / therapy/ procedure.</td>
+                        </tr>
+                        <tr>
+                          <td valign="top" align="left">5. </td>
+                          <td style="padding-bottom: 7px;">I have been made aware that after the above operation / medication / investigation / therapy / procedure and anaesthesia, instead of desired benefit, some complications may arise e.g.
+       <?php echo $this->Form->input('complications_arise', array('id' => 'complications_arise', 'label'=> false,'div' => false, 'error' => false)); ?> 
+                          <br>
+                          and I believe that to avoid such complications, if any, appropriate care shall be taken by<br>
+                          <div class="ht5"></div>
+                          <table width="100%" cellspacing="0" cellpadding="0" border="0">
+                              <tbody><tr>
+                                <td width="120">Dr. (Surgeon)</td>
+                                <td>
+<?php echo $this->Form->input('surgeon_name', array('id' => 'surgeon_name', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                              </tr>
+                              <tr>
+                                <td>Dr. (Anaesthetist)</td>
+                                <td>
+<?php echo $this->Form->input('anaesthetic_name', array('id' => 'anaesthetic_name', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                              </tr>
+                            </tbody></table>
+							<div class="ht5"></div>
+                            or any other doctors suggested by them.                         </td>
+                        </tr>
+                        <tr>
+                          <td valign="top" align="left">6.</td>
+                          <td style="padding-bottom: 7px;">On receipt of bill as and when and at the time of discharge, expenses of this hospital will be paid by me.</td>
+                        </tr>
+                        <tr>
+                          <td valign="top" align="left">7.</td>
+                          <td style="padding-bottom: 7px;">I am aware of the facilities available and facilities not available in this hospital and still willing for being admitted and treated, in this Hospital.</td>
+                        </tr>
+                        <tr>
+                          <td align="center" style="padding-bottom: 7px; line-height: 23px;" colspan="2">
+                          <strong>
+ <?php echo $this->Form->checkbox('terms_conditions_1'); 	?>
+                          I have read the above writing / 
+<?php echo $this->Form->checkbox('terms_conditions_2'); 	?>
+                          The above writing has been read out to me.<br> I have understood the aforesaid and I am giving my consent willingly.</strong>                          </td>
+                        </tr>
+                        <tr>
+                          <td align="center" colspan="2">&nbsp;</td>
+                        </tr>
+                    </tbody></table>
+                    <!--single column table end here -->
+                    
+                    <!--three column table start here -->
+                    <table width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tbody><tr>
+                        <td><table width="100%" cellspacing="0" cellpadding="0" border="0" class="formFull">
+                          <tbody><tr>
+                            <th colspan="2"><?php echo __('Witness'); ?></th>
+                          </tr>
+                          <tr>
+                            <td width="90" valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Sign.'); ?></td>
+                            <td align="left">
+<?php echo $this->Form->input('witness1_sign', array('id' => 'witness1_sign', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Name'); ?></td>
+                            <td align="left">
+<?php echo $this->Form->input('witness1_name', array('id' => 'witness1_name', 'label'=> false,'div' => false, 'error' => false)); ?>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Address1'); ?> </td>
+                            <td align="left">
+<?php echo $this->Form->input('witness1_address1', array('id' => 'witness1_address1', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Address2'); ?> </td>
+                            <td align="left">
+<?php echo $this->Form->input('witness1_address2', array('id' => 'witness1_address2', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Age'); ?> </td>
+                            <td align="left">
+<?php echo $this->Form->input('witness1_age', array('id' => 'witness1_age', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Years'); ?> </td>
+                            <td align="left">
+<?php echo $this->Form->input('witness1_year', array('id' => 'witness1_year', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Date'); ?> </td>
+                            <td align="left">
+<?php echo $this->Form->input('witness1_date', array('type' => 'text', 'id' => 'witness1_date', 'label'=> false,'div' => false, 'error' => false)); ?>
+
+</td>
+                          </tr>
+                        </tbody></table></td>
+                        <td width="30">&nbsp;</td>
+                        <td><table width="100%" cellspacing="0" cellpadding="0" border="0" class="formFull">
+                          <tbody><tr>
+                            <th colspan="2"><?php echo __('Witness'); ?></th>
+                          </tr>
+                          <tr>
+                            <td width="90" valign="middle" id="boxSpace2" class="tdLabel"><?php echo __('Sign.'); ?></td>
+                            <td align="left">
+<?php echo $this->Form->input('witness2_sign', array('id' => 'witness2_sign', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace2" class="tdLabel"><?php echo __('Name'); ?></td>
+                            <td align="left">
+<?php echo $this->Form->input('witness2_name', array('id' => 'witness2_name', 'label'=> false,'div' => false, 'error' => false)); ?>                            </td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace2" class="tdLabel"><?php echo __('Address1'); ?> </td>
+                            <td align="left">
+<?php echo $this->Form->input('witness2_address1', array('id' => 'witness2_address1', 'label'=> false,'div' => false, 'error' => false)); ?> 
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace2" class="tdLabel"><?php echo __('Address2'); ?></td>
+                            <td align="left"><input type="text" tabindex="33" class="textBoxExpnd1" id="textfield15" name="textfield10"></td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace2" class="tdLabel"><?php echo __('Age'); ?></td>
+                            <td align="left">
+<?php echo $this->Form->input('witness2_address2', array('id' => 'witness2_address2', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace2" class="tdLabel"><?php echo __('Years'); ?></td>
+                            <td align="left">
+<?php echo $this->Form->input('witness2_year', array('id' => 'witness2_year', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace2" class="tdLabel"><?php echo __('Date'); ?></td>
+                            <td align="left">
+<?php echo $this->Form->input('witness2_date', array('type' => 'text','id' => 'witness2_date', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                        </tbody></table></td>
+                        <td width="30">&nbsp;</td>
+                        <td valign="top" align="left">
+                        <table width="100%" cellspacing="0" cellpadding="0" border="0" class="formFull">
+                          <tbody><tr>
+                            <th colspan="2"><?php echo __('Patient / Relative'); ?></th>
+                          </tr>
+                          <tr>
+                            <td valign="top" align="left" style="text-align: left; padding-left: 10px; padding-top: 5px; height: 175px;" class="tdLabel" colspan="2">
+                            	Sign. and / or L.H.T.I
+                                
+                            </td>
+                          </tr>
+
+                          <tr>
+                            <td width="90" valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Date'); ?></td>
+                            <td align="left">
+<?php echo $this->Form->input('relative_date', array('type' => 'text', 'id' => 'relative_date', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" class="tdLabel"><?php echo __('Title'); ?></td>
+                            <td align="left">
+<?php echo $this->Form->input('relative_title', array('id' => 'relative_title', 'label'=> false,'div' => false, 'error' => false)); ?>
+</td>
+                          </tr>
+                        </tbody></table></td>
+                      </tr>
+                      <tr>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                      </tr>
+                    </tbody></table>
+
+                    <!--three column table end here -->
+                     <div class="btns">
+                           <input class="grayBtn" type="button" value="Cancel" 
+                           	onclick="window.location='<?php echo $this->Html->url(array("controller" => $this->params['controller'],
+                           	"action" => "index"));?>'">
+						  <input class="blueBtn" type="submit" value="Submit">
+                     </div>
+ <?php echo $this->Form->end(); ?>
+
+ <script>
+
+	//script to include datepicker
+		$(function() {
+			$("#witness1_date").datepicker({
+			showOn: "button",
+			buttonImage: "<?php echo $this->Html->url('/img/js_calendar/calendar.gif'); ?>",
+			buttonImageOnly: true,
+			changeMonth: true,
+			changeYear: true,
+			yearRange: '1950',			 
+			dateFormat: '<?php echo $this->General->GeneralDate();?>',
+			
+		});
+		$("#witness2_date").datepicker({
+			showOn: "button",
+			buttonImage: "<?php echo $this->Html->url('/img/js_calendar/calendar.gif'); ?>",
+			buttonImageOnly: true,
+			changeMonth: true,
+			changeYear: true,
+			yearRange: '1950',			 
+			dateFormat: '<?php echo $this->General->GeneralDate();?>',
+			
+		});
+		$("#relative_date").datepicker({
+			showOn: "button",
+			buttonImage: "<?php echo $this->Html->url('/img/js_calendar/calendar.gif'); ?>",
+			buttonImageOnly: true,
+			changeMonth: true,
+			changeYear: true,
+			yearRange: '1950',			 
+			dateFormat: '<?php echo $this->General->GeneralDate();?>',
+			
+		});
+});
+</script>                  

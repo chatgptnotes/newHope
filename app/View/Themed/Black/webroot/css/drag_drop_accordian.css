@@ -1,0 +1,53 @@
+.column{
+	width:49%;
+	margin-right:.5%;
+	min-height:300px;
+	
+	float:left;
+}
+.column .dragbox{
+	margin:5px 2px  20px;
+	
+	position:relative;
+	border:1px solid #333;
+	-moz-border-radius:5px;
+	-webkit-border-radius:5px;
+}
+.column .dragbox h2{
+	background:#D2EBF2;
+	margin:0;
+	font-size:12px;
+	padding:5px;
+	border-bottom:1px solid #333;
+	font-family:Verdana;
+	cursor:move;
+}
+.dragbox-content{
+	
+	margin:5px;
+	font-family:Arial,Helvetica,sans-serif; font-size:13px;
+	padding-bottom:5px;
+	min-height: 150px;
+	
+}
+.column  .placeholder{
+	
+	border:1px dashed #ddd;
+}
+.dragbox h2.collapse{
+	background:#969696 url('collapse.png') no-repeat top right;
+}
+.dragbox h2 .configure{
+	font-size:11px; font-weight:normal;
+	margin-right:30px; float:right;
+}
+.mainColumnFirst{
+	border:1px solid #333;
+}
+.columnInternal{
+	max-height: 500px;
+	overflow: scroll;
+	min-height:500px;	
+}
+.header_navigation li{float:left;list-style:none; text-decoration:none; margin-right:6px;padding-right:6px; border-right:1px solid;padding-bottom:5px;}
+.LabTherapyHead li{list-style:none}

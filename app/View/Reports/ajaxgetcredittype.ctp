@@ -1,0 +1,4 @@
+<?php echo $this->Form->input('PatientRegistrationReport.sponsor', array('div' => false,'label' => false,'empty'=>'All','options'=>array('1'=>'Corporate','2'=>'Insurance'),'id' => 'corporate_id','onchange'=> $this->Js->request(array('action' => 'getCorporateLocationList','admin'=>false),array('before' => $this->Js->get('#busy-indicator')->effect('fadeIn', array('buffer' => false)),'complete' => $this->Js->get('#busy-indicator')->effect('fadeOut', array('buffer' => false)), 'async' => true, 'update' => '#changeCorprateLocationList', 'data' => '{paymentCategoryId:$("#corporate_id").val()}', 'dataExpression' => true, 'div'=>false))));  ?>
+</br>
+<span id="changeCorprateLocationList">
+</span></br>

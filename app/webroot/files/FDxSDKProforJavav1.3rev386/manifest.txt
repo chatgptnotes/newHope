@@ -1,0 +1,1655 @@
+Permissions: all-permissions
+Application-Name: DrmFinger
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4PreparedStatement.class.svn-b
+ ase
+SHA-256-Digest: nWd32/FHXqXt+nSmjJ5k1Qr1I4ibV6cDa08QVOvyvCA=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$LocalAndReference
+ dColumns.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/UpdatableResultSet.class
+SHA-256-Digest: Vg3MF5tWBlTzVxLkDKxdgcIRI1iTk0xl645coB/g/Mw=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionFeatureNotAvailableExcep
+ tion.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/ResultSetImpl.class.svn-base
+SHA-256-Digest: lAkLDaZBS8FX4BQcAvHZnObjnyJbkyhpN4dhONZ5cVA=
+
+Name: com/mysql/jdbc/.svn/prop-base/WatchableWriter.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionImpl.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: applet/JSGDApplet$11.class
+SHA-256-Digest: t7fUKUz2waDf6nI6MEStS/PcScQqAh9IFxGwLHAeIvY=
+
+Name: com/mysql/jdbc/.svn/prop-base/NamedPipeSocketFactory$NamedPipeSo
+ cket.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/ConnectionPropertiesImpl$LongConnectionProperty.c
+ lass
+SHA-256-Digest: jzWEdzhadClQH3oQRDlZFr+bdk1KPPduCshJoxQgV8E=
+
+Name: com/mysql/jdbc/.svn/text-base/MysqlErrorNumbers.class.svn-base
+SHA-256-Digest: hqb3750Q2KZG8CHjIgMjZHCFtsmnBmo4lcItsSO6HoU=
+
+Name: com/mysql/jdbc/JDBC4PreparedStatementHelper.class
+SHA-256-Digest: ZJlSz5ueTvrrhIHE2NGHaIRpLIJakImgKZtOwXTbdd0=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionLifecycleInterceptor.cla
+ ss.svn-base
+SHA-256-Digest: DhfReuzVM5nqPcIncvGnn+FKfUbxrNZfYpbzBNBrmEE=
+
+Name: com/mysql/jdbc/.svn/text-base/SingleByteCharsetConverter.class.s
+ vn-base
+SHA-256-Digest: 3i6UlhUauKMc4KbtWtvg8lpV/GKO7ooB33+fB2F3yFg=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4ClientInfoProviderSP.class.sv
+ n-base
+SHA-256-Digest: RKM/ClskIbI9hhc3Y9f/T4UwaxCzcFL4uloQGPn3B70=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$7.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: SecuGen/FDxSDKPro/jni/SGImpressionType.class
+SHA-256-Digest: cG3an6mgXJDhBd7a/Gigo6c5lUdA9eqGjx/9kKFl5WU=
+
+Name: com/mysql/jdbc/.svn/prop-base/NamedPipeSocketFactory$RandomAcces
+ sFileInputStream.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4UpdatableResultSet.class.svn-
+ base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/StatementImpl$CancelTask.class
+SHA-256-Digest: xX9ltYvoG2fEMV4f/vqmVn/+4Y8PBeRu3YODo7er9DM=
+
+Name: com/mysql/jdbc/.svn/text-base/WatchableWriter.class.svn-base
+SHA-256-Digest: w0kyQqaFRIUD2V4Qfz11Hgx42sYHViZ6ODaNZyAY+u4=
+
+Name: com/mysql/jdbc/.svn/text-base/Connection.class.svn-base
+SHA-256-Digest: wYBQdcu8Ko/PlpOIrjFNklGiGk+7Fu0FpvGBE+ip4rU=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$1.class.svn-base
+SHA-256-Digest: Pneb6WmiNdIx89FkNtocKSI0sbfyXeu2PYldgf7jWMc=
+
+Name: com/mysql/jdbc/NonRegisteringDriver.class
+SHA-256-Digest: t6HifZPEOkdgXWMu6eTE9o93fEaWzA9YYUOUArOSiGg=
+
+Name: com/mysql/jdbc/.svn/prop-base/StringUtils.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ResultSetImpl.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/RowDataDynamic$OperationNotSupportedException.cla
+ ss
+SHA-256-Digest: BtmzEXptJF6m8nHNp0eDdVLDjaoptDiLSNWMjH++ZxM=
+
+Name: com/mysql/jdbc/.svn/text-base/Blob.class.svn-base
+SHA-256-Digest: 8TSTBhzur5yBlVuwnm6xnnj+VxDQRmzEuj4rV9UYsQM=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4DatabaseMetaData.class.svn-ba
+ se
+SHA-256-Digest: t8fIIaM8RXAw1MgIo+w2y1yME1Jt3JhZuWZq6LdF4aY=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4CallableStatement.class.svn-b
+ ase
+SHA-256-Digest: tCPFa5S8ifSM22GrUKCShm6vstn2oRtb84gN6DO0Gwo=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionImpl$1.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/RandomBalanceStrategy.class.svn-ba
+ se
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/PreparedStatement.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: applet/JSGDApplet$4.class
+SHA-256-Digest: 4EMLdDWBWPg8OzAclvxttfhzMqqglMTvUFgtNtuZ0qA=
+
+Name: com/mysql/jdbc/.svn/prop-base/TimeUtil.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/Messages.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/CommunicationsException.class
+SHA-256-Digest: 0j91XdeWpasXs64hiHiGUdUZH4tWUipyA0jqPucZFH4=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4MysqlSQLXML$SimpleSaxToReader
+ .class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: SecuGen/FDxSDKPro/jni/SGFDxSecurityLevel.class
+SHA-256-Digest: 60XTSAZj0UTXJCiRSVZX2yJcC7NCBaftezsvngElryE=
+
+Name: com/mysql/jdbc/.svn/text-base/EscapeProcessorResult.class.svn-ba
+ se
+SHA-256-Digest: yewa7RF0h658qIjjnHiEw5bE0NSrodMVwDOz5+G7ric=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionImpl$8.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionImpl$8.class.svn-base
+SHA-256-Digest: QtTGOL5FLjNtImF9SV/BTorcAxaBLQgvA5woCDrygYQ=
+
+Name: com/mysql/jdbc/.svn/text-base/RowDataDynamic$OperationNotSupport
+ edException.class.svn-base
+SHA-256-Digest: BtmzEXptJF6m8nHNp0eDdVLDjaoptDiLSNWMjH++ZxM=
+
+Name: org/netbeans/lib/awtextra/.svn/dir-prop-base
+SHA-256-Digest: egqf1x1pTA3InCEQu2hO2xGf9ioDoAWSNLD0kvODssk=
+
+Name: applet/JSGDApplet$1.class
+SHA-256-Digest: CB8sNaynA4i/zjfBCV/ZJwKEhmXdHe10hYHhbkG769Y=
+
+Name: com/mysql/jdbc/.svn/prop-base/BlobFromLocator$LocatorInputStream
+ .class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4Connection$1.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: applet/JSGDApplet$10.class
+SHA-256-Digest: nyu3eD9DjXWZ/7Sdp9Z61Ar7GyH27XA9ITLSSPS6FNA=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionFeatureNotAvailableExcep
+ tion.class.svn-base
+SHA-256-Digest: 8FP2T6XVEgPfWyXDyzwTChPYM9nXwZsGPhe3UzT4jjc=
+
+Name: com/mysql/jdbc/ResultSetInternalMethods.class
+SHA-256-Digest: q+7jPVnToilnP77ur6iL2/s93J6MahnU9hAMAxsld3Q=
+
+Name: com/mysql/jdbc/ConnectionFeatureNotAvailableException.class
+SHA-256-Digest: 8FP2T6XVEgPfWyXDyzwTChPYM9nXwZsGPhe3UzT4jjc=
+
+Name: com/mysql/jdbc/ConnectionImpl$10.class
+SHA-256-Digest: d6jCw4NTYHeAY8UZnFsvwdJfoW6UE3PMrRYmZMhSRcc=
+
+Name: com/mysql/jdbc/.svn/text-base/Extension.class.svn-base
+SHA-256-Digest: DGMamaxdV0FZBPU/JDQBTbuG3Hp5s5u9WIX68A65C0g=
+
+Name: com/mysql/jdbc/.svn/prop-base/EscapeTokenizer.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: SecuGen/FDxSDKPro/jni/SGDeviceInfoParam.class
+SHA-256-Digest: ZkabcurhgBUgECRTnGSvHSCWuy04hxmclVcT9rQOywY=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionImpl$CompoundCacheKey.cl
+ ass.svn-base
+SHA-256-Digest: S/jcAZdhUzmallyTLWwXzKIu0QpBfxG0wsa0BIx+M8k=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionImpl$2.class.svn-base
+SHA-256-Digest: Yl/rFnTQBU2NntE1Pe9vQqY5lJ9QYNb2IyBGsUEtLYY=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionImpl$3.class.svn-base
+SHA-256-Digest: LNMdK2dbN24f8VUFVprROCm0uUa8PVjc+0cT6GgkZZE=
+
+Name: com/mysql/jdbc/ConnectionImpl$CompoundCacheKey.class
+SHA-256-Digest: S/jcAZdhUzmallyTLWwXzKIu0QpBfxG0wsa0BIx+M8k=
+
+Name: com/mysql/jdbc/VersionedStringProperty.class
+SHA-256-Digest: J8OVEb4UwA85NkOIavlOZ1dlVIhpPSDlLiy+LvyRThs=
+
+Name: com/mysql/jdbc/.svn/prop-base/NamedPipeSocketFactory.class.svn-b
+ ase
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: applet/JSGDApplet$8.class
+SHA-256-Digest: sF9TCdu2FDHY2OcVq3ovGA/1UANWh1QxzIZrp2ooikw=
+
+Name: com/mysql/jdbc/.svn/text-base/ReplicationDriver.class.svn-base
+SHA-256-Digest: orQGsGeeljoc7/StwTjSsEO1RXCj6zYdtcCgNFNCGmA=
+
+Name: com/mysql/jdbc/.svn/text-base/CallableStatement$CallableStatemen
+ tParamInfo.class.svn-base
+SHA-256-Digest: T2MWmzX3bQ/gFytIf6n158T8FgOwtdWjuF8ZWh9lXYY=
+
+Name: com/mysql/jdbc/.svn/text-base/LoadBalancingConnectionProxy$Conne
+ ctionErrorFiringInvocationHandler.class.svn-base
+SHA-256-Digest: d2l6sikAIoAwd+dcGLtq9HjucWVmDlJtP6he/k6WXhs=
+
+Name: com/mysql/jdbc/.svn/text-base/BufferRow.class.svn-base
+SHA-256-Digest: wsqyHcnbpYTUQXxusqSRrf4gn2fvEoiswsgs5bzHpxQ=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4NClob.class.svn-base
+SHA-256-Digest: txNncrtsLw9nUoJk8AFFO02euACQdzBbbdqjeFHGvnE=
+
+Name: com/mysql/jdbc/.svn/text-base/BalanceStrategy.class.svn-base
+SHA-256-Digest: mKLnyA9Lxqx+hxqitVaR0GgLIzbFEJyMane2je7PWKc=
+
+Name: com/mysql/jdbc/Constants.class
+SHA-256-Digest: YuUkgPchg6kOLGL3mrVP1jDRQw3wFtZ9sT/vvd4DRyo=
+
+Name: com/mysql/jdbc/.svn/prop-base/StatementInterceptor.class.svn-bas
+ e
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4Connection$1$1.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/LicenseConfiguration.class.svn-bas
+ e
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionPropertiesImpl$LongConne
+ ctionProperty.class.svn-base
+SHA-256-Digest: jzWEdzhadClQH3oQRDlZFr+bdk1KPPduCshJoxQgV8E=
+
+Name: com/mysql/jdbc/.svn/entries
+SHA-256-Digest: qPpDKQYdZHaEUNIHTuglzyUCUdGpAvAlfseSIG4KMqM=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionImpl$6.class.svn-base
+SHA-256-Digest: sM/3bjcbRA0ERSNSqh8Ytp+du9rP1S3jn2NxT8xYVBc=
+
+Name: com/mysql/jdbc/.svn/prop-base/Connection.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/MysqlDefs.class.svn-base
+SHA-256-Digest: GJcvaydu//MB5OZxUMqLgWHcL2Navb2QHW7MyS0STlk=
+
+Name: com/mysql/jdbc/DatabaseMetaData$IteratorWithCleanup.class
+SHA-256-Digest: COiRqjVxBPmoYVTVf94gq9dGKIeicEVGzvb6JlKu9mo=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$4.class.svn-base
+SHA-256-Digest: UKtWvxwwNS9242skyOaPTbEfgivfjLPDpbKlh/M0q/o=
+
+Name: com/mysql/jdbc/PacketTooBigException.class
+SHA-256-Digest: QQN2I/O58kjamSGTNcz2FCwMHvh8pqbhBUAbSxgKpjI=
+
+Name: com/mysql/jdbc/DatabaseMetaData$SingleStringIterator.class
+SHA-256-Digest: b/CsivblJAriSWb5O5jQzDYVeBEMCQHCBYuq9lMmcnw=
+
+Name: com/mysql/jdbc/.svn/prop-base/Field.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/OperationNotSupportedException.cla
+ ss.svn-base
+SHA-256-Digest: gGHLWG2V4Wx3tgAaqyQTvXSkEQ9bv7CZyZqvcsrtJaM=
+
+Name: com/mysql/jdbc/.svn/text-base/TimeUtil.class.svn-base
+SHA-256-Digest: 4lykrWxhTgEuL1EN5/hr1RD7vS3YFcmb9yagCcnyREg=
+
+Name: com/mysql/jdbc/WriterWatcher.class
+SHA-256-Digest: JVAYepmHtVjXBtBFum/hpgIfyWq0EbJX1Aejc+MmKSE=
+
+Name: SecuGen/FDxSDKPro/jni/SGFDxConstant.class
+SHA-256-Digest: MwYUmPySosufMTLx74l5KAdgj3G1H1ktyGmh/bJ4geI=
+
+Name: com/mysql/jdbc/.svn/text-base/Clob.class.svn-base
+SHA-256-Digest: cwJfKPIGQnpN0AUd2lhXbcp8FtnqVaf7Noj56DjVg+A=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4DatabaseMetaDataUsingInfoSche
+ ma.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/NamedPipeSocketFactory.class.svn-b
+ ase
+SHA-256-Digest: G/P8YHmZcr0hCdFCOSLOjuejNUipzElIQnZ3V37LSh8=
+
+Name: com/mysql/jdbc/.svn/text-base/BestResponseTimeBalanceStrategy.cl
+ ass.svn-base
+SHA-256-Digest: IjG9IvXDRiKXDzFBjwk+1ycKsoj0rF1drttgGPHCh4Y=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionPropertiesImpl$LongConne
+ ctionProperty.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/ConnectionPropertiesImpl$StringConnectionProperty
+ .class
+SHA-256-Digest: zV9LrRQN4RgBHlcDRxMEVwKSnVv6T4xbvgjASwidArw=
+
+Name: com/mysql/jdbc/ConnectionProperties.class
+SHA-256-Digest: RArxMv9e54tvAnAouww58Cx6/QcRcBX05xNWKVUd9Ng=
+
+Name: com/mysql/jdbc/BestResponseTimeBalanceStrategy.class
+SHA-256-Digest: IjG9IvXDRiKXDzFBjwk+1ycKsoj0rF1drttgGPHCh4Y=
+
+Name: com/mysql/jdbc/.svn/prop-base/RowDataStatic.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/Driver.class.svn-base
+SHA-256-Digest: 80+BO/ceUxrWoIfhMpRp3cvsaQwWbeOpJR42YcRzXfk=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4ResultSet.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$9.class.svn-base
+SHA-256-Digest: 5M1MXBCUV2G65hOp3r0ifgh4VuCm+aFTzkmAjYbrdpw=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$2.class.svn-base
+SHA-256-Digest: aH2EAmoANay04wKIXe5Y169fcILLzoPI8kEzvVTtd64=
+
+Name: com/mysql/jdbc/.svn/text-base/CallableStatement$CallableStatemen
+ tParamInfoJDBC3.class.svn-base
+SHA-256-Digest: R5wV5k0BdnlcJpw5KFlA7imJo8zGHwB0OEtX+cLfbHs=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4CallableStatement.class.svn-b
+ ase
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: SecuGen/FDxSDKPro/jni/SGDeviceList.class
+SHA-256-Digest: yAlJ6MobjlNU7zfjbjwHjsJjFk+xlCgLrY+bz0KoYCs=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$9.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionImpl$4.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/RandomBalanceStrategy.class
+SHA-256-Digest: YxCQsl7EeHvEoDlYvLyn+g+UMzvbXQ7R8QDI5IqDmEE=
+
+Name: com/mysql/jdbc/ConnectionImpl$3.class
+SHA-256-Digest: LNMdK2dbN24f8VUFVprROCm0uUa8PVjc+0cT6GgkZZE=
+
+Name: com/mysql/jdbc/.svn/prop-base/CompressedInputStream.class.svn-ba
+ se
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/AssertionFailedException.class
+SHA-256-Digest: IJpI0zTPRx+rYPEGA+fA9nwlmoT6jPC0inQQsZmK68o=
+
+Name: com/mysql/jdbc/.svn/prop-base/ServerPreparedStatement$BatchedBin
+ dValues.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/LoadBalancingConnectionProxy$ConnectionErrorFirin
+ gInvocationHandler.class
+SHA-256-Digest: d2l6sikAIoAwd+dcGLtq9HjucWVmDlJtP6he/k6WXhs=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionImpl$5.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: SecuGen/FDxSDKPro/jni/SGFDxTemplateFormat.class
+SHA-256-Digest: 7T6sfWysXtYXugAdR40EGFMw17g/giDCYjllazEjBA4=
+
+Name: com/mysql/jdbc/ConnectionImpl$1.class
+SHA-256-Digest: 7lp9MIoRpqweKWtksiHt8EhWhk4wndwmucCsGAnjJ+w=
+
+Name: com/mysql/jdbc/.svn/prop-base/BufferRow.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/NonRegisteringReplicationDriver.class
+SHA-256-Digest: A4/vv6F2BKhGR6AIuwCgHZMmNVuKx7r6Rm9zJLYC338=
+
+Name: com/mysql/jdbc/.svn/prop-base/OutputStreamWatcher.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/DatabaseMetaData$8.class
+SHA-256-Digest: hqW9lzssXAn6hOB7CgKTqX+wJlE7y0LHuIKLJ3JozH8=
+
+Name: com/mysql/jdbc/.svn/prop-base/Blob.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/StandardSocketFactory.class.svn-ba
+ se
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/IterateBlock.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/ExportControlled.class.svn-base
+SHA-256-Digest: kC7pyaeUPD8dEwHLLoNXYCECP1D1tJv+efcdLUXaFuU=
+
+Name: com/mysql/jdbc/StandardSocketFactory.class
+SHA-256-Digest: h2YBS/NAsJ6ylOlzES2jp9C55bqr82r7JWD6sf8xlD8=
+
+Name: com/mysql/jdbc/JDBC4ServerPreparedStatement.class
+SHA-256-Digest: 333GyXAoVgwvv2rplgMlt5BxdR16O5dYKySt7ybxIAU=
+
+Name: SecuGen/FDxSDKPro/jni/SGISOTemplateInfo.class
+SHA-256-Digest: J4sQH6TxdVsQb0VOzAUnAKyQSRBgAxo5Mfdx1kI3iBc=
+
+Name: applet/JSGDApplet$9.class
+SHA-256-Digest: qLcCdQ3r6xUgexrdE58vPnCKiTc9getdUcn5XhrGW8c=
+
+Name: com/mysql/jdbc/ConnectionImpl$9.class
+SHA-256-Digest: MrPP2snQmmj9hInOlxXq6IFii+/JO+WpVuXp4W9vacU=
+
+Name: com/mysql/jdbc/StatementInterceptor.class
+SHA-256-Digest: lboZ/B9XP2cJ96ZZJOi31OvhWd5Ctz5dIGwme3dW+zM=
+
+Name: com/mysql/jdbc/.svn/text-base/ExportControlled$1.class.svn-base
+SHA-256-Digest: Bd9tXBcwJz0PevvRuzON4I1/UpCia5JZCdnkepOk+Qc=
+
+Name: com/mysql/jdbc/.svn/text-base/PreparedStatement$ParseInfo.class.
+ svn-base
+SHA-256-Digest: WUg4MGYtGh0Cu96pM6Wf+BmQ1Rk+lJDkDVchECSl56k=
+
+Name: com/mysql/jdbc/CallableStatement$CallableStatementParam.class
+SHA-256-Digest: wPOVYhX8vtXFvN5qONd3qqr05N+uTT6Lgrl/w+5zj58=
+
+Name: com/mysql/jdbc/.svn/prop-base/BestResponseTimeBalanceStrategy.cl
+ ass.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/DatabaseMetaData$TypeDescriptor.class
+SHA-256-Digest: Q24bZGmYrXC0mExrAzCEvqg8eygqG1c7uVbUmx3n610=
+
+Name: com/mysql/jdbc/.svn/dir-prop-base
+SHA-256-Digest: egqf1x1pTA3InCEQu2hO2xGf9ioDoAWSNLD0kvODssk=
+
+Name: com/mysql/jdbc/.svn/prop-base/Util.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/PreparedStatement$EndPoint.class.s
+ vn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/Util$RandStructcture.class.svn-bas
+ e
+SHA-256-Digest: 2naUbR1Fd6iPLlLmseQ/rRIu0PVG0d86/1ncX8UU2h0=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$SingleStringItera
+ tor.class.svn-base
+SHA-256-Digest: b/CsivblJAriSWb5O5jQzDYVeBEMCQHCBYuq9lMmcnw=
+
+Name: com/mysql/jdbc/JDBC4DatabaseMetaDataUsingInfoSchema.class
+SHA-256-Digest: 6vhep8tmxNMKqVfIehCHmDZik4TjXjp5Pbu++2Jzzdg=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4ServerPreparedStatement.class
+ .svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$IteratorWithClean
+ up.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/CallableStatement.class
+SHA-256-Digest: vVLkdYNLqyVo4sxg3CH/XWtKpLbC0EAyfRTS+mbGy9c=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionImpl$7.class.svn-base
+SHA-256-Digest: HiDeE05Lwo4eO96O0MsU0e+ndYbxCUVmHqq06BdDGdA=
+
+Name: com/mysql/jdbc/ConnectionImpl.class
+SHA-256-Digest: dVuGY/fjeQmoluCVRZ7ImeQGzvnujp8eUofktKOiTFI=
+
+Name: com/mysql/jdbc/.svn/text-base/Statement.class.svn-base
+SHA-256-Digest: 0JB/AVCJjuTwWChsR0e2CXOBcff8R/WQ/bHFgeuRkEk=
+
+Name: com/mysql/jdbc/.svn/text-base/StatementInterceptor.class.svn-bas
+ e
+SHA-256-Digest: lboZ/B9XP2cJ96ZZJOi31OvhWd5Ctz5dIGwme3dW+zM=
+
+Name: com/mysql/jdbc/BufferRow.class
+SHA-256-Digest: wsqyHcnbpYTUQXxusqSRrf4gn2fvEoiswsgs5bzHpxQ=
+
+Name: com/mysql/jdbc/Messages.class
+SHA-256-Digest: rR3/dc5RPJAE+HA8DgDBnSbV1cgugdA+w7XnS7rpcAA=
+
+Name: com/mysql/jdbc/LicenseConfiguration.class
+SHA-256-Digest: 6qD49uOCfp/dWhtn4SYLxbAmoEhd/R3iamhzELe2+Bc=
+
+Name: com/mysql/jdbc/ExportControlled.class
+SHA-256-Digest: kC7pyaeUPD8dEwHLLoNXYCECP1D1tJv+efcdLUXaFuU=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4PreparedStatement.class.svn-b
+ ase
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionImpl$5.class.svn-base
+SHA-256-Digest: 03ho0CzU1JpAUe9GznM8Reg+VbL1N317KkON5CpfKDI=
+
+Name: com/mysql/jdbc/.svn/text-base/NonRegisteringDriver.class.svn-bas
+ e
+SHA-256-Digest: t6HifZPEOkdgXWMu6eTE9o93fEaWzA9YYUOUArOSiGg=
+
+Name: com/mysql/jdbc/DatabaseMetaData$1.class
+SHA-256-Digest: Pneb6WmiNdIx89FkNtocKSI0sbfyXeu2PYldgf7jWMc=
+
+Name: com/mysql/jdbc/.svn/text-base/PreparedStatement$EmulatedPrepared
+ StatementBindings.class.svn-base
+SHA-256-Digest: T+7RK7NlCX7gaV66lEj56H7pcawwtZfOQB61pItSHBw=
+
+Name: com/mysql/jdbc/Charsets.properties
+SHA-256-Digest: hjowQpx/DFrC1ZKLsOmMOCImnX0An5Cg02ZwpdxiLdY=
+
+Name: com/mysql/jdbc/JDBC4ResultSet.class
+SHA-256-Digest: 8lRZ32wu3zxsml4go34x/2QcvvsQXKNrZkE6yxuOB9g=
+
+Name: com/mysql/jdbc/.svn/text-base/OutputStreamWatcher.class.svn-base
+SHA-256-Digest: DUEUXk1Ayy+CsBOXobw0/3fepg4caXVDegNvUA/9O7c=
+
+Name: com/mysql/jdbc/ConnectionImpl$7.class
+SHA-256-Digest: HiDeE05Lwo4eO96O0MsU0e+ndYbxCUVmHqq06BdDGdA=
+
+Name: org/netbeans/lib/awtextra/AbsoluteConstraints.class
+SHA-256-Digest: r0FphLXCdos3/K0GbN5ZkoAQ1Osd1i5LsiFu+KDCAMw=
+
+Name: com/mysql/jdbc/.svn/prop-base/WriterWatcher.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ReplicationConnection.class.svn-ba
+ se
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaDataUsingInfoSchema.cl
+ ass.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$6.class.svn-base
+SHA-256-Digest: /xCF3YCDSZQAX/opznHJJi30EXTlBgErMCNUN9RRYn4=
+
+Name: com/mysql/jdbc/.svn/prop-base/NamedPipeSocketFactory$RandomAcces
+ sFileOutputStream.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/ConnectionPropertiesImpl$BooleanConnectionPropert
+ y.class
+SHA-256-Digest: nTtE9qQz/srJh2w6e+TjiDfQKIsqPYC7EpsVEWa2P2I=
+
+Name: com/mysql/jdbc/EscapeTokenizer.class
+SHA-256-Digest: Sxd3UnhamwFh9N2rAK8+7sCg85ZGwQ5kXuwZ+qD6iDY=
+
+Name: com/mysql/jdbc/.svn/text-base/NotImplemented.class.svn-base
+SHA-256-Digest: dPPxzl49W9Hfkzmk/ntFjpL2gF4u8AeTaFpvsGpocrw=
+
+Name: com/mysql/jdbc/.svn/text-base/LoadBalancingConnectionProxy.class
+ .svn-base
+SHA-256-Digest: n8n34YQ4dJHWNfH8MuiGvoYP3n+YuoikBxO9MGMbscg=
+
+Name: applet/JSGDApplet$12.class
+SHA-256-Digest: ARRED9gNCFYqpH0dgeEgJd65oYg4LZxltGaDWgnt0Ks=
+
+Name: com/mysql/jdbc/MysqlErrorNumbers.class
+SHA-256-Digest: hqb3750Q2KZG8CHjIgMjZHCFtsmnBmo4lcItsSO6HoU=
+
+Name: com/mysql/jdbc/JDBC4UpdatableResultSet.class
+SHA-256-Digest: TzNNs9Rp2mKhMMAPZqfAT/Ri+uL/WPRa4hCRbf21xyk=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/StatementImpl$1.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/SQLError.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/SingleByteCharsetConverter.class.s
+ vn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4PreparedStatementHelper.class
+ .svn-base
+SHA-256-Digest: ZJlSz5ueTvrrhIHE2NGHaIRpLIJakImgKZtOwXTbdd0=
+
+Name: com/mysql/jdbc/Field.class
+SHA-256-Digest: zXNl+mo7cUuCYyP7O6KVm6+RoMujOs7O7Cwssb0zL2g=
+
+Name: com/mysql/jdbc/.svn/prop-base/CallableStatement$CallableStatemen
+ tParamInfo.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/CommunicationsException.class.svn-
+ base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/NamedPipeSocketFactory$RandomAcces
+ sFileInputStream.class.svn-base
+SHA-256-Digest: KEwCwX1HvvTWHomAVnoyOsN/8HvCoWzUjolT2JgzoUY=
+
+Name: com/mysql/jdbc/.svn/prop-base/ResultSetMetaData.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/ResultSetRow.class.svn-base
+SHA-256-Digest: MeM2U6rHl0H1t97aFZ0d53rhhCEV58gDwxawgAc2EM8=
+
+Name: com/mysql/jdbc/.svn/text-base/UpdatableResultSet.class.svn-base
+SHA-256-Digest: Vg3MF5tWBlTzVxLkDKxdgcIRI1iTk0xl645coB/g/Mw=
+
+Name: com/mysql/jdbc/.svn/text-base/StreamingNotifiable.class.svn-base
+SHA-256-Digest: LdVZjdnSKp1V82J2XDgVFXaatfMdhzdAHMGmyVYtBMk=
+
+Name: com/mysql/jdbc/RowDataDynamic.class
+SHA-256-Digest: rlRlmY2oAVAIBqj5362H2eBDc4EYTaVgI246o5iHMxA=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4MysqlSQLXML.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/Util.class
+SHA-256-Digest: W9RAujjIlcmtA+3k7lNvodmYxNYscINsv5sXQUWQ8EE=
+
+Name: com/mysql/jdbc/MysqlDefs.class
+SHA-256-Digest: GJcvaydu//MB5OZxUMqLgWHcL2Navb2QHW7MyS0STlk=
+
+Name: com/mysql/jdbc/.svn/prop-base/OperationNotSupportedException.cla
+ ss.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/NamedPipeSocketFactory$NamedPipeSocket.class
+SHA-256-Digest: fvKNG187ZV+23Kxjm4fkQ1z885ILcddDB7HzC2/9S5A=
+
+Name: com/mysql/jdbc/ConnectionImpl$4.class
+SHA-256-Digest: kAQcH23fSNsTRt18edaYN/AzptrYOkYfcy0iJUB0+Yc=
+
+Name: applet/JSGDApplet$3.class
+SHA-256-Digest: 7eW3GbprIS6gYOycrjrey7/5XcNEADuVbLKklJ9STYg=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4ResultSet.class.svn-base
+SHA-256-Digest: 8lRZ32wu3zxsml4go34x/2QcvvsQXKNrZkE6yxuOB9g=
+
+Name: com/mysql/jdbc/MysqlParameterMetadata.class
+SHA-256-Digest: YAHavTnDrG1NYZunf5Dg2Q4lYMyGRFTlDmk85+KiQqY=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionImpl$6.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4Connection.class.svn-base
+SHA-256-Digest: PQRYXcJwvv6ikXYuqw+aCVxN1Jmq9FNDBCfclHjvzLo=
+
+Name: SecuGen/FDxSDKPro/jni/SGANSITemplateInfo.class
+SHA-256-Digest: bvSsdhUpr2xhwOvXLZjKZn3tYOij4vxyZEivfgz7TnE=
+
+Name: com/mysql/jdbc/.svn/prop-base/RowDataDynamic.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/ServerPreparedStatement$BatchedBin
+ dValues.class.svn-base
+SHA-256-Digest: p3mCpoGDecW0MuUSM1JN+ardFqlQutVB2AKw62rPTTg=
+
+Name: com/mysql/jdbc/.svn/text-base/NamedPipeSocketFactory$NamedPipeSo
+ cket.class.svn-base
+SHA-256-Digest: fvKNG187ZV+23Kxjm4fkQ1z885ILcddDB7HzC2/9S5A=
+
+Name: com/mysql/jdbc/.svn/prop-base/StreamingNotifiable.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ExportControlled.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/MysqlParameterMetadata.class.svn-b
+ ase
+SHA-256-Digest: YAHavTnDrG1NYZunf5Dg2Q4lYMyGRFTlDmk85+KiQqY=
+
+Name: com/mysql/jdbc/ResultSetRow.class
+SHA-256-Digest: MeM2U6rHl0H1t97aFZ0d53rhhCEV58gDwxawgAc2EM8=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4MysqlSQLXML.class.svn-base
+SHA-256-Digest: ITaTPO7AAz7701zM5bbYzhGqjqZe83L5gLxBI9Z93vY=
+
+Name: com/mysql/jdbc/.svn/prop-base/LoadBalancingConnectionProxy$Conne
+ ctionErrorFiringInvocationHandler.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/Buffer.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/WatchableOutputStream.class
+SHA-256-Digest: 0YN1TmbC9D0uhxeRwmKdTGSQ41Zs0JaSfdTC5dLm/p4=
+
+Name: com/mysql/jdbc/SocketFactory.class
+SHA-256-Digest: ABZSsfTzxTFqT2+gsO1phCWZfOQdrRltfpVrCh3zjS4=
+
+Name: com/mysql/jdbc/.svn/prop-base/StatementImpl$CancelTask.class.svn
+ -base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/SingleByteCharsetConverter.class
+SHA-256-Digest: 3i6UlhUauKMc4KbtWtvg8lpV/GKO7ooB33+fB2F3yFg=
+
+Name: org/netbeans/lib/awtextra/.svn/text-base/AbsoluteLayout.class.sv
+ n-base
+SHA-256-Digest: rOYbYBjwwv4E6T7EhyuzvSdI1YtbX4r4OGcnmoigJb4=
+
+Name: com/mysql/jdbc/MysqlSavepoint.class
+SHA-256-Digest: g1IDrtMVV6V12Um6eK/tU8lbnJ9hyWzk7KKaWbWaGWk=
+
+Name: com/mysql/jdbc/.svn/prop-base/ReplicationDriver.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/ConnectionPropertiesImpl$IntegerConnectionPropert
+ y.class
+SHA-256-Digest: K2zQMrfOfNL4VsY7zz20+H0izxAK9NqUd8B3MzN2g8M=
+
+Name: com/mysql/jdbc/JDBC4Connection.class
+SHA-256-Digest: PQRYXcJwvv6ikXYuqw+aCVxN1Jmq9FNDBCfclHjvzLo=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4ClientInfoProvider.class.svn-
+ base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/RandomBalanceStrategy.class.svn-ba
+ se
+SHA-256-Digest: YxCQsl7EeHvEoDlYvLyn+g+UMzvbXQ7R8QDI5IqDmEE=
+
+Name: com/mysql/jdbc/.svn/prop-base/Driver.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/JDBC4CallableStatement.class
+SHA-256-Digest: tCPFa5S8ifSM22GrUKCShm6vstn2oRtb84gN6DO0Gwo=
+
+Name: com/mysql/jdbc/.svn/prop-base/UpdatableResultSet.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/Charsets.properties.svn-base
+SHA-256-Digest: hjowQpx/DFrC1ZKLsOmMOCImnX0An5Cg02ZwpdxiLdY=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4CommentClientInfoProvider.cla
+ ss.svn-base
+SHA-256-Digest: vZtNjfj+ht2WkoifuCf93ugsVwEeI/BTYwFcwbhyeUI=
+
+Name: com/mysql/jdbc/.svn/text-base/RowDataCursor.class.svn-base
+SHA-256-Digest: H1lQgCNlGZUGiRCb2plCUClswbZU9kmUsv2nd4SdU6I=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionImpl.class.svn-base
+SHA-256-Digest: dVuGY/fjeQmoluCVRZ7ImeQGzvnujp8eUofktKOiTFI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionImpl$3.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/RowData.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionPropertiesImpl$Connectio
+ nProperty.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/BlobFromLocator$LocatorInputStream.class
+SHA-256-Digest: yTEjtOmazpMz9xfJWGcsa29H0PWp51sKtn+OrUFKWAE=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4PreparedStatementHelper.class
+ .svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionPropertiesImpl$BooleanCo
+ nnectionProperty.class.svn-base
+SHA-256-Digest: nTtE9qQz/srJh2w6e+TjiDfQKIsqPYC7EpsVEWa2P2I=
+
+Name: com/mysql/jdbc/Buffer.class
+SHA-256-Digest: f2tZhhpxCADZidBjWc2PwodRS0+FdQj9kGbO+Kj5ds4=
+
+Name: com/mysql/jdbc/.svn/prop-base/AssertionFailedException.class.svn
+ -base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$2.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$SingleStringItera
+ tor.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/ByteArrayRow.class.svn-base
+SHA-256-Digest: 1dfD9juXUPqL2iQKtYD38l/VTLpcWhCSR40/3rf85hs=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionPropertiesTransform.clas
+ s.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/StandardSocketFactory.class.svn-ba
+ se
+SHA-256-Digest: h2YBS/NAsJ6ylOlzES2jp9C55bqr82r7JWD6sf8xlD8=
+
+Name: com/mysql/jdbc/ResultSetMetaData.class
+SHA-256-Digest: P1Ndl1dsipnHW5DsG9QLiVgbgG9oKphTMiPrFRF4fqQ=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionImpl$10.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/NotImplemented.class
+SHA-256-Digest: dPPxzl49W9Hfkzmk/ntFjpL2gF4u8AeTaFpvsGpocrw=
+
+Name: com/mysql/jdbc/.svn/prop-base/RowDataCursor.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/Security.class.svn-base
+SHA-256-Digest: gvRxacUEHhc2K6bafqFJgpvkkLrU7gEwDDlwkMf8nis=
+
+Name: com/mysql/jdbc/.svn/text-base/VersionedStringProperty.class.svn-
+ base
+SHA-256-Digest: J8OVEb4UwA85NkOIavlOZ1dlVIhpPSDlLiy+LvyRThs=
+
+Name: com/mysql/jdbc/DatabaseMetaDataUsingInfoSchema.class
+SHA-256-Digest: FaIxYiIf5YM9GspOQRn+4z+uwUtKbuhjbNBCyaK4Wmc=
+
+Name: com/mysql/jdbc/ExportControlled$1.class
+SHA-256-Digest: Bd9tXBcwJz0PevvRuzON4I1/UpCia5JZCdnkepOk+Qc=
+
+Name: com/mysql/jdbc/Clob.class
+SHA-256-Digest: cwJfKPIGQnpN0AUd2lhXbcp8FtnqVaf7Noj56DjVg+A=
+
+Name: com/mysql/jdbc/.svn/prop-base/Statement.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionProperties.class.svn-bas
+ e
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/ServerPreparedStatement$BindValue.class
+SHA-256-Digest: jmPenCY0DkWI0oNtgfJMEagJY6ewbpSCOqflMCdGIdE=
+
+Name: com/mysql/jdbc/.svn/prop-base/NonRegisteringReplicationDriver.cl
+ ass.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/CallableStatement$CallableStatemen
+ tParam.class.svn-base
+SHA-256-Digest: wPOVYhX8vtXFvN5qONd3qqr05N+uTT6Lgrl/w+5zj58=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4Connection$1$1.class.svn-base
+SHA-256-Digest: llad1KGihjHqx2NtFTG5EjmO2T7Q+tCxVgjk8I7Z4Iw=
+
+Name: com/mysql/jdbc/PreparedStatement$EndPoint.class
+SHA-256-Digest: glO2LEQzf1sklXf7hSj5yZEctkuGDVXbOf8IctmiStE=
+
+Name: com/mysql/jdbc/ConnectionPropertiesTransform.class
+SHA-256-Digest: TEahWGdd2tLnDoXkyxDaeygKjz5PohpspUJst+M+5rU=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$7.class.svn-base
+SHA-256-Digest: iPe+WyPMx4vBJjYCmfwyyh3euQrbIVm3ZrdDypMlIR0=
+
+Name: com/mysql/jdbc/.svn/text-base/PingTarget.class.svn-base
+SHA-256-Digest: 9kwpLng0u+ZO444LMyV1V94GvLbcZG1i8+GoHjkgk/M=
+
+Name: com/mysql/jdbc/.svn/text-base/AssertionFailedException.class.svn
+ -base
+SHA-256-Digest: IJpI0zTPRx+rYPEGA+fA9nwlmoT6jPC0inQQsZmK68o=
+
+Name: com/mysql/jdbc/.svn/text-base/MysqlIO.class.svn-base
+SHA-256-Digest: dDjV7Af2S7lx9rnZpdVc0YequoVEJ4Km9LkCTQRyaH4=
+
+Name: com/mysql/jdbc/.svn/text-base/ServerPreparedStatement.class.svn-
+ base
+SHA-256-Digest: ReHR2/QePdX//W9kNzfSpXOUhtZSF5iFfEM4pTijFcY=
+
+Name: com/mysql/jdbc/.svn/prop-base/PingTarget.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/DatabaseMetaData$7.class
+SHA-256-Digest: iPe+WyPMx4vBJjYCmfwyyh3euQrbIVm3ZrdDypMlIR0=
+
+Name: com/mysql/jdbc/ConnectionPropertiesImpl$MemorySizeConnectionProp
+ erty.class
+SHA-256-Digest: GJ5P9tGA439tVq0zkvhZtcdbufWlE3Qmod6AoPKpbMA=
+
+Name: com/mysql/jdbc/.svn/text-base/CallableStatement.class.svn-base
+SHA-256-Digest: vVLkdYNLqyVo4sxg3CH/XWtKpLbC0EAyfRTS+mbGy9c=
+
+Name: com/mysql/jdbc/.svn/prop-base/MysqlErrorNumbers.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/CachedResultSetMetaData.class.svn-
+ base
+SHA-256-Digest: 1LjHwU5t1lI9hKQS3HzeKBCte+tOnpksNDIb0D9iQd0=
+
+Name: com/mysql/jdbc/.svn/text-base/MiniAdmin.class.svn-base
+SHA-256-Digest: DGZ0uu+elgRER1z8llkUdg43qIaHNtaZk9q1GuAsmyg=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$3.class.svn-base
+SHA-256-Digest: mDCgU4674aSZ1U+KQQ9ggPhFtdn+g8FF4TG1vbOHD/w=
+
+Name: com/mysql/jdbc/NamedPipeSocketFactory.class
+SHA-256-Digest: G/P8YHmZcr0hCdFCOSLOjuejNUipzElIQnZ3V37LSh8=
+
+Name: manifest.txt
+SHA-256-Digest: yjGMpBqvn7jIj2hIrkepyTzywtRZ6kynC9CTZU5+fM8=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$IteratorWithClean
+ up.class.svn-base
+SHA-256-Digest: COiRqjVxBPmoYVTVf94gq9dGKIeicEVGzvb6JlKu9mo=
+
+Name: com/mysql/jdbc/.svn/prop-base/ResultSetRow.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionPropertiesImpl$IntegerCo
+ nnectionProperty.class.svn-base
+SHA-256-Digest: K2zQMrfOfNL4VsY7zz20+H0izxAK9NqUd8B3MzN2g8M=
+
+Name: com/mysql/jdbc/NotUpdatable.class
+SHA-256-Digest: IXFPVaKjx7xecE7IMX4lkj0RnMOmdcn49l08DBS9FfY=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionPropertiesImpl$BooleanCo
+ nnectionProperty.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/DocsConnectionPropsHelper.class.sv
+ n-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: applet/JSGDApplet$6.class
+SHA-256-Digest: /QEblpn7bgET1QLKKiPvApnNZGcdveeWH4lcGLxAGRw=
+
+Name: com/mysql/jdbc/.svn/prop-base/SocketFactory.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/Field.class.svn-base
+SHA-256-Digest: zXNl+mo7cUuCYyP7O6KVm6+RoMujOs7O7Cwssb0zL2g=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$1.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/PreparedStatement$EndPoint.class.s
+ vn-base
+SHA-256-Digest: glO2LEQzf1sklXf7hSj5yZEctkuGDVXbOf8IctmiStE=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$5.class.svn-base
+SHA-256-Digest: fR3gGw3x5HgWE1tJlmE/ubRMmrZDXsyeY3PAKL9ZqvI=
+
+Name: com/mysql/jdbc/OperationNotSupportedException.class
+SHA-256-Digest: gGHLWG2V4Wx3tgAaqyQTvXSkEQ9bv7CZyZqvcsrtJaM=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionPropertiesImpl$MemorySiz
+ eConnectionProperty.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/CharsetMapping.class
+SHA-256-Digest: 6DlEZMR/k2EOVTS8P6VGBvpuiuiufHDST027ZytAJik=
+
+Name: com/mysql/jdbc/CachedResultSetMetaData.class
+SHA-256-Digest: 1LjHwU5t1lI9hKQS3HzeKBCte+tOnpksNDIb0D9iQd0=
+
+Name: com/mysql/jdbc/.svn/prop-base/MysqlDataTruncation.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/PreparedStatement.class
+SHA-256-Digest: EsKlToWQkLS0mLoFCcjzWaEI34LEhPNjlUILftTcuVU=
+
+Name: com/mysql/jdbc/.svn/prop-base/NonRegisteringDriver.class.svn-bas
+ e
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: SecuGen/FDxSDKPro/jni/SGFingerInfo.class
+SHA-256-Digest: j00FnJycSdLMVx/1hwUf2fOsbHHeNKj3UH0vTrwjmQs=
+
+Name: com/mysql/jdbc/.svn/prop-base/PreparedStatement$BatchParams.clas
+ s.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionImpl$7.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/JDBC4Connection$1.class
+SHA-256-Digest: s/Mkziwix66wQA/xxr1rfqdHTTemEgaxp16saB0sfOA=
+
+Name: com/mysql/jdbc/DatabaseMetaData$ResultSetIterator.class
+SHA-256-Digest: V+dXkD3Ua3Ff07unPb6BbZlzaym2wMZ7NUtRgdHTfkY=
+
+Name: org/netbeans/lib/awtextra/.svn/entries
+SHA-256-Digest: 5TPdk3V8yhALEXSxn0lLMw8mEVLL8etTR/2Nn3uFQT0=
+
+Name: com/mysql/jdbc/.svn/text-base/NotUpdatable.class.svn-base
+SHA-256-Digest: IXFPVaKjx7xecE7IMX4lkj0RnMOmdcn49l08DBS9FfY=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4NClob.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/ReplicationConnection.class.svn-ba
+ se
+SHA-256-Digest: eXmwPiCZwYzQEjGHKoYA6tNeq0O9D6CCnmFzGvao46s=
+
+Name: com/mysql/jdbc/ReplicationConnection.class
+SHA-256-Digest: eXmwPiCZwYzQEjGHKoYA6tNeq0O9D6CCnmFzGvao46s=
+
+Name: com/mysql/jdbc/.svn/text-base/PacketTooBigException.class.svn-ba
+ se
+SHA-256-Digest: QQN2I/O58kjamSGTNcz2FCwMHvh8pqbhBUAbSxgKpjI=
+
+Name: com/mysql/jdbc/.svn/prop-base/Extension.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: applet/JSGDApplet$5.class
+SHA-256-Digest: ZQSOtm6okgJQ+MyjYRl89b3pAV9O9f8155rgfmTw408=
+
+Name: com/mysql/jdbc/ServerPreparedStatement$BatchedBindValues.class
+SHA-256-Digest: p3mCpoGDecW0MuUSM1JN+ardFqlQutVB2AKw62rPTTg=
+
+Name: com/mysql/jdbc/ParameterBindings.class
+SHA-256-Digest: 4iaNQRKCGtoKEHE8qP6QuMwvuFvO3nINDL4q2AV9gFo=
+
+Name: com/mysql/jdbc/IterateBlock.class
+SHA-256-Digest: g+0BN40kOLHG2XTEl+1sqCGPgA4ydt9Jpwgl0k1ZlKY=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$ResultSetIterator
+ .class.svn-base
+SHA-256-Digest: V+dXkD3Ua3Ff07unPb6BbZlzaym2wMZ7NUtRgdHTfkY=
+
+Name: com/mysql/jdbc/CompressedInputStream.class
+SHA-256-Digest: THfAAAeZjuZ1u7ImjlOdQCDlrhUGpVn6+pzSGlzkSww=
+
+Name: com/mysql/jdbc/.svn/text-base/StatementImpl$1.class.svn-base
+SHA-256-Digest: Na2ftoqUaTn9MZfrhNICHyCdAsMNELaRsYb/IpxzRZs=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$TypeDescriptor.cl
+ ass.svn-base
+SHA-256-Digest: Q24bZGmYrXC0mExrAzCEvqg8eygqG1c7uVbUmx3n610=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$5.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: org/netbeans/lib/awtextra/.svn/prop-base/AbsoluteLayout.class.sv
+ n-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: applet/JSGDApplet$7.class
+SHA-256-Digest: uWuAiXeaPq8+8sr2r+Ce+SVFkotrOXOoIwUzheMqXlQ=
+
+Name: com/mysql/jdbc/.svn/prop-base/CharsetMapping.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/MysqlSavepoint.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ResultSetInternalMethods.class.svn
+ -base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/JDBC4Connection$1$1.class
+SHA-256-Digest: llad1KGihjHqx2NtFTG5EjmO2T7Q+tCxVgjk8I7Z4Iw=
+
+Name: com/mysql/jdbc/.svn/text-base/ResultSetMetaData.class.svn-base
+SHA-256-Digest: P1Ndl1dsipnHW5DsG9QLiVgbgG9oKphTMiPrFRF4fqQ=
+
+Name: com/mysql/jdbc/Util$RandStructcture.class
+SHA-256-Digest: 2naUbR1Fd6iPLlLmseQ/rRIu0PVG0d86/1ncX8UU2h0=
+
+Name: com/mysql/jdbc/Security.class
+SHA-256-Digest: gvRxacUEHhc2K6bafqFJgpvkkLrU7gEwDDlwkMf8nis=
+
+Name: com/mysql/jdbc/NamedPipeSocketFactory$RandomAccessFileInputStrea
+ m.class
+SHA-256-Digest: KEwCwX1HvvTWHomAVnoyOsN/8HvCoWzUjolT2JgzoUY=
+
+Name: com/mysql/jdbc/DatabaseMetaData$9.class
+SHA-256-Digest: 5M1MXBCUV2G65hOp3r0ifgh4VuCm+aFTzkmAjYbrdpw=
+
+Name: com/mysql/jdbc/DatabaseMetaData$3.class
+SHA-256-Digest: mDCgU4674aSZ1U+KQQ9ggPhFtdn+g8FF4TG1vbOHD/w=
+
+Name: com/mysql/jdbc/.svn/text-base/Buffer.class.svn-base
+SHA-256-Digest: f2tZhhpxCADZidBjWc2PwodRS0+FdQj9kGbO+Kj5ds4=
+
+Name: com/mysql/jdbc/.svn/text-base/SocketFactory.class.svn-base
+SHA-256-Digest: ABZSsfTzxTFqT2+gsO1phCWZfOQdrRltfpVrCh3zjS4=
+
+Name: org/netbeans/lib/awtextra/AbsoluteLayout.class
+SHA-256-Digest: rOYbYBjwwv4E6T7EhyuzvSdI1YtbX4r4OGcnmoigJb4=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionImpl$10.class.svn-base
+SHA-256-Digest: d6jCw4NTYHeAY8UZnFsvwdJfoW6UE3PMrRYmZMhSRcc=
+
+Name: com/mysql/jdbc/.svn/prop-base/ParameterBindings.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/ParameterBindings.class.svn-base
+SHA-256-Digest: 4iaNQRKCGtoKEHE8qP6QuMwvuFvO3nINDL4q2AV9gFo=
+
+Name: SecuGen/FDxSDKPro/jni/SGFDxDeviceName.class
+SHA-256-Digest: zMy9hK4/jhrPHyUNzlkRJw1RLewu3O+m26eQ+ZlJC6E=
+
+Name: com/mysql/jdbc/ServerPreparedStatement.class
+SHA-256-Digest: ReHR2/QePdX//W9kNzfSpXOUhtZSF5iFfEM4pTijFcY=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$8.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/CompressedInputStream.class.svn-ba
+ se
+SHA-256-Digest: THfAAAeZjuZ1u7ImjlOdQCDlrhUGpVn6+pzSGlzkSww=
+
+Name: com/mysql/jdbc/StatementImpl$1.class
+SHA-256-Digest: Na2ftoqUaTn9MZfrhNICHyCdAsMNELaRsYb/IpxzRZs=
+
+Name: com/mysql/jdbc/.svn/prop-base/PacketTooBigException.class.svn-ba
+ se
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: SecuGen/FDxSDKPro/jni/SGPPPortAddr.class
+SHA-256-Digest: WRsZ5NVGe4H8Ljmsqb3PgHPEZ0easNFl+YrjWghZgGs=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionImpl$2.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/ResultSetImpl.class
+SHA-256-Digest: lAkLDaZBS8FX4BQcAvHZnObjnyJbkyhpN4dhONZ5cVA=
+
+Name: com/mysql/jdbc/.svn/prop-base/WatchableOutputStream.class.svn-ba
+ se
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/ConnectionPropertiesImpl$1.class
+SHA-256-Digest: km7W3APSCVU6sTNZGoChIo0nTwKG0Qycx+It5bXH3KQ=
+
+Name: com/mysql/jdbc/.svn/text-base/CharsetMapping.class.svn-base
+SHA-256-Digest: 6DlEZMR/k2EOVTS8P6VGBvpuiuiufHDST027ZytAJik=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionPropertiesImpl$1.class.s
+ vn-base
+SHA-256-Digest: km7W3APSCVU6sTNZGoChIo0nTwKG0Qycx+It5bXH3KQ=
+
+Name: com/mysql/jdbc/Connection.class
+SHA-256-Digest: wYBQdcu8Ko/PlpOIrjFNklGiGk+7Fu0FpvGBE+ip4rU=
+
+Name: com/mysql/jdbc/.svn/text-base/ServerPreparedStatement$BindValue.
+ class.svn-base
+SHA-256-Digest: jmPenCY0DkWI0oNtgfJMEagJY6ewbpSCOqflMCdGIdE=
+
+Name: com/mysql/jdbc/.svn/text-base/Util.class.svn-base
+SHA-256-Digest: W9RAujjIlcmtA+3k7lNvodmYxNYscINsv5sXQUWQ8EE=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4DatabaseMetaData.class.svn-ba
+ se
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/JDBC4MysqlSQLXML$SimpleSaxToReader.class
+SHA-256-Digest: aY1S+K4oBBs/NIWA8TCvmPiyDxGGtc2qoQ6Jc9kUki0=
+
+Name: com/mysql/jdbc/ConnectionImpl$2.class
+SHA-256-Digest: Yl/rFnTQBU2NntE1Pe9vQqY5lJ9QYNb2IyBGsUEtLYY=
+
+Name: com/mysql/jdbc/.svn/prop-base/CallableStatement.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionImpl$9.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/JDBC4ClientInfoProvider.class
+SHA-256-Digest: qsT9Nk/RXeTiTM4C/dhm+4mqDqjOEQXHw1cdD348yPo=
+
+Name: com/mysql/jdbc/DocsConnectionPropsHelper.class
+SHA-256-Digest: iVRt9+xqPFhIvzPxsgMZCqoEpwdZDVjcveqLN8UGmYU=
+
+Name: com/mysql/jdbc/EscapeProcessor.class
+SHA-256-Digest: crc5nLKQGvitOf2vWGohXd5xL7h5nO8PsUlYQqA2R/s=
+
+Name: com/mysql/jdbc/.svn/prop-base/ServerPreparedStatement.class.svn-
+ base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: org/netbeans/lib/awtextra/.svn/text-base/AbsoluteConstraints.cla
+ ss.svn-base
+SHA-256-Digest: r0FphLXCdos3/K0GbN5ZkoAQ1Osd1i5LsiFu+KDCAMw=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4ClientInfoProvider.class.svn-
+ base
+SHA-256-Digest: qsT9Nk/RXeTiTM4C/dhm+4mqDqjOEQXHw1cdD348yPo=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionPropertiesImpl$IntegerCo
+ nnectionProperty.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/Clob.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: SecuGen/FDxSDKPro/jni/SGFDxErrorCode.class
+SHA-256-Digest: LFqrneZalphUcQL+dPIorMQAQpxmyOENEU2/CQPdkdo=
+
+Name: com/mysql/jdbc/.svn/text-base/RowDataKeyset.class.svn-base
+SHA-256-Digest: jAjUuG4hWbCztCBJNxYvn4s7qd1thwsrQNXT1CbP1YM=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4Connection$1.class.svn-base
+SHA-256-Digest: s/Mkziwix66wQA/xxr1rfqdHTTemEgaxp16saB0sfOA=
+
+Name: com/mysql/jdbc/.svn/text-base/EscapeProcessor.class.svn-base
+SHA-256-Digest: crc5nLKQGvitOf2vWGohXd5xL7h5nO8PsUlYQqA2R/s=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionImpl$9.class.svn-base
+SHA-256-Digest: MrPP2snQmmj9hInOlxXq6IFii+/JO+WpVuXp4W9vacU=
+
+Name: com/mysql/jdbc/PreparedStatement$ParseInfo.class
+SHA-256-Digest: WUg4MGYtGh0Cu96pM6Wf+BmQ1Rk+lJDkDVchECSl56k=
+
+Name: com/mysql/jdbc/.svn/text-base/DocsConnectionPropsHelper.class.sv
+ n-base
+SHA-256-Digest: iVRt9+xqPFhIvzPxsgMZCqoEpwdZDVjcveqLN8UGmYU=
+
+Name: com/mysql/jdbc/TimeUtil.class
+SHA-256-Digest: 4lykrWxhTgEuL1EN5/hr1RD7vS3YFcmb9yagCcnyREg=
+
+Name: com/mysql/jdbc/.svn/prop-base/RowDataKeyset.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/CallableStatement$CallableStatementParamInfoJDBC3
+ .class
+SHA-256-Digest: R5wV5k0BdnlcJpw5KFlA7imJo8zGHwB0OEtX+cLfbHs=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$4.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: applet/JSGDApplet$2.class
+SHA-256-Digest: 9CXmWxwaC8zI0e9i5qVaECh9xmmoMusC/+n9I715h9g=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4Connection.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/BlobFromLocator.class
+SHA-256-Digest: oHPDvYIUoU5BndiXoBK29KUIz9gktQ5axp0NxFmnytA=
+
+Name: com/mysql/jdbc/DatabaseMetaData$5.class
+SHA-256-Digest: fR3gGw3x5HgWE1tJlmE/ubRMmrZDXsyeY3PAKL9ZqvI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ServerPreparedStatement$BindValue.
+ class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/EscapeProcessorResult.class.svn-ba
+ se
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/ConnectionPropertiesImpl.class
+SHA-256-Digest: nglBA6hj3PVnUW+GlYic/ndRL2h6A+9VxcKzzm/S8Jo=
+
+Name: com/mysql/jdbc/.svn/prop-base/Security.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/StringUtils.class
+SHA-256-Digest: GUerb1irF96cOHCdb2qferKxkpSm17UbuymBGKK2bX4=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4ClientInfoProviderSP.class.sv
+ n-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/VersionedStringProperty.class.svn-
+ base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/EscapeProcessor.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/CallableStatement$CallableStatemen
+ tParam.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/ReplicationDriver.class
+SHA-256-Digest: orQGsGeeljoc7/StwTjSsEO1RXCj6zYdtcCgNFNCGmA=
+
+Name: com/mysql/jdbc/.svn/text-base/StatementImpl$CancelTask.class.svn
+ -base
+SHA-256-Digest: xX9ltYvoG2fEMV4f/vqmVn/+4Y8PBeRu3YODo7er9DM=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$TypeDescriptor.cl
+ ass.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/LicenseConfiguration.class.svn-bas
+ e
+SHA-256-Digest: 6qD49uOCfp/dWhtn4SYLxbAmoEhd/R3iamhzELe2+Bc=
+
+Name: com/mysql/jdbc/ConnectionImpl$5.class
+SHA-256-Digest: 03ho0CzU1JpAUe9GznM8Reg+VbL1N317KkON5CpfKDI=
+
+Name: com/mysql/jdbc/JDBC4NClob.class
+SHA-256-Digest: txNncrtsLw9nUoJk8AFFO02euACQdzBbbdqjeFHGvnE=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionPropertiesImpl.class.svn
+ -base
+SHA-256-Digest: nglBA6hj3PVnUW+GlYic/ndRL2h6A+9VxcKzzm/S8Jo=
+
+Name: com/mysql/jdbc/.svn/prop-base/StatementImpl.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ExportControlled$1.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionPropertiesImpl$1.class.s
+ vn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/RowDataStatic.class.svn-base
+SHA-256-Digest: nafntSElua2mSwz1Pc1feSKRe2Zqv7CnBQPYBP2hbwI=
+
+Name: com/mysql/jdbc/.svn/text-base/WatchableOutputStream.class.svn-ba
+ se
+SHA-256-Digest: 0YN1TmbC9D0uhxeRwmKdTGSQ41Zs0JaSfdTC5dLm/p4=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionPropertiesImpl$StringCon
+ nectionProperty.class.svn-base
+SHA-256-Digest: zV9LrRQN4RgBHlcDRxMEVwKSnVv6T4xbvgjASwidArw=
+
+Name: com/mysql/jdbc/DatabaseMetaData$4.class
+SHA-256-Digest: UKtWvxwwNS9242skyOaPTbEfgivfjLPDpbKlh/M0q/o=
+
+Name: com/mysql/jdbc/.svn/text-base/StatementImpl.class.svn-base
+SHA-256-Digest: PQ3pkUkz2aodP9LJrrJsMoNfYhxNvX2hjH9+rRLxgxs=
+
+Name: com/mysql/jdbc/.svn/text-base/BlobFromLocator.class.svn-base
+SHA-256-Digest: oHPDvYIUoU5BndiXoBK29KUIz9gktQ5axp0NxFmnytA=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionPropertiesImpl$MemorySiz
+ eConnectionProperty.class.svn-base
+SHA-256-Digest: GJ5P9tGA439tVq0zkvhZtcdbufWlE3Qmod6AoPKpbMA=
+
+Name: com/mysql/jdbc/.svn/prop-base/Constants.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$6.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4MysqlSQLXML$SimpleSaxToReader
+ .class.svn-base
+SHA-256-Digest: aY1S+K4oBBs/NIWA8TCvmPiyDxGGtc2qoQ6Jc9kUki0=
+
+Name: com/mysql/jdbc/EscapeProcessorResult.class
+SHA-256-Digest: yewa7RF0h658qIjjnHiEw5bE0NSrodMVwDOz5+G7ric=
+
+Name: com/mysql/jdbc/WatchableWriter.class
+SHA-256-Digest: w0kyQqaFRIUD2V4Qfz11Hgx42sYHViZ6ODaNZyAY+u4=
+
+Name: com/mysql/jdbc/.svn/prop-base/CallableStatement$CallableStatemen
+ tParamInfoJDBC3.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionImpl$4.class.svn-base
+SHA-256-Digest: kAQcH23fSNsTRt18edaYN/AzptrYOkYfcy0iJUB0+Yc=
+
+Name: com/mysql/jdbc/SQLError.class
+SHA-256-Digest: SKi8Z21rLkUxPVQfQiFychBIpupBEiiqPR9Gu9vIBRw=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$ResultSetIterator
+ .class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/JDBC4ClientInfoProviderSP.class
+SHA-256-Digest: RKM/ClskIbI9hhc3Y9f/T4UwaxCzcFL4uloQGPn3B70=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4DatabaseMetaDataUsingInfoSche
+ ma.class.svn-base
+SHA-256-Digest: 6vhep8tmxNMKqVfIehCHmDZik4TjXjp5Pbu++2Jzzdg=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$8.class.svn-base
+SHA-256-Digest: hqW9lzssXAn6hOB7CgKTqX+wJlE7y0LHuIKLJ3JozH8=
+
+Name: com/mysql/jdbc/JDBC4CommentClientInfoProvider.class
+SHA-256-Digest: vZtNjfj+ht2WkoifuCf93ugsVwEeI/BTYwFcwbhyeUI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionPropertiesImpl$StringCon
+ nectionProperty.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/SQLError.class.svn-base
+SHA-256-Digest: SKi8Z21rLkUxPVQfQiFychBIpupBEiiqPR9Gu9vIBRw=
+
+Name: com/mysql/jdbc/DatabaseMetaData$6.class
+SHA-256-Digest: /xCF3YCDSZQAX/opznHJJi30EXTlBgErMCNUN9RRYn4=
+
+Name: com/mysql/jdbc/RowData.class
+SHA-256-Digest: fwAuEU9JSjt2kaAax0IGA2k8zhhdMKYr0T5EeWBJpW8=
+
+Name: com/mysql/jdbc/.svn/prop-base/JDBC4CommentClientInfoProvider.cla
+ ss.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/NonRegisteringReplicationDriver.cl
+ ass.svn-base
+SHA-256-Digest: A4/vv6F2BKhGR6AIuwCgHZMmNVuKx7r6Rm9zJLYC338=
+
+Name: com/mysql/jdbc/.svn/text-base/RowData.class.svn-base
+SHA-256-Digest: fwAuEU9JSjt2kaAax0IGA2k8zhhdMKYr0T5EeWBJpW8=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionImpl$CompoundCacheKey.cl
+ ass.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/Statement.class
+SHA-256-Digest: 0JB/AVCJjuTwWChsR0e2CXOBcff8R/WQ/bHFgeuRkEk=
+
+Name: com/mysql/jdbc/DatabaseMetaData$LocalAndReferencedColumns.class
+SHA-256-Digest: vXs4gcXuopkfTQkIdZxRDdEiysVFo3n2IieWJl1OZxY=
+
+Name: com/mysql/jdbc/.svn/prop-base/NotImplemented.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/LoadBalancingConnectionProxy.class
+ .svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/MiniAdmin.class
+SHA-256-Digest: DGZ0uu+elgRER1z8llkUdg43qIaHNtaZk9q1GuAsmyg=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionPropertiesImpl$Connectio
+ nProperty.class.svn-base
+SHA-256-Digest: TEqiPtWfSQtUa8Cr+MnZMsiTV7AdPIfndPENaZ2FRO0=
+
+Name: com/mysql/jdbc/.svn/text-base/MysqlDataTruncation.class.svn-base
+SHA-256-Digest: LMAYW+cRmynjD03u2hAfauB8VV7g7PrhGS74VZR/5iE=
+
+Name: com/mysql/jdbc/RowDataCursor.class
+SHA-256-Digest: H1lQgCNlGZUGiRCb2plCUClswbZU9kmUsv2nd4SdU6I=
+
+Name: com/mysql/jdbc/NamedPipeSocketFactory$RandomAccessFileOutputStre
+ am.class
+SHA-256-Digest: 0in2kRtgy7IqxXwfrL9FzjpvFx0dONyHpt6TS2baVD0=
+
+Name: com/mysql/jdbc/JDBC4PreparedStatement.class
+SHA-256-Digest: nWd32/FHXqXt+nSmjJ5k1Qr1I4ibV6cDa08QVOvyvCA=
+
+Name: com/mysql/jdbc/.svn/prop-base/NotUpdatable.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: SecuGen/FDxSDKPro/jni/SGFingerPosition.class
+SHA-256-Digest: s6UK2mo+97BGfAQXWxrwILfX8vj3z/wQ/cTuUVI/x9E=
+
+Name: com/mysql/jdbc/ConnectionLifecycleInterceptor.class
+SHA-256-Digest: DhfReuzVM5nqPcIncvGnn+FKfUbxrNZfYpbzBNBrmEE=
+
+Name: com/mysql/jdbc/DatabaseMetaData$2.class
+SHA-256-Digest: aH2EAmoANay04wKIXe5Y169fcILLzoPI8kEzvVTtd64=
+
+Name: com/mysql/jdbc/.svn/text-base/LocalizedErrorMessages.properties.
+ svn-base
+SHA-256-Digest: eaSp9kDp+qWKt8QlBeRoEa/vA1CbKgD39OO/hVt5Hcs=
+
+Name: com/mysql/jdbc/.svn/prop-base/MysqlDefs.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/BlobFromLocator.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/PreparedStatement$BatchParams.clas
+ s.svn-base
+SHA-256-Digest: DQSeqK/nTfUyHcpnMydOoIfPfTpKaPU35HzPawS0XQY=
+
+Name: com/mysql/jdbc/PreparedStatement$EmulatedPreparedStatementBindin
+ gs.class
+SHA-256-Digest: T+7RK7NlCX7gaV66lEj56H7pcawwtZfOQB61pItSHBw=
+
+Name: SecuGen/FDxSDKPro/jni/JSGFPLib.class
+SHA-256-Digest: mIycuKUgSbZZZp8crs6+FyJBTELPONBXisd43QL6+3A=
+
+Name: com/mysql/jdbc/JDBC4DatabaseMetaData.class
+SHA-256-Digest: t8fIIaM8RXAw1MgIo+w2y1yME1Jt3JhZuWZq6LdF4aY=
+
+Name: com/mysql/jdbc/.svn/prop-base/RowDataDynamic$OperationNotSupport
+ edException.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/CachedResultSetMetaData.class.svn-
+ base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/DatabaseMetaData$3.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/PreparedStatement$BatchParams.class
+SHA-256-Digest: DQSeqK/nTfUyHcpnMydOoIfPfTpKaPU35HzPawS0XQY=
+
+Name: com/mysql/jdbc/.svn/prop-base/MiniAdmin.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/StreamingNotifiable.class
+SHA-256-Digest: LdVZjdnSKp1V82J2XDgVFXaatfMdhzdAHMGmyVYtBMk=
+
+Name: com/mysql/jdbc/ByteArrayRow.class
+SHA-256-Digest: 1dfD9juXUPqL2iQKtYD38l/VTLpcWhCSR40/3rf85hs=
+
+Name: com/mysql/jdbc/.svn/prop-base/PreparedStatement$ParseInfo.class.
+ svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/PreparedStatement$EmulatedPrepared
+ StatementBindings.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionPropertiesImpl.class.svn
+ -base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/ConnectionImpl$6.class
+SHA-256-Digest: sM/3bjcbRA0ERSNSqh8Ytp+du9rP1S3jn2NxT8xYVBc=
+
+Name: com/mysql/jdbc/LocalizedErrorMessages.properties
+SHA-256-Digest: eaSp9kDp+qWKt8QlBeRoEa/vA1CbKgD39OO/hVt5Hcs=
+
+Name: com/mysql/jdbc/.svn/prop-base/Util$RandStructcture.class.svn-bas
+ e
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/ConnectionImpl$8.class
+SHA-256-Digest: QtTGOL5FLjNtImF9SV/BTorcAxaBLQgvA5woCDrygYQ=
+
+Name: com/mysql/jdbc/MysqlDataTruncation.class
+SHA-256-Digest: LMAYW+cRmynjD03u2hAfauB8VV7g7PrhGS74VZR/5iE=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaDataUsingInfoSchema.cl
+ ass.svn-base
+SHA-256-Digest: FaIxYiIf5YM9GspOQRn+4z+uwUtKbuhjbNBCyaK4Wmc=
+
+Name: com/mysql/jdbc/.svn/prop-base/MysqlIO.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/BlobFromLocator$LocatorInputStream
+ .class.svn-base
+SHA-256-Digest: yTEjtOmazpMz9xfJWGcsa29H0PWp51sKtn+OrUFKWAE=
+
+Name: com/mysql/jdbc/JDBC4MysqlSQLXML.class
+SHA-256-Digest: ITaTPO7AAz7701zM5bbYzhGqjqZe83L5gLxBI9Z93vY=
+
+Name: com/mysql/jdbc/.svn/prop-base/BalanceStrategy.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/MysqlSavepoint.class.svn-base
+SHA-256-Digest: g1IDrtMVV6V12Um6eK/tU8lbnJ9hyWzk7KKaWbWaGWk=
+
+Name: com/mysql/jdbc/.svn/text-base/EscapeTokenizer.class.svn-base
+SHA-256-Digest: Sxd3UnhamwFh9N2rAK8+7sCg85ZGwQ5kXuwZ+qD6iDY=
+
+Name: com/mysql/jdbc/.svn/text-base/Constants.class.svn-base
+SHA-256-Digest: YuUkgPchg6kOLGL3mrVP1jDRQw3wFtZ9sT/vvd4DRyo=
+
+Name: com/mysql/jdbc/.svn/text-base/IterateBlock.class.svn-base
+SHA-256-Digest: g+0BN40kOLHG2XTEl+1sqCGPgA4ydt9Jpwgl0k1ZlKY=
+
+Name: com/mysql/jdbc/.svn/prop-base/ConnectionLifecycleInterceptor.cla
+ ss.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData$LocalAndReference
+ dColumns.class.svn-base
+SHA-256-Digest: vXs4gcXuopkfTQkIdZxRDdEiysVFo3n2IieWJl1OZxY=
+
+Name: com/mysql/jdbc/CallableStatement$CallableStatementParamInfo.clas
+ s
+SHA-256-Digest: T2MWmzX3bQ/gFytIf6n158T8FgOwtdWjuF8ZWh9lXYY=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4UpdatableResultSet.class.svn-
+ base
+SHA-256-Digest: TzNNs9Rp2mKhMMAPZqfAT/Ri+uL/WPRa4hCRbf21xyk=
+
+Name: applet/JSGDApplet.class
+SHA-256-Digest: St1zVNDMWRvGwc/lrCOg+hlRIXIySVILhM3f/lBqI/Q=
+
+Name: com/mysql/jdbc/.svn/text-base/PreparedStatement.class.svn-base
+SHA-256-Digest: EsKlToWQkLS0mLoFCcjzWaEI34LEhPNjlUILftTcuVU=
+
+Name: com/mysql/jdbc/.svn/text-base/JDBC4ServerPreparedStatement.class
+ .svn-base
+SHA-256-Digest: 333GyXAoVgwvv2rplgMlt5BxdR16O5dYKySt7ybxIAU=
+
+Name: com/mysql/jdbc/.svn/text-base/RowDataDynamic.class.svn-base
+SHA-256-Digest: rlRlmY2oAVAIBqj5362H2eBDc4EYTaVgI246o5iHMxA=
+
+Name: com/mysql/jdbc/.svn/prop-base/MysqlParameterMetadata.class.svn-b
+ ase
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/text-base/NamedPipeSocketFactory$RandomAcces
+ sFileOutputStream.class.svn-base
+SHA-256-Digest: 0in2kRtgy7IqxXwfrL9FzjpvFx0dONyHpt6TS2baVD0=
+
+Name: com/mysql/jdbc/RowDataKeyset.class
+SHA-256-Digest: jAjUuG4hWbCztCBJNxYvn4s7qd1thwsrQNXT1CbP1YM=
+
+Name: com/mysql/jdbc/ConnectionPropertiesImpl$ConnectionProperty.class
+SHA-256-Digest: TEqiPtWfSQtUa8Cr+MnZMsiTV7AdPIfndPENaZ2FRO0=
+
+Name: com/mysql/jdbc/RowDataStatic.class
+SHA-256-Digest: nafntSElua2mSwz1Pc1feSKRe2Zqv7CnBQPYBP2hbwI=
+
+Name: com/mysql/jdbc/PingTarget.class
+SHA-256-Digest: 9kwpLng0u+ZO444LMyV1V94GvLbcZG1i8+GoHjkgk/M=
+
+Name: com/mysql/jdbc/MysqlIO.class
+SHA-256-Digest: dDjV7Af2S7lx9rnZpdVc0YequoVEJ4Km9LkCTQRyaH4=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionPropertiesTransform.clas
+ s.svn-base
+SHA-256-Digest: TEahWGdd2tLnDoXkyxDaeygKjz5PohpspUJst+M+5rU=
+
+Name: com/mysql/jdbc/.svn/text-base/WriterWatcher.class.svn-base
+SHA-256-Digest: JVAYepmHtVjXBtBFum/hpgIfyWq0EbJX1Aejc+MmKSE=
+
+Name: com/mysql/jdbc/LoadBalancingConnectionProxy.class
+SHA-256-Digest: n8n34YQ4dJHWNfH8MuiGvoYP3n+YuoikBxO9MGMbscg=
+
+Name: org/netbeans/lib/awtextra/.svn/prop-base/AbsoluteConstraints.cla
+ ss.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/.svn/prop-base/ByteArrayRow.class.svn-base
+SHA-256-Digest: 679+iADDRGvDoZX6U1c73hBzsL91gaYUNy8TkakobQI=
+
+Name: com/mysql/jdbc/DatabaseMetaData.class
+SHA-256-Digest: 6hMkyWJTPpDr3UiueVhmubyFEYjepYzv/i7pKG5eETo=
+
+Name: com/mysql/jdbc/Blob.class
+SHA-256-Digest: 8TSTBhzur5yBlVuwnm6xnnj+VxDQRmzEuj4rV9UYsQM=
+
+Name: com/mysql/jdbc/.svn/text-base/CommunicationsException.class.svn-
+ base
+SHA-256-Digest: 0j91XdeWpasXs64hiHiGUdUZH4tWUipyA0jqPucZFH4=
+
+Name: com/mysql/jdbc/.svn/text-base/StringUtils.class.svn-base
+SHA-256-Digest: GUerb1irF96cOHCdb2qferKxkpSm17UbuymBGKK2bX4=
+
+Name: com/mysql/jdbc/OutputStreamWatcher.class
+SHA-256-Digest: DUEUXk1Ayy+CsBOXobw0/3fepg4caXVDegNvUA/9O7c=
+
+Name: com/mysql/jdbc/StatementImpl.class
+SHA-256-Digest: PQ3pkUkz2aodP9LJrrJsMoNfYhxNvX2hjH9+rRLxgxs=
+
+Name: com/mysql/jdbc/Extension.class
+SHA-256-Digest: DGMamaxdV0FZBPU/JDQBTbuG3Hp5s5u9WIX68A65C0g=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionImpl$1.class.svn-base
+SHA-256-Digest: 7lp9MIoRpqweKWtksiHt8EhWhk4wndwmucCsGAnjJ+w=
+
+Name: com/mysql/jdbc/.svn/text-base/ResultSetInternalMethods.class.svn
+ -base
+SHA-256-Digest: q+7jPVnToilnP77ur6iL2/s93J6MahnU9hAMAxsld3Q=
+
+Name: com/mysql/jdbc/Driver.class
+SHA-256-Digest: 80+BO/ceUxrWoIfhMpRp3cvsaQwWbeOpJR42YcRzXfk=
+
+Name: com/mysql/jdbc/BalanceStrategy.class
+SHA-256-Digest: mKLnyA9Lxqx+hxqitVaR0GgLIzbFEJyMane2je7PWKc=
+
+Name: com/mysql/jdbc/.svn/text-base/ConnectionProperties.class.svn-bas
+ e
+SHA-256-Digest: RArxMv9e54tvAnAouww58Cx6/QcRcBX05xNWKVUd9Ng=
+
+Name: com/mysql/jdbc/.svn/text-base/DatabaseMetaData.class.svn-base
+SHA-256-Digest: 6hMkyWJTPpDr3UiueVhmubyFEYjepYzv/i7pKG5eETo=
+
+Name: com/mysql/jdbc/.svn/text-base/Messages.class.svn-base
+SHA-256-Digest: rR3/dc5RPJAE+HA8DgDBnSbV1cgugdA+w7XnS7rpcAA=

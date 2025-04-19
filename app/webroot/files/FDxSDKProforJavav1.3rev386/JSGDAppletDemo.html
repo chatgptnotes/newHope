@@ -1,0 +1,48 @@
+<html>
+<head>
+<title>
+JSGD Applet Demo
+</title>
+</head>
+<body>
+<center>
+<applet
+  code     = "applet.JSGDApplet.class"
+  name     = "JSGDApplet"
+  archive  = "AppletDemo.jar"
+  width    = "550"
+  height   = "550"
+  hspace   = "0"
+  vspace   = "0"
+  align    = "middle">
+
+<param name="number" id="uid" value="" >
+</applet>
+</center>
+</body>
+
+<script type="text/javascript">
+function querySt(Key) {
+    var url = window.location.href;
+    KeysValues = url.split(/[\?&]+/);
+    for (i = 0; i < KeysValues.length; i++) {
+            KeyValue= KeysValues[i].split("=");
+            if (KeyValue[0] == Key) {
+                return KeyValue[1];
+        }
+    }
+}
+
+function GetQString(Key) {
+
+    if (querySt("sid")) {
+         var value = querySt("sid");
+         alert(value);
+        document.getElementById("uid").value=value;
+		alert(document.getElementById("uid").value);
+		
+    }
+ }
+</script>
+
+</html>

@@ -1,0 +1,3 @@
+migrate the bo the file at the time in crearte a location . use location a a database name 
+
+helping video for multitenancy : https://drive.google.com/file/d/13CfHDRHWk7o-aIgC07ajpfIHfF5Qnr_2/view

@@ -1,0 +1,1 @@
+<?php echo $this->Form->input('OtItemQuantity.ot_item_id',array('class' => 'validate[required,custom[mandatory-select]]', 'id'=> 'ot_item_id', 'empty'=>__('Select OT Item'),'options'=> $otitems, 'label' => false));?>

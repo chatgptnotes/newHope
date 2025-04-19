@@ -1,0 +1,12 @@
+applet.JSGDApplet$8
+applet.JSGDApplet$11
+applet.JSGDApplet
+applet.JSGDApplet$9
+applet.JSGDApplet$2
+applet.JSGDApplet$3
+applet.JSGDApplet$1
+applet.JSGDApplet$6
+applet.JSGDApplet$7
+applet.JSGDApplet$10
+applet.JSGDApplet$4
+applet.JSGDApplet$5

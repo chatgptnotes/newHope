@@ -1,0 +1,39 @@
+/* CSS Document */
+*{margin:0px; padding:0px;}
+.clear{clear:both;}
+.main_container{margin:0px; padding:0px; }
+.header_navigation li{float:left;list-style:none; text-decoration:none; margin-right:6px; border-right:1px solid;}
+.header_navigation li a{text-decoration:none;color:#000; font-weight:bold}
+.ul{float:left}
+.ul li{float:left; list-style:none; text-decoration:none;width:92px}
+.ul li a{text-decoration:none;};
+.span{float:left;	}
+
+.header{background:#0066FF; width:100%;}
+.sub_header{background:#0066FF; width:100%; margin:0px; padding:0px;}
+
+.main_div{width:100%;margin-top:3px;}
+.left_div{width:50%; float:left;}
+.left_div ul li{list-style:none}
+.left_inner_leftdiv1{width:100%; height:90px; float:left; border:1px solid #333333; margin:3px;}
+.left_inner_leftdiv2{width:100%; height:820px; float:left; margin:3px;}
+.left_inner_leftdiv3{}
+.inner_leftinner{width:100%;margin:3px;float:left;}
+.inner_first1{width:100%; float:left;}
+.inner_left1{background:#fff;width:30%; float:left; border:1px solid #333333}
+.inner_right1{background:#fff;width:68%;float:right}
+
+
+.inner_leftinner3{background:#fff;width:30%; float:left;overflow-y:scroll;border:1px solid #333333}
+
+.right_div{width:50%; float:right}
+.inner_right1{ float:left;}
+.right_inner2{background:#9999FF; width:96%; float:left;margin:3px; border:1px solid #333333}
+.inner_right_inner1{width:50%; float:left}
+.inner_right_inner2{width:50%;float:right;}
+.right_inner3{width:100%;float:left;margin:3px}
+.inner_right_inner31{width:48%; float:left;border:1px solid #333333;height: 595px;}
+.inner_right_inner32{background:#CCCCFF ;width:48%; float:right;border:1px solid #333333}
+.LabTherapyHead{font-size: 14px;
+    font-weight: bold;
+}

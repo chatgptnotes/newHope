@@ -1,0 +1,235 @@
+* {
+	padding: 0px;
+	margin: 0px;
+	font-family: arial;
+	user-selection: none;
+	-webkit-user-select: none;
+	-o-user-select: none;
+	-webkit-user-select: none;
+	user-selection: none;
+	-webkit-user-select: none;
+	-o-user-select: none;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+}
+
+.wrap {
+	width: 960px;
+	height: 600px;
+	margin: 10px auto;
+	position: relative;
+}
+
+.stage {
+	float: left;
+	width: 600px;
+	height: 500px;
+	cursor: pointer;
+	margin: 3px 3px;
+	border: 5px solid silver;
+	background: white
+}
+
+#container {
+	float: left;
+	width: 600px;
+	height: 500px;
+	background: white;
+	border-radius: 10px;
+	border: 3px groove gray;
+}
+
+.stage:active {
+	cursor: crosshair;
+}
+.cursorimg{
+	
+			cursor:url(../images/cur1.png),auto;
+	
+}
+.cursorimg1{
+	
+			cursor:url(../images/era_s.cur),auto;
+	
+}
+.panel {
+	float: left;
+	width: 140px;
+	height: 500px;
+	margin: 3px 15px;
+	border: 3px groove gray;
+	/* background-color: green; */
+	border-radius: 10px;
+	background: #cedce7; /* Old browsers */
+/* IE9 SVG, needs conditional override of 'filter' to 'none' */
+background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPHJhZGlhbEdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgY3g9IjUwJSIgY3k9IjUwJSIgcj0iNzUlIj4KICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNjZWRjZTciIHN0b3Atb3BhY2l0eT0iMSIvPgogICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjNTk2YTcyIiBzdG9wLW9wYWNpdHk9IjEiLz4KICA8L3JhZGlhbEdyYWRpZW50PgogIDxyZWN0IHg9Ii01MCIgeT0iLTUwIiB3aWR0aD0iMTAxIiBoZWlnaHQ9IjEwMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
+background: -moz-radial-gradient(center, ellipse cover,  #cedce7 0%, #596a72 100%); /* FF3.6+ */
+background: -webkit-gradient(radial, center center, 0px, center center, 100%, color-stop(0%,#cedce7), color-stop(100%,#596a72)); /* Chrome,Safari4+ */
+background: -webkit-radial-gradient(center, ellipse cover,  #cedce7 0%,#596a72 100%); /* Chrome10+,Safari5.1+ */
+background: -o-radial-gradient(center, ellipse cover,  #cedce7 0%,#596a72 100%); /* Opera 12+ */
+background: -ms-radial-gradient(center, ellipse cover,  #cedce7 0%,#596a72 100%); /* IE10+ */
+background: radial-gradient(ellipse at center,  #cedce7 0%,#596a72 100%); /* W3C */
+filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#cedce7', endColorstr='#596a72',GradientType=1 ); /* IE6-8 fallback on horizontal gradient */
+
+
+}
+.h1{
+	color: blue;
+}
+.panel h4 {
+	color: white;
+	text-align: center;
+}
+
+.panel_top {
+	width: 100px;
+	height: 300px;
+	margin-left: 20px;
+	/* background-color: white; */
+}
+
+.panel_box {
+	float: left;
+	width: 30px;
+	height: 30px;
+	margin-left: 15px;
+	margin-top: 10px;
+}
+
+.panel_box img {
+	width: 30px;
+	height: 30px;
+	cursor: pointer;
+	
+}
+
+.slider_box {
+	float: left;
+	width: 80px;
+	height: 30px;
+	border-radius: 10px;
+	margin-top: 15px;
+	margin-left: 20px
+	/* background-color: maroon; */
+}
+
+}
+/* .panel_top ul{
+	
+}
+
+.panel_top ul li{
+	float:left;
+	text-decoration: none;
+	list-style: none;
+	
+}
+
+.panel_top ul li a{
+	width:80px;
+	height: 50px;
+	background-color: red;
+	border-radius:10px;
+	
+}
+ */
+.
+menu {
+	display: block;
+	width: 40px;
+	height: 40px;
+	border-radius: 25px;
+	background: #000
+}
+
+.menu1 {
+	display: block;
+	width: 35px;
+	height: 35px;
+	border-radius: 25px;
+	background: #000
+}
+
+.menu2 {
+	display: block;
+	width: 28px;
+	height: 28px;
+	border-radius: 25px;
+	background: #000
+}
+/* 
+form {
+	width: 10em;
+	height: 29.5em;
+	padding: 1em;
+	margin: 0 auto;
+	text-align: center;
+	background-color: silver;
+	border: solid gray 2px;
+}
+ */
+.pencil {
+	background-color: white;
+	color: black;
+}
+
+.rectangle {
+	background-color: white;
+	color: black;
+}
+
+.violet {
+	background-color: violet;
+	color: white;
+}
+
+.indigo {
+	background-color: indigo;
+	color: white;
+}
+
+.blue {
+	background-color: blue;
+	color: white;
+}
+
+.green {
+	background-color: green;
+	color: white;
+}
+
+.yellow {
+	background-color: yellow;
+	color: white;
+}
+
+.orange {
+	background-color: orange;
+	color: white;
+}
+
+.red {
+	background-color: red;
+	color: white;
+}
+
+.white {
+	background-color: white;
+	color: black;
+}
+
+.brown {
+	background-color: brown;
+	color: white;
+}
+
+.clear {
+	background-color: white;
+	color: black;
+}
+
+.red,.white,.blue,.violet,.indigo,.green,.yellow,.brown,.clear,.pencil,.rectangle,.orange
+	{
+	width: 5.2em;
+	font-weight: bold;
+}

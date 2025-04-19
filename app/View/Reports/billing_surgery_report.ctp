@@ -1,0 +1,168 @@
+<style>
+body{
+font-size:13px;
+}
+.red td{
+	background-color:antiquewhite !important;
+}
+.tabularForm {
+    background: none repeat scroll 0 0 #d2ebf2 !important;
+	}
+	.tabularForm td {
+		 background: none repeat scroll 0 0 #fff !important;
+	    color: #000 !important;
+	    font-size: 13px;
+	    padding: 3px 8px;
+	}
+#msg {
+    width: 180px;
+    margin-left: 34%;
+}
+</style>
+<?php if($type != 'excel') { ?>
+<div class="inner_title">
+	<h3>
+		<?php echo __('Surgery Report', true); ?>
+	</h3>
+	<span>
+		<?php echo $this->Html->link(__('Back to Report'), array('controller'=>'Reports','action' => 'admin_all_report','admin'=>true), array('escape' => false,'class'=>'blueBtn'));?>
+	</span>
+</div> 
+<?php }else{ ?>
+	<table>
+		<tr>
+			<th colspan="8">
+			
+				<?php echo __('Surgery Report', true); ?>
+		
+			</th>
+		</tr>
+	</table>
+<?php } ?>
+<?php echo $this->Form->create('Patient',array('type'=>'get','id'=>'Patient','url'=>array('controller'=>'Reports','action'=>'billing_surgery_report','admin'=>false),));?>
+<table width="100%" cellpadding="0" cellspacing="2" border="0" style="padding-top:10px">
+	<tr>
+	<td width="95%" valign="top">
+		<?php if($type != 'excel') { ?>
+		<table align="center" style="margin-top: 10px">
+			<tr>
+				<td><?php echo $this->Form->input('Patient.from_date', array('class'=>'textBoxExpnd','style'=>'width:120px','id'=>'from_date','label'=> false, 'div' => false, 'error' => false,'placeholder'=>'Select Date','value'=>$this->params->query['from_date']));?></td>
+				<td><?php echo $this->Form->input('Patient.to_date', array('class'=>'textBoxExpnd','style'=>'width:120px','id'=>'to_date','label'=> false, 'div' => false, 'error' => false,'placeholder'=>'Select Date','value'=>$this->params->query['to_date']));?></td>
+
+				<td><?php echo $this->Form->input('Patient.internal_surgery_name', array('class'=>'textBoxExpnd','style'=>'width:150px','id'=>'internal_surgery_name','label'=> false, 'div' => false, 'error' => false,'placeholder'=>'Internal Surgery','value'=>$this->params->query['internal_surgery_name']));
+				 echo $this->Form->hidden('Patient.internal_surgery_id',array('id'=>'internal_surgery_id','value'=>$this->params->query['internal_surgery_id']))
+
+			?></td>
+
+				<td><?php echo $this->Form->input('Patient.surgery_for_billing', array('class'=>'textBoxExpnd','style'=>'width:150px','id'=>'surgery_for_billing','label'=> false, 'div' => false, 'error' => false,'placeholder'=>'Billing Surgery','value'=>$this->params->query['surgery_for_billing']));
+						  echo $this->Form->hidden('Patient.surgery_for_billing_id',array('id'=>'surgery_for_billing_id','value'=>$this->params->query['surgery_for_billing_id']));
+			?></td>
+
+			
+
+			
+				<td><?php echo $this->Form->submit('Search',array('class'=>'blueBtn','label'=> false, 'div' => false));?></td>
+				<td><?php echo $this->Html->link($this->Html->image('icons/refresh-icon.png'),array('action'=>'billing_surgery_report'),array('escape'=>false));?></td>
+				
+				<?php if($this->params->query){
+						$qryStr=$this->params->query;
+						}?>
+				
+				<td><?php echo $this->Html->link($this->Html->image('icons/excel.png'),array('controller'=>'Reports','action'=>'billing_surgery_report','excel','?'=>$qryStr,'admin'=>false,'alt'=>'Export To Excel'),array('escape'=>false,'title' => 'Export To Excel'))?><?php echo $this->Form->end();?></td>
+			</tr>
+		</table>
+		<?php $border = '0' ;  }else{  $border = '1' ; }?>
+		<div id="container">
+			<table width="100%" cellpadding="0" cellspacing="1" border="<?php echo $border ;  ?>" 	class="tabularForm">
+				<thead>
+					<tr> 
+						<th width="2%" align="center" valign="top"><?php echo __('Sr.No');?></th> 
+						<th width="15%" align="center" valign="top"><?php echo __('Patient Name');?></th> 
+						<th width="7%" align="center" valign="top" style="text-align: center;"><?php echo __('Admission ID');?></th> 
+						<th width="10%" align="center" valign="top" style="text-align: center;"><?php echo __('Age/Gender');?></th>  
+						<th width="20%" align="center" valign="top" style="text-align: center;"><?php echo __('Surgery For Internal Report & Yojna');?></th> 
+						<th width="7%" align="center" valign="top" style="text-align: center;"><?php echo __('Date');?></th> 
+						<!-- <th width="15%" align="center" valign="top" style="text-align: center;"><?php echo __('Surgeon');?></th>  -->
+					</tr> 
+				</thead>
+				
+				<tbody>
+				<?php 
+				$i = 1 ;
+				foreach($record as $key=> $value) { 
+						if($value['Patient']['lookup_name'] == '') continue;
+						$explodeAge = explode(" ", $value['Patient']['age']);
+ 					?>	
+					<tr>
+						<td><?php echo $i ; ?></td>
+						<td><?php echo $value['Patient']['lookup_name'] ; ?></td>
+						<td><?php echo $value['Patient']['admission_id'] ; ?></td>
+						<td><?php echo $explodeAge[0]." / ".ucfirst($value['Patient']['sex']) ; ?></td>
+						<td><?php echo $value['TariffList']['name'] ; ?></td>
+						<td><?php echo $this->DateFormat->formatdate2Local($value['ServiceBill']['date'],Configure::read('date_format'),false); ?></td>
+						<!-- <td><?php echo $value['DoctorProfile']['doctor_name'] ; ?></td> -->
+				  	</tr>
+			  	<?php $i++; }?>
+				</tbody>
+		
+			
+			</table>
+		</div>
+	</td>
+	</tr>
+</table>
+<?php echo $this->Form->end();?>
+<script>
+
+$(document).ready(function(){
+	
+	
+ 	$("#from_date").datepicker({
+		showOn: "both",
+		buttonImage: "<?php echo $this->Html->url('/img/js_calendar/calendar.gif'); ?>",
+		buttonImageOnly: true,
+		changeMonth: true,
+		changeYear: true,
+		yearRange: '1950',
+		maxDate: new Date(),
+		dateFormat: '<?php echo $this->General->GeneralDate();?>',	 		
+	});
+
+	$("#to_date").datepicker({
+		showOn: "both",
+		buttonImage: "<?php echo $this->Html->url('/img/js_calendar/calendar.gif'); ?>",
+		buttonImageOnly: true,
+		changeMonth: true,
+		changeYear: true,
+		yearRange: '1950',
+		maxDate: new Date(),
+		dateFormat: '<?php echo $this->General->GeneralDate();?>',	 		
+	});
+
+	$("#internal_surgery_name").autocomplete({
+		source: "<?php echo $this->Html->url(array("controller" => "NewOptAppointments", "action" => "getPackageSurgeryAutocomplete","admin" => false,"plugin"=>false)); ?>",
+		setPlaceHolder : false,
+			select:function( event, ui ) {				     
+				$('#internal_surgery_id').val(ui.item.id);
+		},
+		messages: {
+	        noResults: '',
+	        results: function() {}
+	 	}
+	});
+
+	$("#surgery_for_billing").autocomplete({
+		source: "<?php echo $this->Html->url(array("controller" => "NewOptAppointments", "action" => "getSurgeryAutocomplete","admin" => false,"plugin"=>false)); ?>",
+		setPlaceHolder : false,
+			select:function( event, ui ) {				     
+				$('#surgery_for_billing_id').val(ui.item.id);
+		},
+		messages: {
+	        noResults: '',
+	        results: function() {}
+	 	}
+	});
+
+});
+</script>
+	

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+<newcropprescriptions>
+	<NewCropPrescription>
+		<id>1</id>
+		<description>Hard Bed (Strict Bed Rest)</description>
+		<dose>1</dose>
+		<doseForm>1</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>0</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>2</id>
+		<description>Lumbo-Sacral Corset / Cervical Collar with Chin Support/ PSS x 1 Month</description>
+		<dose>1</dose>
+		<doseForm>1</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>2</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>3</id>
+		<description>Avoid Forward Bending &amp; Weight Lifting x 1 Month</description>
+		<dose>1</dose>
+		<doseForm>1</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>0</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>4</id>
+		<doseForm>1</doseForm>
+		<route>1</route>
+		<description>Inj. Symbol 50 mg  - I/M Stat &amp; Fortnightly x 1 Month</description>
+		<dose>50</dose>
+		<frequency>15</frequency>
+		<drug_id>4</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Inj. Cobina 1500 mcg – I/M Alernate Day x 7</description>
+		<dose>1500</dose>
+		<doseForm>14</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Inj. Calvit 2.5 ml deep I/M Alternat day x 10</description>
+		<dose>2.5</dose>
+		<doseForm>15</doseForm>
+		<route>1</route>
+	<frequency>1</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Inj. Streptomycin 0.75 Gm  – I/M Daily AST x 1 Month</description>
+		<dose>0.75</dose>
+		<doseForm>15</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Cap Rif I 6 Forte once a day before Breakfast x 1 Month</description>
+		<dose>1</dose>
+		<doseForm>2</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Combutol  800mg Daily after Breakfast x 1 Month</description>
+		<dose>800</dose>
+		<doseForm>12</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Oflox / Lofoz 400 mg Daily after Breakfast x 1 Month</description>
+		<dose>400</dose>
+		<doseForm>12</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Romazol – once a day before dinner x 1 Month</description>
+		<dose>1</dose>
+		<doseForm>12</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Relaxol / Robinexol  - Twice a day after meals x 1 Month</description>
+		<dose>1</dose>
+		<doseForm>12</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Cobina PG / Lyrica 75 mg Twice a Day after Meals x 1 Month</description>
+		<dose>75</dose>
+		<doseForm>12</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Romazyme / or Disperzyme – Twice a day before meals x 1 Month</description>
+		<dose>1</dose>
+		<doseForm>12</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Cap Nutroma – Once a day after Breakfast x 1 Month</description>
+		<dose>1</dose>
+		<doseForm>2</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Roma-Q  -  Once a day after Breakfast x 1 Month</description>
+		<dose>1</dose>
+		<doseForm>12</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Fludac / Flunil – Once a day after breakfast x 1 Month</description>
+		<dose>1</dose>
+		<doseForm>1</doseForm>
+		<route>1</route>
+		<frequency>1</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+</newcropprescriptions>
+</template>

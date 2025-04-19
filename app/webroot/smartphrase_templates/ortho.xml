@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?><template>
+<newcropprescriptions>
+<NewCropPrescription><id>0</id>
+<description>SUCRAL SUSPENSION</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>1</route>
+<frequency>1</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: SUCRAL SUSPENSION ---   : AS DIRECTED / AS DIRECTED X 1 # 1</display>
+<drug_id>11399</drug_id><days>1</days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+</newcropprescriptions>
+<TariffLists>
+</TariffLists>
+</template>

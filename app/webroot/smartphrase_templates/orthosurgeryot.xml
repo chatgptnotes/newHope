@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><template>
+<newcropprescriptions>
+<NewCropPrescription><id>0</id>
+<description>VICRYL 0-1 2421 LOTUS</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: VICRYL 0-1 2421 LOTUS ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>11094</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>1</id>
+<description>ROMOVAC SET NO.12</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: ROMOVAC SET NO.12 ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>1925</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>2</id>
+<description>ROMOVAC SET NO.10</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: ROMOVAC SET NO.10 ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>1924</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>3</id>
+<description>SPINAL NEEDLE 23 NO.</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: SPINAL NEEDLE 23 NO. ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>2867</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>4</id>
+<description>SPINAL NEEDLE NO.25</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: SPINAL NEEDLE NO.25 ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>2053</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>5</id>
+<description>ANAWIN(H)0.5% INJ</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: ANAWIN(H)0.5% INJ ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>130</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>6</id>
+<description>buprigesic 1ml inj</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: buprigesic 1ml inj ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>3380</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>7</id>
+<description>SYRINGE-10ML</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>2</quantity>
+<display>1 TAB:: SYRINGE-10ML ---   : AS DIRECTED / 2 X  # 2</display>
+<drug_id>3334</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>8</id>
+<description>SYRINGE  5 ML</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>3</quantity>
+<display>1 TAB:: SYRINGE  5 ML ---   : AS DIRECTED / 2 X  # 3</display>
+<drug_id>2128</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>9</id>
+<description>SYRINGE 2ML</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>2</quantity>
+<display>1 TAB:: SYRINGE 2ML ---   : AS DIRECTED / 2 X  # 2</display>
+<drug_id>2127</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>10</id>
+<description>BETADINE OINT. 10%</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: BETADINE OINT. 10% ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>4519</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+</newcropprescriptions>
+<TariffLists>
+</TariffLists>
+</template>

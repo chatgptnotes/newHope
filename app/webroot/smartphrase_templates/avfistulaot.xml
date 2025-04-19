@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><template>
+<newcropprescriptions>
+<NewCropPrescription><id>0</id>
+<description>PROLENE 7-0 873</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: PROLENE 7-0 873 ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>7870</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>1</id>
+<description>MERSILK 3-0 NEW R.C LOTUS</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: MERSILK 3-0 NEW R.C LOTUS ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>11147</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>2</id>
+<description>LOX 2% W/ADRENALINE</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: LOX 2% W/ADRENALINE ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>1280</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>3</id>
+<description>SYRINGE 10 ML</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: SYRINGE 10 ML ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>2129</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>4</id>
+<description>SYRINGE  5 ML</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: SYRINGE  5 ML ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>2128</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>5</id>
+<description>SYRINGE 2ML</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>2</quantity>
+<display>1 TAB:: SYRINGE 2ML ---   : AS DIRECTED / 2 X  # 2</display>
+<drug_id>2127</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>6</id>
+<description>NS 1000 ML</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>2</quantity>
+<display>1 TAB:: NS 1000 ML ---   : AS DIRECTED / 2 X  # 2</display>
+<drug_id>1575</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+</newcropprescriptions>
+<TariffLists>
+</TariffLists>
+</template>

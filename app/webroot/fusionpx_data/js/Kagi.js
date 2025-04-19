@@ -1,0 +1,32 @@
+var dataString='<chart showValues="0" animation="1" showAnchors="1" labelDisplay="Rotate" palette="3" reversalPercentage="5">\n\
+<set label="3/1" value="25.49"/>\n\
+<set label="3/2" value="25.11"/>\n\
+<set label="3/3" value="26.35"/>\n\
+<set label="3/4" value="28.07"/>\n\
+<set label="3/5" value="25.36"/>\n\
+<set label="3/6" value="26.3"/>\n\
+<set label="3/7" value="26.61"/>\n\
+<set label="3/8" value="25.58"/>\n\
+<set label="3/9" value="27.8"/>\n\
+<set label="3/10" value="28.16"/>\n\
+<set label="3/11" value="25.44"/>\n\
+<set label="3/12" value="27.3"/>\n\
+<set label="3/13" value="28.85"/>\n\
+<set label="3/14" value="26.29"/>\n\
+<set label="3/15" value="25.23"/>\n\
+<set label="3/16" value="28.43"/>\n\
+<set label="3/17" value="28.63"/>\n\
+<set label="3/18" value="25.66"/>\n\
+<set label="3/19" value="28.15"/>\n\
+<set label="3/20" value="26.81"/>\n\
+<set label="3/21" value="25.32"/>\n\
+<set label="3/22" value="27.76"/>\n\
+<set label="3/23" value="26.54"/>\n\
+<set label="3/24" value="27.1"/>\n\
+<set label="3/25" value="27.69"/>\n\
+<set label="3/26" value="28.67"/>\n\
+<set label="3/27" value="25.88"/>\n\
+<set label="3/28" value="26.76"/>\n\
+<set label="3/29" value="28.41"/>\n\
+<set label="3/30" value="25.52"/>\n\
+</chart>';

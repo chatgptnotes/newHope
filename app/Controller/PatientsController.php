@@ -1,0 +1,12552 @@
+<?php
+/**
+ *  Controller : patients
+ *  Use : AEDV
+ *  @created by :emp-40 KD
+ *  @created on :16 Nov 2011
+ *  functions : add,edit,view,search,patient_information,qr_code,wrist_band,qr_format(return data required for QR card),address_format
+ *
+ **/
+class PatientsController extends AppController {
+
+	public $name = 'Patients'; 
+	public $helpers = array('Html','Form', 'Js','DateFormat','RupeesToWords','Number','General', 'JsFusionChart');
+	public $components = array('RequestHandler','Email','ImageUpload','DateFormat','QRCode','Session','General');
+ 
+        
+	public function index(){
+		//display add patient by default
+		$this->redirect(array('action'=>'add'));
+	}
+	/**
+	 * @param:$id->UIDPatient id
+	 * */
+
+
+public function add($id=null){
+		//$create = new MessagesController;
+		
+		$this->layout = 'advance';
+		$this->set('title_for_layout', __('-Patient Registration', true));
+
+		//load model
+		$this->uses = array('Patient','AdvanceType','Configuration','TariffStandard','Corporate','WardPatient','Person','Note','Department','DoctorProfile',
+		'Consultant','Ward','NewInsurance','InsuranceType','InsuranceCompany','ReffererDoctor','Bed','Billing','PhvsIcd9cm','ServiceCategory',
+		'PhvsVisit','ObservationIdentifier', 'Appointment','CorporateSublocation','CorporateLocation','CreditType','TariffList','Person','VoucherEntry',
+		'Account','AccountReceipt','EstimateConsultantBilling','VoucherLog','Location','CouponTransaction','Message','consultant','User','Configuration','PatientReferralConsultant');
+
+		/** OP Check up **/
+
+		//location list
+		$locations = $this->Location->find('list',array('fields'=>array('name'),'conditions'=>array('Location.is_active'=>1,'Location.is_deleted'=>0)));
+		$this->set(array('locations'=>$locations));
+		
+                //by swapnil - 23.11.2015 to check the last encounter's flag of is_dr_chk to check wheather the file document is submitted or not
+                //if the value of flag get 1 means the file document is not submitted, send sms to adminstrator
+                $isFileSubmitted = $this->Patient->find('count',array('conditions'=>array('Patient.is_dr_chk'=>'1','Patient.person_id'=>$id),'order'=>array('Patient.id'=>'DESC')));
+		//debug($isFileSubmitted);
+		//condition added for within days follow up checkup
+		//debug($this->params->query['person_id']);exit;
+		if(!empty($personId)){
+			$getOPCheckOPt=$this->Patient->flowUpcheck($personId);
+		}
+		else if(!empty($this->params->query['person_id'])){
+			$getOPCheckOPt=$this->Patient->flowUpcheck($this->params->query['person_id']);
+		}
+		$this->set('getOPCheck',$getOPCheckOPt);
+		//EOF follow up cond
+		/** for after scheduling follow up visit show visit type on MRN form**/
+		$app = $this->Appointment->find('first',array('fields'=>array('id','person_id','patient_id','visit_type'),'conditions'=>array('is_deleted'=>'0','id'=>$this->params->query['apptId'],'Appointment.person_id'=>$this->params->query['person_id'],'is_future_app'=>'1'),'order'=>('Appointment.id DESC')));
+		$this->set('app',$app);
+		/** EOF **/
+		$OPCheckUpOptions=$this->TariffList->find('list',array('fields'=>array('id','name'),'conditions'=>array('is_deleted'=>'0','check_status'=>'1','location_id'=>$this->Session->read('locationid'))));
+		$this->set('opdOptions',$OPCheckUpOptions);
+		/** **/
+		$privateID = $this->TariffStandard->getPrivateTariffID();
+		$this->set('privateID',$privateID);
+
+		$getElilibitycheck=$this->Configuration->find('first',array('conditions'=>array('id'=>'4')));
+		$this->set('opt',unserialize($getElilibitycheck['Configuration']['value']));
+		if(!empty($this->request->query['id'])){
+			$personData=$this->Person->find('first',array('conditions'=>array('patient_uid'=>$this->request->query['id'])));
+			$this->set('id',$this->request->query['id']);
+			$this->set('personData',$personData);
+		}
+		//debug($personData);exit;
+		$this->set('getDataInsuranceType',$getDataInsuranceType);
+		$this->set('getDataInsuranceCompany',$getDataInsuranceCompany);
+		$personIdToGetData = ($this->request->query['person_id'])?$this->request->query['person_id']:$id;
+		if($personIdToGetData)	{
+			$getdata=$this->Person->find('first',array('fields'=>array('dob','patient_uid','sex','payment_category','id','expected_date_del','pregnant_week','coupon_name'),'conditions'=>array('id'=>$personIdToGetData)));
+		}else
+			$getdata=$personData;
+		
+		
+			
+		$this->set('getdata',$getdata);
+		$this->set('sex',$getdata['Person']['sex']);
+		
+		//debug($this->Person->getCurrentAge($getdata['Person']['dob']));//exit;
+		//$this->set('Age',$this->Person->getCurrentAge($getdata['Person']['dob']));
+		//debug($this->request->params);exit;
+		if(isset($this->request->params['named']['submitandregister']) && isset($this->request->params['pass'][0])) {
+
+			$someData = $this->Person->find('first', array('conditions' => array('Person.id' => $this->request->params['pass'][0])));
+         //debug($someData); exit;	
+			// check registrar option having id is 4
+			$mergeArray=array();
+			$doctorlist=array();
+			if($someData['Person']['known_fam_physician'] == Configure :: read('referralforregistrar')) {
+				$doctorlist=$this->DoctorProfile->getRegistrar();		
+				$mergeArray = array('None'=>'None')+$doctorlist;
+				$this->set('doctorlist',$mergeArray);							
+			} else {
+				$this->Consultant->virtualFields = array('full_name' => 'CONCAT(Initial.name, " ", Consultant.first_name, " ", Consultant.last_name)');
+				$doctorlist=$this->Consultant->find('list',array('fields' => array('Consultant.id','Consultant.full_name'), 'conditions'=> array('Consultant.refferer_doctor_id' => $someData['Person']['known_fam_physician'], 'Consultant.location_id'=>$this->Session->read('locationid'), 'Consultant.is_deleted'=>0),'order'=>array('Consultant.first_name'), 'recursive' => 1));
+				$mergeArray = array('None'=>'None')+$doctorlist;
+				$this->set('doctorlist',$mergeArray);		
+				
+			}
+		}else{
+			$this->set('doctorlist',null);
+		}
+		if(isset($someData)){
+
+			$this->set('someData', $someData);
+			$paytypeAry = Configure :: read('SponsorValue');
+			$this->set('credittypes',$this->CreditType->find('list',array('fields' => array('CreditType.id','CreditType.name'),
+					'conditions'=> array('CreditType.is_deleted' => 0))));
+			$this->set('corporatelocations',$this->CorporateLocation->find('list',array('fields' => array('CorporateLocation.id','CorporateLocation.name'),
+					'conditions'=> array('CorporateLocation.credit_type_id' =>$paytypeAry[$getdata['Person']['payment_category']],'CorporateLocation.is_deleted' => 0),'order'=>array('CorporateLocation.name'))));
+
+			$this->set('corporates',$this->Corporate->find('list',array('fields' => array('Corporate.id','Corporate.name'),
+					'conditions'=> array('Corporate.is_deleted' => 0,'Corporate.corporate_location_id' => $someData['Person']['corporate_location_id']),'order'=>array('Corporate.name'))));
+
+			/*$this->set('corporatesublocations',$this->CorporateSublocation->find('list',array('fields' => array('CorporateSublocation.id',
+					'CorporateSublocation.name'), 'conditions'=> array('CorporateSublocation.is_deleted' => 0,'CorporateSublocation.corporate_id' =>
+							$someData['Person']['corporate_id']),'order'=>array('CorporateSublocation.name'))));*/
+			
+			$this->set('corporatesublocations',$this->CorporateSublocation->find('list',array('fields' => array('CorporateSublocation.id',
+					'CorporateSublocation.name'), 'conditions'=> array('CorporateSublocation.is_deleted' => 0),'order'=>array('CorporateSublocation.name'))));
+
+			// for insurance drop down //
+			$this->set('insurancetypes',$this->InsuranceType->find('list',array('fields' => array('InsuranceType.id','InsuranceType.name'),
+					'conditions'=> array('InsuranceType.is_deleted' => 0),'order'=>array('InsuranceType.name'))));
+				
+			//debug($paytypeAry[$getdata['Person']['payment_category']]);exit;
+			$this->set('insurancecompanies',$this->InsuranceCompany->find('list',array('fields' => array('InsuranceCompany.id','InsuranceCompany.name'),
+					'conditions'=> array('InsuranceCompany.is_deleted' => 0,'InsuranceCompany.insurance_type_id' => $paytypeAry[$getdata['Person']['payment_category']]),'order'=>array('InsuranceCompany.name'))));
+
+
+			$corporateList = $this->Corporate->find('list');
+			$corporateList[0]='Private';
+			$this->set('corporateList',$corporateList);
+		}else{
+			$this->set('someData',null);
+		}
+
+		//setting up temp location id as per selction for vadodara instance (set doctor location as patient location)
+		if($this->request->data['Patient']['location_id'] != '' || $this->request->data['Person']['location_id']){
+			if($this->request->data['Person']['location_id']){ //for 2nd form
+				$location_id = $this->request->data['Person']['location_id'];
+			}else if($this->request->data['Patient']['location_id']){//for quick registration
+				$location_id = $this->request->data['Patient']['location_id'];
+			}
+			//temp swap location id
+			$this->Session->write('temp_locationid',$this->Session->read('locationid'));
+			$this->Session->write('locationid',$location_id);
+
+		}else{
+			$location_id = $this->Session->read('locationid');
+		}
+
+			
+		if(isset($this->request->data) && !empty($this->request->data) && empty($errors)){
+                  
+			$userid = $this->Session->read('userid');
+			$this->request->data['Patient']['location_id'] = $location_id ;
+			$this->request->data['Patient']['create_time'] = date("Y-m-d H:i:s");
+			$this->request->data['Patient']['modify_time'] = date("Y-m-d H:i:s");
+			$this->request->data['Patient']['created_by']  = $userid;
+			$this->request->data['Patient']['modified_by'] = $userid;
+			$this->request->data['Patient']['expected_date_del'] = $this->DateFormat->formatDate2STD($this->request->data["Patient"]['expected_date_del'],Configure::read('date_format'));
+			$this->request->data['Patient']['date_of_referral']=$this->DateFormat->formatDate2STD($this->request->data["Patient"]['date_of_referral'],Configure::read('date_format'));
+			$this->request->data['Patient']['doc_ini_assess_on']=$this->DateFormat->formatDate2STD($this->request->data["Patient"]['doc_ini_assess_on'],Configure::read('date_format'));
+			$this->request->data['Patient']['doc_ini_assess_end_on']=$this->DateFormat->formatDate2STD($this->request->data['Patient']['doc_ini_assess_end_on'],Configure::read('date_format'));
+			$this->request->data['Patient']['nurse_assess_on']=$this->DateFormat->formatDate2STD($this->request->data["Patient"]['nurse_assess_on'],Configure::read('date_format'));
+			$this->request->data['Patient']['nurse_assess_end_on']=$this->DateFormat->formatDate2STD($this->request->data['Patient']['nurse_assess_end_on'],Configure::read('date_format'));
+			$this->request->data['Patient']['nutritional_assess_on']=$this->DateFormat->formatDate2STD($this->request->data["Patient"]['nutritional_assess_on'],Configure::read('date_format'));
+			$this->request->data['Patient']['nutritional_assess_end_on']= $this->DateFormat->formatDate2STD($this->request->data['Patient']['nutritional_assess_end_on'],Configure::read('date_format'));
+			$this->request->data['Patient']['coupon_name'] = $someData['Person']['coupon_name'] ? $someData['Person']['coupon_name'] : $this->request->data["Patient"]['coupon_name'];
+			$this->request->data['Patient']['coupon_amount'] = $someData['Person']['coupon_amount'] ?  $someData['Person']['coupon_amount'] : $this->request->data["Patient"]['coupon_amount'];
+			//check other date field
+				
+			//check for image
+			if(!empty($this->request->data['Patient']['upload_image']['name'])){
+				//creating runtime image name
+				$original_image_extension  = explode(".",$this->request->data['Patient']['upload_image']['name']);
+				if(!isset($original_image_extension[1])){
+					$imagename= "patient_".mktime().'.'.$original_image_extension[0];
+				}else{
+					$imagename= "patient_".mktime().'.'.$original_image_extension[1];
+				}
+				//set new image name to DB
+				$this->request->data["Patient"]['photo']  = $imagename ;
+			}else{
+				unset($this->request->data["Patient"]['photo']);
+			}
+
+			//combining communication method if both are selected
+			if(!empty($this->request->data["Patient"]['communication_email']) || !empty($this->request->data["Patient"]['communication_phone'])){
+				$this->request->data["Patient"]['communication_method'] =$this->request->data["Patient"]['communication_email']."|".$this->request->data["Patient"]['communication_phone'];
+			}
+			if(!empty($this->request->data["Patient"]['phvs_icd9cm_id'])){
+				$this->request->data["Patient"]['phvs_icd9cm_id'] =implode(',',$this->request->data["Patient"]['phvs_icd9cm_id']);
+			}
+
+			//checking for IPD patient
+			if($this->request->data['Patient']['admission_type'] == "IPD" && ($this->Session->read('website.instance') != 'vadodara')){
+				if(empty($this->request->data['Patient']['room_id']) || empty($this->request->data['Patient']['bed_id'])){
+					$this->Session->setFlash(__('There is problem while saving data,Please try again', true),true,array('class'=>'error'));
+					$this->redirect($this->referer());
+				}
+			}
+			//for status of IPD patient after Registration-atul
+			if($this->request->data['Patient']['admission_type'] == "IPD"){
+				$this->request->data['Patient']['dashboard_status']='Admitted';
+			}
+			
+			$this->Patient->create();
+			if(strtolower($_SESSION['role'])==Configure::read('patientLabel')){ // aditya patient authorize data
+				$patientObject = serialize($this->request->data['Patient']);
+				$my_file ="files".DS."note_xml".DS.patient."_".addpatient."_".$this->request->data['Patient']['person_id'].".txt";
+				file_put_contents($my_file, $patientObject);
+			}
+
+				
+			//BOF updating same record with auto generated patient and admission id
+			//insert admission ID and patient ID
+			$this->request->data['Patient']['other_consultant'] = serialize($this->request->data['Patient']['other_consultant']); //save
+			$this->request->data['Patient']['consultant_id'] = serialize($this->request->data['Patient']['consultant_id']); //save
+			
+			
+                
+			//BOF-Mahalaxmi For File number added in Patient Table
+			$fileNoPatient = $this->Patient->generatePatientFileNo();				
+			$this->request->data['Patient']['file_number'] =$fileNoPatient;
+			//EOF-Mahalaxmi For File number added in Patient Table
+			
+			//sdebug($this->request->data['Patient']);exit;
+			// maintaining staff registration for future- Atul Chandankhede
+			if($this->params->query['is_staff_register']){
+				$this->request->data['Patient']['is_staff_register'] = $this->params->query['is_staff_register'];
+			}
+                        if($this->params->query['is_paragon']){
+				$this->request->data['Patient']['is_paragon'] = $this->params->query['is_paragon'];
+			}
+			
+			$checkPatient = $this->Patient->save($this->request->data['Patient']);
+			$latest_insert_id = $this->Patient->getInsertId();
+			
+			// save refferal deatils in Patient Referals
+			$patientIDForReferral = ($latest_insert_id)?$latest_insert_id:$this->Patient->id ;
+			$unserConsultantIds= unserialize($this->request->data['Patient']['consultant_id']);
+			$this->PatientReferralConsultant->insertPatientReferralConsultant($unserConsultantIds,$patientIDForReferral);
+		
+			//EOF Patient Refferals
+            		//trigger SMS by swapnil - 23.11.2015 
+                        $getEnableFeatureChk=$this->Session->read('sms_feature_chk');
+                        if($isFileSubmitted == 1 && $getEnableFeatureChk == true){ 
+                            $getPatientDetails=$this->Patient->getPatientDetails($latest_insert_id);
+                            if($this->request->data['Patient']['sex']=="male"){
+                                $sex = "he";
+                                $sexpro = "him";
+                            }else{
+                                $sex = "she";
+                                $sexpro = "her";
+                            }
+                            $showMsg= sprintf(Configure::read('is_file_not_submitted_msg'),$this->request->data['Patient']['lookup_name'],$sex,$sexpro);                                                
+                            $ret = $this->Message->sendToSms($showMsg,Configure::read('is_file_not_submitted_mobiles'));   
+                        }
+                      // exit;
+			//admission id cross check
+			$admission_id = $this->Patient->autoGeneratedAdmissionID($latest_insert_id,$this->request->data);
+			
+			$this->request->data['Patient']['admission_id'] =$admission_id ;
+
+			
+			$age = explode(' ', $this->request->data['Patient']['age']);
+			//generate QrCode of admission_id and Patient Name - by Mrunal
+			$concatedPatientName = $this->request->data['Patient']['lookup_name']." ".$age[0]." ".trim($admission_id);
+			$lookup_name_withspace = preg_replace('/[^A-Za-z0-9]/', ' ', $concatedPatientName);
+			$this->Patient->getPatientAdmissionIdQR(trim($admission_id),$latest_insert_id);
+			$this->Patient->getPatientNameQR($lookup_name_withspace,$latest_insert_id);
+			//end Of qrcode
+			
+			if(empty($admission_id)){
+				$this->Session->setFlash(__('There is problem while saving data,Please try again', true),true,array('class'=>'error'));
+				$this->redirect($this->referer());
+			}
+			//check if the newly created admission id is already assigned to another patient.
+			$countAdm = $this->Patient->find('count',array('admission_id'=>$admission_id));
+			if($countAdm > 0){
+				$admission_id = $this->autoGeneratedAdmissionID($latest_insert_id,$this->request->data);
+				$this->request->data['Patient']['admission_id'] =$admission_id ;
+				//$this->request->data['Patient']['account_number'] =$admission_id ;
+			}
+			$patientUpdateArray=array('Patient.admission_id'=>"'$admission_id'");
+			$this->Patient->updateAll($patientUpdateArray,array('Patient.id '=>$latest_insert_id));
+			//EOF admission id check
+
+			//$patientIdForIns = $this->Patient->getInsertId();
+			$patientIdForIns = $latest_insert_id;
+			$this->request->data["NewInsurance"]['effective_date']=$this->DateFormat->formatDate2STD($this->request->data["NewInsurance"]['effective_date'],Configure::read('date_format'));
+			//exit; //check if patient save is successful or not
+			if(!empty($this->request->data['NewInsurance']['tariff_standard_id']) || !empty($this->request->data['NewInsurance']['authorization_number'])){
+
+				$authorization[]=$this->request->data['NewInsurance']['note'];
+				$authorization[]=$this->request->data['NewInsurance']['authorization_number'];
+				$authorization[]=$this->request->data['NewInsurance']['start_date'];
+				$authorization[]=$this->request->data['NewInsurance']['end_date'];
+				$authorization[]=$this->request->data['NewInsurance']['visits'];
+				$authorization[]=$this->request->data['NewInsurance']['codes'];
+				$this->request->data['NewInsurance']['authorization']=serialize($authorization);
+				$this->request->data['NewInsurance']['patient_id']=$latest_insert_id;
+				// Authorization is save from below code now -Aditya
+				$this->NewInsurance->save($this->request->data);
+			}
+			$this->NewInsurance->updateAll(array('patient_id' => $patientIdForIns),array('patient_uid'=>$this->request->data["Patient"]['patient_id']));
+
+			//update sponsors details of UID
+			//$this->request->data['Patient']['payment_category'] = $getdata['Person']['payment_category'];
+			$this->Person->updateSponsorDetails($this->request->data,$this->request->data['Patient']['person_id']);
+			//EOD UID update
+			$errors = $this->Patient->invalidFields();
+			//debug($errors); exit;
+			if(!empty($errors) || !$checkPatient) {
+				$this->set("errors", $errors);
+				if((!$checkPatient) && empty($errors)) //set error msg for same bed
+					$errors[] = array("Selected bed is already occupied by another patient, Please select another bed.");
+				$this->set("errors", $errors);
+				unset($this->request->data['Patient']['ward_id']);
+				unset($this->request->data['Patient']['payment_category']);
+				//check other date field
+				//	$this->convertingDatetoLocal($this->request->data['Patient']); //converting dates to DB date format
+				//check other date field
+			}else{
+				//To convert opd patient to ipd and do opd Process done -- Pooja
+				if(!empty($this->params->query['is_opd'])||$this->params->query['is_opd']=='1'){
+					$updateArray = array('Patient.is_opd'=>"'1'") ;
+					$this->Patient->updateAll($updateArray,array('Patient.id '=>$this->params->query['patient_id']));
+					// if the patient is discharge then update the status to Closed--Pooja
+					$apptArray=array('Appointment.status'=>"'Closed'");
+					$this->Appointment->updateAll($apptArray,array('Appointment.patient_id '=>$this->params->query['patient_id'],'Appointment.date'=>date('Y-m-d')));
+					$this->opd_done($this->params->query['patient_id'],'ipd');
+					//for accounting insert all jv for opd patient
+						$this->loadModel('Billing');
+						$this->loadModel('ServiceBill');
+						$this->loadModel('ConsultantBilling');
+						$this->loadModel('OptAppointment');
+						$this->loadModel('PharmacySalesBill');
+						
+						$this->Billing->deleteRevokeJV($this->params->query['patient_id']); //for delete old jv entry
+						
+						$this->Billing->JVLabData($this->params->query['patient_id']);
+						$this->Billing->JVRadData($this->params->query['patient_id']);
+						$this->ServiceBill->JVServiceData($this->params->query['patient_id']);
+						$this->ConsultantBilling->JVConsultantData($this->params->query['patient_id']);
+						$this->OptAppointment->JVSurgeryData($this->params->query['patient_id']);
+						$this->PharmacySalesBill->JVSaleBillData($this->params->query['patient_id']);
+						
+						$billingArray['Billing'] = array('date'=>date('Y-m-d H:i:s'));
+						$this->Billing->addFinalVoucherLogJV($billingArray,$this->params->query['patient_id']); //add final jv
+					//EOF Accounting by amit jain
+					
+						if(!$getdata['Person']['patient_uid']){
+						$patientUIDTransfer=$this->Patient->find('first',array('fields'=>array('Patient.patient_id'),'conditions'=>array('id'=>$this->params->query['patient_id'])));
+						$getdata['Person']['patient_uid']=$patientUIDTransfer['Patient']['patient_id'];
+						}
+ 
+				}
+
+				//creating QR code
+				if(!empty($this->request->data['Patient']['upload_image']['name'])){
+					$showError = $this->ImageUpload->uploadFile($this->params,'upload_image','uploads/patient_images',$imagename);
+
+					if(empty($showError)) {
+						// making thumbnail of 100X100
+						$this->ImageUpload->load($this->request->data['Patient']['upload_image']['tmp_name']);
+						$this->ImageUpload->resize(100,100);
+						$this->ImageUpload->save("uploads/patient_images/thumbnail/".$imagename);
+
+					}
+				}
+
+				if(!empty($this->request->data['Patient']['form_received_on'])||!empty($this->request->data['Patient']['form_completed_on'])){
+					$this->request->data['Patient']['form_completed_on']=$this->request->data['Patient']['form_received_on']=$this->DateFormat->formatDate2STD($this->request->data["Patient"]['form_received_on'],Configure::read('date_format'));
+					//$this->DateFormat->formatDate2STD($this->request->data["Patient"]['form_completed_on'],Configure::read('date_format'));
+				} //$this->DateFormat->formatDate2STD($this->request->data["Person"]['dob'],Configure::read('date_format'));
+				//EOF adm id cross check
+
+				//Billing
+				if($this->request->data['Billing']['amount']!=''){
+					 
+					$this->request->data['Billing']['patient_id'] = $latest_insert_id ;
+					$this->request->data['Billing']['reason_of_payment']= 'Advance';
+					$this->request->data['Billing']['date'] = date('Y-m-d H:i:s');
+					$this->request->data['Billing']['location_id'] = $this->Session->read('locationid');
+					$this->request->data['Billing']['created_by'] = $this->Session->read('userid');
+					$this->request->data['Billing']['create_time'] = date('Y-m-d H:i:s');
+					$this->request->data['Billing']['payment_category'] =  Configure::read('advance');//--by yashwant --- $this->ServiceCategory->getServiceGroupId(Configure::read('mandatoryservices'));
+					$this->Billing->save($this->request->data['Billing']);
+						
+					// BOF for advance in accounting by amit
+					//for cash id
+					$caId = $this->Account->find('first',array('fields'=>array('id'),'conditions'=>array('Account.name'=>Configure::read('cash'),'Account.location_id'=>$this->Session->read('locationid'),'Account.is_deleted'=>'0')));
+					$cashId = $caId['Account']['id'];
+						
+					//for account id of patient
+					$accId = $this->Account->find('first',array('fields'=>array('id'),'conditions'=>array('Account.system_user_id'=>$this->request->data['Patient']['person_id'],'Account.user_type'=>'Patient')));
+					$accountId = $accId['Account']['id'];
+
+					$voucherLogDataFinalpayment = $rvData = array('date'=>date('Y-m-d H:i:s'),
+							'billing_id'=>$this->Billing->getLastInsertID(),
+							'modified_by'=>$this->Session->read('userid'),
+							'patient_id'=>$latest_insert_id,
+							'account_id'=>$cashId,
+							'user_id'=>$accountId,
+							'type'=>'Advance',
+							'narration'=>$this->request->data['Billing']['remark'],
+							'paid_amount'=>$this->request->data['Billing']['amount']);
+					$lastVoucherIdRecFinal = $this->AccountReceipt->insertReceiptEntry($rvData);
+					//insert into voucher_logs table added by PankajM
+					$voucherLogDataFinalpayment['voucher_id']=$lastVoucherIdRecFinal;
+					$voucherLogDataFinalpayment['voucher_type']="Receipt";
+					$this->VoucherLog->insertVoucherLog($voucherLogDataFinalpayment);
+					//End
+					$this->VoucherLog->id= '';
+					$this->AccountReceipt->id= '';
+						
+					//for patient ledger
+					$this->Account->updateAll(array('balance'=>$this->request->data['Billing']['amount']),array('Account.system_user_id'=>$this->request->data['Patient']['person_id'],'Account.user_type'=>'Patient'));
+				}
+				//Billing
+
+				/*******************************************************************************************/
+				if($this->request->data['Patient']['admission_type'] == "IPD"){
+					///BOF-Mahalaxmi-For send SMS to Physician and Patient					
+					/*$getEnableFeatureChk=$this->Session->read('sms_feature_chk');
+					if($getEnableFeatureChk){
+						$configSmsData=$this->Configuration->find('first',array('fields'=>array('value'),'conditions'=>array('category'=>2,'name'=>Configure::read('sms_configuration_name')))); //23 for SMS Configuration 		//saved configurations
+				
+					$getUnserializeSmsData=unserialize($configSmsData['Configuration']['value']);
+					
+					$smsActive=false;
+					if(in_array("IPD Patient Registration",$getUnserializeSmsData)){						
+						$smsActive=true;
+					}*/
+					$smsActive=$this->Configuration->getConfigSmsValue('IPD Patient Registration');					
+	 				if($smsActive){
+						$getAgeResultSms=$this->General->convertYearsMonthsToDaysSeparate($this->request->data['Patient']['age']);						
+						$this->User->bindModel(array(
+							'belongsTo' => array(
+								'Room' =>array('foreignKey' => false,'conditions'=>array('Room.id'=>$this->request->data['Patient']['room_id'])),
+								'Bed' =>array('foreignKey' => false,'conditions'=>array('Bed.id'=>$this->request->data['Patient']['bed_id'])),
+								'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id'=>$this->request->data['Patient']['person_id'])),	
+								'TariffStandard' =>array('foreignKey' => false,'conditions'=>array('TariffStandard.id'=>$this->request->data['Patient']['tariff_standard_id'])),	
+							)));
+						$smsDataGet = $this->User->find('first',array('fields'=>array('Person.plot_no','Person.landmark','Person.city','Person.taluka','Person.state','Person.district','Person.pin_code','Person.mobile','User.mobile','User.first_name','User.last_name','Room.name','Room.bed_prefix','Bed.bedno','TariffStandard.name'),'conditions'=>array('User.id'=>$this->request->data['Patient']['doctor_id'])));
+						$getSexPatient=strtoUpper(substr($this->request->data['Patient']['sex'],0,1));
+							//*******BOF-For Referring doctor to send SMS for Update Mobile which put at time of Patient Add***////						
+							$getConsultantIds=unserialize($this->request->data['Patient']['consultant_id']);
+							$showMsgRegPhysicians= sprintf(Configure::read('regPhysicianOwnerNo'),$smsDataGet['TariffStandard']['name'],$this->request->data['Patient']['lookup_name'],$getSexPatient,$getAgeResultSms,$smsDataGet['Room']['bed_prefix'],$smsDataGet['Bed']['bedno'],Configure::read('hosp_details'));
+						
+							if(!empty($getConsultantIds)){
+								if(strtolower($getConsultantIds[0])=='none'){							
+									$getAddressPatient=$this->setAddressFormat($smsDataGet['Person']);						
+									if(!empty($getAddressPatient)){
+										$showMsgRegOwnerNone= sprintf(Configure::read('regPhysicianOwnerNowithReferingDocNoneWithAddress'),$smsDataGet['TariffStandard']['name'],$this->request->data['Patient']['lookup_name'],$getSexPatient,$getAgeResultSms,$smsDataGet['Room']['bed_prefix'],$smsDataGet['Bed']['bedno'],$getAddressPatient,Configure::read('hosp_details'));	
+									}else{
+										$showMsgRegOwnerNone= sprintf(Configure::read('regPhysicianOwnerNowithReferingDocNone'),$smsDataGet['TariffStandard']['name'],$this->request->data['Patient']['lookup_name'],$getSexPatient,$getAgeResultSms,$smsDataGet['Room']['bed_prefix'],$smsDataGet['Bed']['bedno'],Configure::read('hosp_details'));									
+									}
+									
+								#	$this->Message->sendToSms($showMsgRegOwnerNone,Configure::read('owner_no')); //for admit to send SMS to Owner No.							
+								}else{
+									if(!empty($this->request->data['Patient']['consultant_id'])){						
+										$getConsultantData=$this->Consultant->find('all',array('fields'=>array('Consultant.first_name','Consultant.last_name','Consultant.mobile'),'conditions'=>array('Consultant.id'=>$getConsultantIds)));					
+										foreach($getConsultantData as $getConsultantDatas){							
+											$showMsgRegOwnerForReferalDoc= sprintf(Configure::read('regPhysicianOwnerNowithReferingDoc'),$smsDataGet['TariffStandard']['name'],$this->request->data['Patient']['lookup_name'],$getSexPatient,$getAgeResultSms,$smsDataGet['Room']['bed_prefix'],$smsDataGet['Bed']['bedno'],$getConsultantDatas['Consultant']['first_name'],$getConsultantDatas['Consultant']['last_name'],$getConsultantDatas['Consultant']['mobile'],Configure::read('hosp_details'));
+											
+											if(!empty($getConsultantDatas['Consultant']['mobile']) ||			$getConsultantDatas['Consultant']['mobile']!=0){
+										#	$this->Message->sendToSms($showMsgRegOwnerForReferalDoc,Configure::read('owner_no')); //for admit to send SMS to Owner No.
+											}
+										}				
+									}
+								}
+							}else{					
+								#$getResuSms3=$this->Message->sendToSms($showMsgRegPhysicians,Configure::read('owner_no')); //for admit to send SMS to Owner No.
+							}
+							#$getResuSms2=$this->Message->sendToSms($showMsgRegPhysicians,$smsDataGet['User']['mobile']); //for admit to send SMS to Physicians No.				
+					
+							$getFirstName=explode(" ",$smsDataGet['User']['first_name']);
+							$getLastName=explode(" ",$smsDataGet['User']['last_name']);
+							$getFullUserNameSms=$getFirstName[0]." ".$getLastName[0];
+								
+
+							$showMsgRegPatientRelative= sprintf(Configure::read('regPatientRelativeNo'),$smsDataGet['TariffStandard']['name'],$this->request->data['Patient']['lookup_name'],$getSexPatient,$smsDataGet['Room']['bed_prefix'],$smsDataGet['Bed']['bedno'],$getFullUserNameSms,Configure::read('hosp_details'));
+								
+							#$getResuSms1=$this->Message->sendToSms($showMsgRegPatientRelative,$this->request->data['Patient']['mobile_phone']); //for admit to send SMS to Patient Relative No.
+
+
+						/*if(!empty($this->request->data['Patient']['diagnosis_txt'])){
+							$showMsgRegPhysicians= sprintf(Configure::read('regPhysicianOwnerNo'),$this->request->data['Patient']['lookup_name'],$getAgeResultSms,$this->request->data['Patient']['diagnosis_txt'],$smsDataGet['Room']['bed_prefix'],$smsDataGet['Bed']['bedno'],Configure::read('hosp_details'));
+						}else{
+							$showMsgRegPhysicians= sprintf(Configure::read('regPhysicianOwnerNo'),$this->request->data['Patient']['lookup_name'],$getAgeResultSms,$smsDataGet['Room']['bed_prefix'],$smsDataGet['Bed']['bedno'],Configure::read('hosp_details'));
+						}*/
+
+					
+					
+						
+							$showMsgPatientMobile= sprintf(Configure::read('regPatientMobile'),$smsDataGet['Room']['bed_prefix'],$smsDataGet['Bed']['bedno'],$getFullUserNameSms,Configure::read('hosp_details'));
+						
+							#$getResuSms4=$this->Message->sendToSms($showMsgPatientMobile,$smsDataGet['Person']['mobile']); //for admit to send SMS to Patient No.
+
+							if(!empty($this->request->data['Patient']['corporate_sublocation_id'])){
+								
+								/*$updateConsultantArr['mobile']=$this->request->data['Patient']['family_phy_con_no'];
+								$updateConsultantArr['id']=$this->request->data['Patient']['consultant_id'];						
+								$this->Consultant->save($updateConsultantArr);
+								$this->Consultant->unbindModel(array('hasMany' => array('Country','State','City','Initial')));
+								$dataConsultantSms=$this->consultant->find('first',array('fields'=>array('mobile','first_name','last_name'),'conditions'=>array('Consultant.id'=>$this->request->data['Patient']['consultant_id'])));
+								$getConsulatantFullName=$dataConsultantSms['Consultant']['first_name']." ".$dataConsultantSms['Consultant']['last_name'];*/
+								$this->TariffStandard->bindModel(array(
+									'belongsTo'=>array(
+									'CorporateSublocation'=>array('type'=>'INNER','foreignKey'=>false,'conditions'=>array("CorporateSublocation.tariff_standard_id=TariffStandard.id"))
+								)));
+								
+								$dataConsultantSms=$this->TariffStandard->find('first',array('fields'=>array('CorporateSublocation.mobile','CorporateSublocation.dr_name'),'conditions'=>array('CorporateSublocation.id'=>$this->request->data['Patient']['corporate_sublocation_id'],'TariffStandard.name'=>array(Configure::read('WCL'),Configure::read('CGHS')))));
+								$getDoctorRefferalName = unserialize($dataConsultantSms['CorporateSublocation']['dr_name']);
+								$getRefferalDocMobileNo = unserialize($dataConsultantSms['CorporateSublocation']['mobile']);   
+								//$getSmsNoArrRefferalIncharge=implode(",",$getMobileNo);
+								
+								if(!empty($dataConsultantSms)){
+									foreach($getDoctorRefferalName as $key=>$getDoctorRefferalNames){
+										$showMsgRefDoc= sprintf(Configure::read('RegReferringDocReffDocNo'),$smsDataGet['TariffStandard']['name'],$this->request->data['Patient']['lookup_name'],$getSexPatient,$getAgeResultSms,$getFullUserNameSms,Configure::read('hosp_details'));							
+								  		$getSmsExeResult=$this->Message->sendToSms($showMsgRefDoc,$getRefferalDocMobileNo[$key]); //for admit to send SMS to Reffering Doctor.
+							
+										//	$getResultexp=explode('-', $getSmsExeResult);
+										//	$getResultexp1 = substr($getResultexp['0'], 2);  // returns "cde"							
+								
+										if(trim($getSmsExeResult)==Configure::read('sms_confirmation')){							
+											$showMsgRefDocReturn= sprintf(Configure::read('RegReferringDocReffDocNoReturn'),$getDoctorRefferalNames,$smsDataGet['TariffStandard']['name'],$this->request->data['Patient']['lookup_name'],$getSexPatient,$getAgeResultSms,$getFullUserNameSms,Configure::read('hosp_details'));							
+											$getR1=$this->Message->sendToSms($showMsgRefDocReturn,Configure::read('administrator_no')); //for admit to send SMS to Administrator No.
+										
+											$getR2=$this->Message->sendToSms($showMsgRefDocReturn,Configure::read('owner_no')); //for admit to send SMS to Owner No.							
+											/*$this->Patient->sendToSmsPhysician($id,'RegReferringDoc');
+											$this->Patient->sendToSmsPhysician($id,'RegAdministratorReturn');
+											$this->Patient->sendToSmsPhysician($id,'RegOwnerReturn');*/
+										}
+									}
+								//exit;					
+								}
+							}
+
+							//$this->Patient->sendToSmsPhysician($id,'Reg');
+							//$this->Patient->sendToSmsPatient($id,'RegPatientRelative');
+							//$this->Patient->sendToSmsPhysician($id,'OwnerReg');
+							//$this->Patient->sendToSmsPatient($id,'Reg');
+							$this->Patient->sendToSmsMultipleUserForOtherConsultant($id,'OtherConsultant',$this->request->data['Patient']['other_consultant']);
+						//}
+					}
+				
+					
+					///EOF-Mahalaxmi-For send SMS to Physician And Patient
+					if($this->Session->read('website.instance') != 'vadodara'){ //condition added by pankajw as in vadoara they will not assign bed on registration.
+						$this->Bed->id = $this->request->data['Patient']['bed_id'] ;
+						$this->Bed->save(array('patient_id'=>$latest_insert_id,'is_released'=>1));
+						$ward_data=array();
+						$ward_data['location_id']=$this->Session->read('locationid');
+						$ward_data['patient_id']=$latest_insert_id;
+						$ward_data['ward_id']=$this->request->data['Patient']['ward_id'];
+						$ward_data['room_id']=$this->request->data['Patient']['room_id'];
+						$ward_data['bed_id']=$this->request->data['Patient']['bed_id'];
+						//find and update tariff_list_id
+						$ward_data['tariff_list_id']=$this->Ward->getTariffListID($ward_data['ward_id']);
+						if($this->request->data['Patient']['form_received_on']!=''){
+							$ward_data['in_date']=$this->request->data['Patient']['form_received_on'];
+						}else{
+							$ward_data['in_date']=date('Y-m-d H:i:s');
+						}
+						$ward_data['created_by']=$this->Session->read('userid');
+						$ward_data['create_time']=date('Y-m-d H:i:s');
+						//debug($ward_data);exit;
+						$this->WardPatient->save($ward_data);
+	
+						//by pankaj w to post first day charge
+						$this->loadModel('WardPatientService');
+						$this->WardPatientService->postWardCharges($latest_insert_id,$this->request->data['Patient']['tariff_standard_id'],$this->request->data['Patient']['ward_id']);
+						//EOF ward charges 
+					}
+
+					/**
+					 * update patient opt appointment if patient is private packaged
+					*/
+					if($this->request->data['Patient']['is_packaged']){
+						$this->loadModel('OptAppointment');
+						if($this->request->data['Patient']['is_packaged'] == '1'){
+							$this->request->data['Patient']['is_packaged'] = ($this->params->query['patient_id']) ? $this->params->query['patient_id'] : $latest_insert_id;
+						}
+
+						$this->OptAppointment->updateAll(array('is_false_appointment'=>'2','patient_id'=>$this->request->data['Patient']['is_packaged']),
+								array('is_false_appointment'=>'1','OptAppointment.patient_id IS NULL'));
+						if(!isset($this->params->query['patient_id'])){
+							$this->loadModel('EstimateConsultantBilling');
+							$this->EstimateConsultantBilling->updateAll(array('EstimateConsultantBilling.patient_id'=>"'".$this->request->data['Patient']['is_packaged']."'"),
+									array('EstimateConsultantBilling.person_id '=>$this->request->data['Patient']['person_id'],'EstimateConsultantBilling.patient_id IS NULL'));
+							//$this->Patient->updateAll(array('Patient.is_packaged' => "'".$latest_insert_id."'"),array('Patient.id'=>$latest_insert_id));
+						}
+					}
+				
+				}
+				/************************************************************************************************************/
+
+					
+				//$this->request->data['Patient']['id'] = $latest_insert_id ;
+				//QR code image generation
+				//Old Qr Code image
+				// $qrformat =  $this->qrFormat($this->request->data['Patient']);
+				//$UIDQRFormat =  $this->UIDQRFormat($this->request->data['Patient']);
+					
+				//$patientUID = $this->request->data['Patient']['patient_id'] ;
+				//App::import('Vendor', 'qrcode', array('file' => 'qrcode/qrlib.php'));
+				//QRcode::png($qrformat, "uploads/qrcodes/$admission_id.png", 'L', 4, 2);
+				//QRcode::png($UIDQRFormat, "uploads/qrcodes/$patientUID.png", 'L', 4, 2);		//override UID QR code to syncronize changes from patient form
+				 
+				//QR code image generation
+				//  New QR Code As per EMAR Criteria Requirement
+				$patientDOB = $this->Person->read('dob',$this->request->data['Patient']['person_id']);
+				$dob = $this->DateFormat->formatDate2Local($patientDOB['Person']['dob'],Configure::read('date_format'),false);
+				//$qrString = $this->request->data['Patient']['patient_id'];//."#".$this->request->data['Patient']['lookup_name']."#".$dob;
+				// generate Text Type QrCode
+				//$this->QRCode ->text(trim($qrString));
+				// display new QR code image
+				//$this->QRCode ->draw(150, "uploads/qrcodes/".$admission_id.".png");
+
+				$this->Patient->unbindModel(array('hasMany'=>array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+
+				$formReceivedOn = $this->request->data['Patient']['form_received_on'];
+				//	$account_number=$admission_id;
+				//$this->Patient->id=$latest_insert_id;
+				// when patient is discharge and again add to person table is is_deleted fields need to update for search in First Page
+				$this->Patient->updateAll(
+						array('Patient.admission_id' => "'$admission_id'",'Patient.account_number' => "'$admission_id'",'form_received_on' => "'$formReceivedOn'",
+								'Patient.is_packaged' => "'".$this->request->data[Patient][is_packaged]."'"),
+						array('Patient.id'=>$latest_insert_id)
+				);
+				//debug($this->request->data);exit;
+
+				//for lab and radiology--atul
+				/*$type=$this->params->query['type'];
+				$this->request->data['Patient']['admission_type']=$type;
+				$admission_id = $this->autoGeneratedAdmissionID($latest_insert_id,$this->request->data);
+				$this->request->data['Patient']['admission_id'] =$admission_id ;*/
+
+				$this->Account->insertMandatoryServiceCharges($this->request->data,$latest_insert_id); // by yashwant
+			
+				//for set coupon transaction if coupon is applied
+				//debug($this->request->data);
+				if($this->request->data['Patient']['coupon_name']!='' and Configure::read('Coupon')){
+					$this->CouponTransaction->setCouponTransaction($latest_insert_id,$this->request->data['Patient']['coupon_name']);
+					 if($this->request->data["Patient"]['admission_type'] == "OPD")
+						$this->request->data['Patient']['total'] =  $this->CouponTransaction->ApplyCouponDiscount($latest_insert_id,$this->request->data['Patient']['coupon_amount']);		
+				} 
+				 
+				//$this->Patient->save($this->request->data);
+				/*debug($this->request->data);
+				 $log = $this->Patient->getDataSource()->getLog(false, false);;debug($log);exit;*/
+				$privateID = $this->TariffStandard->getPrivateTariffID();//retrive private ID
+				$tariffStdData = $this->request->data['Patient']['admission_type'];
+				$tariffStd = $this->request->data['Patient']['treatment_type']; //visit type first or follow consultaion
+				$tariffStandardId = $this->request->data['Patient']['tariff_standard_id']?$this->request->data['Patient']['tariff_standard_id']:$privateID;
+				$hospitalType = $this->Session->read('hospitaltype');
+
+				$regCharges = $this->Billing->getRegistrationCharges($hospitalType,$tariffStandardId,$latest_insert_id);
+				$doctorRate = $this->Billing->getDoctorRate(1,$hospitalType,$tariffStandardId,$tariffStdData,$tariffStd,$latest_insert_id,$this->request->data['Patient']['doctor_id']);
+
+				// ***insert into Account (By) credit manage current balance
+				/* $getByBalance=$this->Account->find('first',array('conditions'=>array('Account.system_user_id'=>$this->request->data['Patient']['person_id']),'fields'=>array('balance')));
+				 $totalBy=$getByBalance['Account']['balance'] - $regCharges;
+				$this->Account->updateAll(array('balance'=>$totalBy),array('Account.system_user_id'=>$this->request->data['Patient']['person_id']));
+
+				$getToBalance=$this->Account->find('first',array('conditions'=>array('Account.name'=>Configure::read('cash')),'fields'=>array('balance','id')));
+				$totalTo=$getToBalance['Account']['balance'] + $regCharges;
+				$this->Account->updateAll(array('balance'=>$totalTo),array('id'=>$getToBalance['Account']['id']));
+				*/
+				// ***insert into Account (By) credit manage current balance
+				/* $getByBalance = $this->Account->find('first',array('conditions'=>array('Account.system_user_id'=>$this->request->data['Patient']['person_id']),'fields'=>array('balance')));
+				 $totalBy=$getByBalance['Account']['balance'] - $doctorRate;
+				 $this->Account->updateAll(array('balance'=>$totalBy),array('Account.system_user_id'=>$this->request->data['Patient']['person_id']));
+
+				 $getToBalance=$this->Account->find('first',array('conditions'=>array('Account.name'=>Configure::read('cash')),'fields'=>array('balance','id')));
+				 $totalTo=$getToBalance['Account']['balance'] + $doctorRate;
+				$this->Account->updateAll(array('balance'=>$totalTo),array('id'=>$getToBalance['Account']['id'])); */
+
+				//EOF updation
+
+
+				//by pankaj w
+				//revert swapped location id
+				if($this->Session->check('temp_locationid') && $this->Session->read('temp_locationid') != ""){
+					$this->Session->write('locationid',$this->Session->read('temp_locationid'));
+					$this->Session->delete('temp_locationid');
+				}
+
+
+
+
+				//BOF--- yashwant
+				$message = ClassRegistry::init('Message');
+				$patientEmail = $this->Person->read('person_email_address',$this->request->data['Patient']['person_id']);
+				$patient_id=$this->Patient->getInsertId();
+
+				if(!empty($this->request->data) && $this->Session->read('credantial')=='yes'){
+					$dateToday=date('m/d/Y H:i:s');
+					if($message->createCredentials($patient_id,$patientEmail["Person"]['person_email_address'],$dateToday)){
+						$mess = "Email sent successfully on ".$patientEmail["Person"]['person_email_address'];
+					}else{
+						//$this->Session->setFlash(__("Could not send email"),'default',array('class'=>'message'));
+						$mess = "Could not send email ".$patientEmail["Person"]['person_email_address'];
+					}
+				}
+					
+				if(!empty($this->request->data) && $this->Session->read('credantial')=='yes'){
+					$this->Session->setFlash(__('UID Patient Registered Successfully And Credantials Sent to Email', true));
+					$credantial=$this->Session->read('credantial');
+					$this->Session->delete('credantial');
+				}else{
+					//$this->Session->setFlash(__('Record added Successfully', true));
+					$this->Session->setFlash(__('Record added for - <b>'.$getdata['Person']['patient_uid']."</b>",true),'default',array('class'=>'stillSuccess','id'=>'stillFlashMessage'),'still');
+				}
+				//debug($credantial);exit;
+				//exit;
+				//---EOF yashwant
+				
+				if(strtolower($_SESSION['role'])==Configure::read('patientLabel')){
+					//$this->Session->setFlash(__('Resgistered Successfully', true));
+					$this->Session->setFlash(__('Record added for - <b>'.$getdata['Person']['patient_uid']."</b>",true),'default',array('class'=>'stillSuccess','id'=>'stillFlashMessage'),'still');
+					$this->redirect(array("controller" => "PatientAccess", "action" => "portal_home"));
+
+				}
+
+				$this->Person->updateAll(array('Person.is_deleted'=>'0'),array('Person.id'=>$this->request->data['Patient']['person_id']));
+				//$this->redirect(array("controller" => "patients", "action" => "patient_information",$latest_insert_id));
+
+
+				// for redirect from registration to billing page-Atul
+				$this->loadModel('Configuration');
+				$redirect = $this->Configuration->find('first',array('conditions'=>array('name'=>'Redirect From Registration')));
+				$previousData = unserialize($redirect['Configuration']['value']);
+					
+
+				//EOF swapping locationid
+				if(($this->request->data['Patient']['admission_type'] == "IPD") && ($previousData=='1' )){
+					$this->redirect(array("controller"=>"Billings","action"=>"multiplePaymentModeIpd"));
+				}else if($this->request->data['Patient']['admission_type'] == "IPD"){	
+					if($this->Session->read('website.instance')=='vadodara'){
+						$this->redirect(array("controller"=>"Billings","action"=>"multiplePaymentModeIpd",$latest_insert_id,'?'=>array('printIpdSheet'=>'printIpdSheet')));
+					}else{						
+						//$this->redirect(array("controller" => "wards", "action" => "index", "?"=>array("Ward"=>$this->request->data['Patient']['ward_id'])));
+						$this->redirect(array( "controller" => "users","action" => "doctor_dashboard",$latest_insert_id));
+					}
+						
+				}else if(($this->request->data['Patient']['admission_type']=="RAD" || $this->request->data['Patient']['admission_type']=="LAB")&&($previousData=='1' )){
+					$this->redirect(array("controller"=>"Billings","action"=>"multiplePaymentModeIpd",$latest_insert_id));
+				}
+				else if($this->request->data['Patient']['admission_type']=="RAD" || $this->request->data['Patient']['admission_type']=="LAB"){
+					$this->redirect(array("controller"=>"Billings","action"=>"multiplePaymentModeIpd",$latest_insert_id,'?'=>array('printIpdSheet'=>'printIpdSheet')));
+				}else if(($this->request->data['Patient']['admission_type'] == "OPD") /*&& ($previousData=='1' )*/){
+						
+					if(strtolower($_SESSION['role'])==Configure::read('patientLabel')){
+						$this->Session->write('isPatientDischarged',0);
+						$this->Session->write('patientId',$latest_insert_id);
+					//	$this->Session->setFlash(__('Update Successfully', true));
+						$this->Session->setFlash(__('Record added for - <b>'.$getdata['Person']['patient_uid']."</b>",true),'default',array('class'=>'stillSuccess','id'=>'stillFlashMessage'),'still');
+						$this->redirect(array("controller" => "PatientAccess", "action" => "portal_home"));
+							
+					}else{
+						//BOF future by santosh
+							
+						$futureapppersonid = $this->Patient->read('person_id', $latest_insert_id);
+
+						/* $checkFutureApp = $this->Appointment->find('first', array('conditions' => array('Appointment.person_id' => $futureapppersonid['Patient']['person_id'],
+						 'Appointment.is_future_app' => 1,'Appointment.date'=>date('Y-m-d')),'order'=>array('Appointment.id ASC'))); */
+						if(!empty($this->params->query['apptId'])) {
+							$this->Appointment->id = $this->params->query['apptId'];
+							$this->request->data['Appointment']['id'] = $this->params->query['apptId'];
+							$this->request->data['Appointment']['status']='Arrived';
+							$this->request->data['Appointment']['arrived_time']=date('H:i');
+							$this->request->data['Appointment']['patient_id'] = $latest_insert_id;
+							$this->request->data['Appointment']['doctor_id'] = $this->request->data['Patient']['doctor_id'];
+							$this->request->data['Appointment']['department_id'] = $this->request->data['Patient']['department_id'];
+							$this->request->data['Appointment']['appointment_with'] = $this->request->data['Patient']['doctor_id'];
+							$this->request->data['Appointment']['modified_by'] = $this->Session->read('userid');
+							$this->request->data['Appointment']['is_future_app'] = 0;
+							$this->request->data['Appointment']['modify_time'] = date('Y-m-d H:i:s');
+							if($this->Appointment->save($this->request->data)) {
+								//For updating all the appointment of same day
+								$allAppt=$this->Appointment->find('list',array('fields'=>array('id'),'conditions'=>array('Appointment.person_id'=>$futureapppersonid['Patient']['person_id'],'Appointment.date'=>date('Y-m-d'))));
+								$updateArray=array('Appointment.is_future_app'=>'0','Appointment.patient_id'=>$latest_insert_id);
+								$this->Appointment->updateAll($updateArray,array('Appointment.id'=>$allAppt,'Appointment.date'=>date('Y-m-d')));
+									
+								//$this->Session->setFlash(__('The patient with future appointment has been confirmed', true));
+							}
+								
+							//$this->redirect(array("controller"=>"Billings","action"=>"multiplePaymentModeIpd",$latest_insert_id));
+						}else{//---for redirecting to patient list.users doctor_dashboard
+								
+							$this->request->data['Patient']['person_id'] = $futureapppersonid['Patient']['person_id'];
+							$this->request->data['Patient']['patient_id'] = $latest_insert_id;
+							$this->Appointment->setCurrentAppointment($this->request->data);
+							/* message not required gaurav-
+							 * if($credantial!='yes'){
+							$this->Session->setFlash(__('Patient Registered Successfully', true),true,array('class'=>'message'));
+							}*/
+								
+						}
+					}
+						
+				
+					//Make Payment entry from reg form itsel if pay amount chk box is checked-- Pooja
+					if($this->Session->read('website.instance')=='vadodara'){
+						/**
+						 * For setting up multiple appointment at a time 
+						 * Pooja Gupta
+						 */
+						if($this->request->data['Appointment']){
+							
+							$this->Appointment->setMultipleAppointment($this->request->data);
+						}
+						// For after setting up multiple appointment print multiple OPD print sheet-Atul
+						 $docPid[]=($this->request->data['Patient']['doctor_id']);
+			   
+					       if(!empty($this->request->data['Appointment']['doctor_id'])){
+					       	 $doctorAppId=$this->request->data['Appointment']['doctor_id'];
+					       }else{
+					       	 $doctorAppId[]=$this->request->data['Appointment']['doctor_id'];
+					       }
+							$doctorIdArray = array_merge($docPid,$doctorAppId);
+							$docIDArr=array_filter($doctorIdArray);	
+						    $docArray=implode(",", $docIDArr);
+									
+						if(($this->request->data["Person"]['pay_amt']=='1') && ($this->request->data['Person']['printSheet']=='1')){
+							$tariff[Configure::read('mandatoryservices')]=$this->request->data['Patient']['treatment_type'];
+							$this->request->data['Patient']['tariff_list_id']=serialize($tariff);
+							$this->request->data['Patient']['patient_id']=$latest_insert_id;
+							//$billId=$this->payBilling($this->request->data);
+							$billId=$this->Billing->saveRegBill($this->request->data);
+							/*$this->Billing->save(array(
+							 'patient_id'=>$latest_insert_id,
+									'location_id'=>$this->request->data['Person']['location_id'],
+									'amount'=>$this->request->data["Person"]['visit_charge'],
+									'payment_category'=>'1',
+									'date'=>date('Y-m-d H:i:s'),
+									'tariff_list_id'=>$tariffId,
+									'mode_of_payment'=>'Cash',
+									'total_amount'=>$this->request->data["Person"]['visit_charge'],
+									'amount_pending'=>'0',
+									'amount_paid'=>'0',
+									'created_by'=>$this->Session->read('userid'),
+							));*/
+							$this->Session->setFlash(__('Record added for - <b>'.$getdata['Person']['patient_uid']."</b>",true),'default',array('class'=>'stillSuccess','id'=>'stillFlashMessage'),'still');
+							$this->redirect(array("controller" => "persons", "action" => "searchPatient",'?'=>array('print'=>$billId,"patientId"=>$latest_insert_id,'docID'=>$docArray)));
+									
+						}else{
+							//$this->redirect(array("controller"=>"Billings","action"=>"multiplePaymentModeIpd",$latest_insert_id));
+							$this->redirect(array("controller" => "persons", "action" => "searchPatient",'?'=>array("patientId"=>$latest_insert_id,'docID'=>$docArray)));
+						}
+					}else{
+						//pankajM
+						//$this->redirect(array("controller"=>"Billings","action"=>"multiplePaymentModeIpd",$latest_insert_id));
+						if($this->Session->read('website.instance')=='hope'){
+						  $this->redirect(array("controller" => "appointments", "action" => "appointments_management","?"=>array("patientId"=>$latest_insert_id)));
+						}
+						else 
+							$this->redirect(array("controller" => "appointments", "action" => "appointments_management"));
+					}			
+						
+				}
+				else{
+
+					if(strtolower($_SESSION['role'])==Configure::read('patientLabel')){
+						$this->Session->write('isPatientDischarged',0);
+						$this->Session->write('patientId',$latest_insert_id);
+						$this->Session->setFlash(__('Update Successfully', true));
+						$this->redirect(array("controller" => "PatientAccess", "action" => "portal_home"));
+					}else{
+						//BOF future by santosh
+						$futureapppersonid = $this->Patient->read('person_id', $latest_insert_id);
+						/* $checkFutureApp = $this->Appointment->find('first', array('conditions' => array('Appointment.person_id' => $futureapppersonid['Patient']['person_id'],
+						 'Appointment.is_future_app' => 1,'Appointment.date'=>date('Y-m-d')),'order'=>array('Appointment.id ASC'))); */
+						if(!empty($this->params->query['apptId'])) {
+							$this->Appointment->id = $this->params->query['apptId'];
+							$this->request->data['Appointment']['id'] = $this->params->query['apptId'];
+							$this->request->data['Appointment']['status']='Arrived';
+							$this->request->data['Appointment']['arrived_time']=date('H:i');
+							$this->request->data['Appointment']['patient_id'] = $latest_insert_id;
+							$this->request->data['Appointment']['doctor_id'] = $this->request->data['Patient']['doctor_id'];
+							$this->request->data['Appointment']['department_id'] = $this->request->data['Patient']['department_id'];
+							$this->request->data['Appointment']['appointment_with'] = $this->request->data['Patient']['doctor_id'];
+							$this->request->data['Appointment']['modified_by'] = $this->Session->read('userid');
+							$this->request->data['Appointment']['is_future_app'] = 0;
+							$this->request->data['Appointment']['modify_time'] = date('Y-m-d H:i:s');
+							if($this->Appointment->save($this->request->data)) {
+								//For updating all the appointment of same day
+								$allAppt=$this->Appointment->find('list',array('fields'=>array('id'),'conditions'=>array('Appointment.person_id'=>$futureapppersonid['Patient']['person_id'],'Appointment.date'=>date('Y-m-d'))));
+								$updateArray=array('Appointment.is_future_app'=>'0','Appointment.patient_id'=>$latest_insert_id);
+								$this->Appointment->updateAll($updateArray,array('Appointment.id'=>$allAppt,'Appointment.date'=>date('Y-m-d')));
+								//$this->Session->setFlash(__('The patient with future appointment has been confirmed', true));
+							}
+							//$this->redirect(array("controller" => "appointments", "action" => "appointments_management"));
+						}else{//---for redirecting to patient list.users doctor_dashboard
+
+							$this->request->data['Patient']['person_id'] = $futureapppersonid['Patient']['person_id'];
+							$this->request->data['Patient']['patient_id'] = $latest_insert_id;
+							$this->Appointment->setCurrentAppointment($this->request->data);
+							/* message not required gaurav-
+							 * if($credantial!='yes'){
+							$this->Session->setFlash(__('Patient Registered Successfully', true),true,array('class'=>'message'));
+							}*/
+							//$this->redirect(array("controller" => "appointments", "action" => "appointments_management"));
+						}
+
+						//Make Payment entry from reg form itsel if pay amount chk box is checked-- Pooja
+						if($this->Session->read('website.instance')=='vadodara'){
+							if(($this->request->data["Person"]['pay_amt']=='1') && ($this->request->data['Person']['printSheet']=='1')) {
+								$tariff[Configure::read('mandatoryservices')]=$this->request->data['Patient']['treatment_type'];
+								$this->request->data['Patient']['tariff_list_id']=serialize($tariff);
+								$this->request->data['Patient']['patient_id']=$latest_insert_id;
+								$billId=$this->payBilling($this->request->data);
+								/*$this->Billing->save(array(
+								 'patient_id'=>$latest_insert_id,
+										'location_id'=>$this->request->data['Person']['location_id'],
+										'amount'=>$this->request->data["Person"]['visit_charge'],
+										'payment_category'=>'1',
+										'date'=>date('Y-m-d H:i:s'),
+										'tariff_list_id'=>$tariffId,
+										'mode_of_payment'=>'Cash',
+										'total_amount'=>$this->request->data["Person"]['visit_charge'],
+										'amount_pending'=>'0',
+										'amount_paid'=>'0',
+										'created_by'=>$this->Session->read('userid'),
+								));*/
+
+								//$billId=$this->Billing->getlastInsertID();
+								$this->redirect(array("controller" => "persons", "action" => "searchPatient",'?'=>array('print'=>$billId,"patientId"=>$latest_insert_id)));
+							}else{
+								//$this->redirect(array("controller"=>"Billings","action"=>"multiplePaymentModeIpd",$latest_insert_id));
+								$this->redirect(array("controller" => "persons", "action" => "searchPatient",'?'=>array("patientId"=>$latest_insert_id)));
+							}
+						}else{
+							$this->redirect(array("controller" => "appointments", "action" => "appointments_management"));
+						}
+						//EOF future by santosh
+						//----following condition will not occur, due to above else part.....
+						if($this->request->data['Patient']['print_sheet']=='extra'){
+							$this->redirect(array("action" => "patient_information",$latest_insert_id,'?'=>array('registration'=>'done')));
+						}else{
+							$this->redirect(array("controller" => "doctor_schedules", "action" => "doctor_event", 'doctorid' => $this->request->data['Patient']['doctor_id'], 'deptid' => $this->request->data['Patient']['department_id'], 'patientid' => $latest_insert_id));
+
+						}
+					}
+				}
+			}
+		}
+		/*{
+			$corporateList = $this->Corporate->find('list');
+		$corporateList[0]='Private';
+		$this->set('corporateList',$corporateList);
+		#pr($corporateList);exit;
+		if(!empty($id) && !$errors){
+		//to autofill lookup name
+		$data = $this->Person->read('patient_uid,first_name,last_name,blood_group',$id);
+		$formData['Patient']['patient_id'] = $data['Person']['patient_uid'];
+		$formData['Patient']['full_name'] = $data['Person']['first_name']." ".$data['Person']['last_name'];
+		$this->data  = $formData ;
+		}else{
+		//reset ward data
+		$this->request->data['Patient']['ward_id'] = '';
+		}
+		//BOF pankaj
+
+		if(empty($this->params->query['type'])){
+		$this->redirect($this->referer());
+		}
+		//EOF pankaj
+
+		}*/
+			
+		else{
+			$corporateList = $this->Corporate->find('list');
+			$corporateList[0]='Private';
+			$this->set('corporateList',$corporateList);
+			#pr($corporateList);exit;
+			if($this->params->query['is_opd']==1 && !empty($this->params->query['patient_id'])){
+				//to autofill lookup name if converting patient from OPD TO IPD --- Pooja
+				$personId=$this->Patient->find('first',array('fields'=>array('Patient.person_id','Patient.doctor_id','Patient.department_id','Patient.email','Patient.previous_receivable',
+						'Patient.relative_name','Patient.known_fam_physician','Patient.consultant_id','Patient.tariff_standard_id','Patient.sponsers_auth','Patient.relation',
+						'Patient.mobile_phone','Patient.payment_category','Patient.case_summery_link','Patient.patient_file'),
+						'conditions'=>array('Patient.id'=>$this->params->query['patient_id'])));
+				
+
+				$data = $this->Person->read('patient_uid,first_name,last_name,blood_group,age,sex,dob',$personId['Patient']['person_id']);
+				$formData['Patient']['patient_id'] = $data['Person']['patient_uid'];
+				$formData['Patient']['full_name'] = $data['Person']['first_name']." ".$data['Person']['last_name'];
+				$formData['Patient']['person_id']=$personId['Patient']['person_id'];
+				$formData['Patient']['age']= $this->Patient->getCurrentAge($data['Person']['dob']);
+				$formData['Patient']['sex']=$data['Person']['sex'];
+				$formData['Patient']['doctor_id']=$personId['Patient']['doctor_id'];
+				$formData['Patient']['department_id']=$personId['Patient']['department_id'];
+				$formData['Patient']['previous_receivable']=$personId['Patient']['previous_receivable'];
+				$formData['Patient']['email']=$personId['Patient']['email'];
+				$formData['Patient']['relative_name']=$personId['Patient']['relative_name'];
+				$formData['Patient']['known_fam_physician']=$personId['Patient']['known_fam_physician'];
+				$formData['Patient']['consultant_id']=$personId['Patient']['consultant_id'];
+				$formData['Patient']['tariff_standard_id']=$personId['Patient']['tariff_standard_id'];
+				$formData['Patient']['sponsers_auth']=$personId['Patient']['sponsers_auth'];
+				$formData['Patient']['relation']=$personId['Patient']['relation'];
+				$formData['Patient']['mobile_phone']=$personId['Patient']['mobile_phone'];
+				$formData['Patient']['payment_category']=$personId['Patient']['payment_category'];
+				$formData['Patient']['case_summery_link']=$personId['Patient']['case_summery_link'];
+				$formData['Patient']['patient_file']=$personId['Patient']['patient_file'];
+				if($this->params->query['packaged']){
+					$wardData = $this->EstimateConsultantBilling->find('first',array('fields'=>array('id','ward_id'),
+							'conditions'=>array('patient_id'=>$this->params->query['patient_id'])));
+					$formData['Patient']['ward_id'] = $wardData['EstimateConsultantBilling']['ward_id'];
+					$formData['Patient']['is_packaged'] = $this->params->query['patient_id'];
+				}
+				$this->data  = $formData ;
+			}else{
+				if(!empty($id) && !$errors){
+					//to autofill lookup name
+					$data = $this->Person->read('patient_uid,first_name,last_name,blood_group,age,sex,id,dob',$id);
+					//$patientData = $this->Patient->find('first',array('conditions'=>array('Patient.id'=>$id),array('fields'=>array('id','tariff_standard_id'))));
+                                        $patientData = $this->Patient->find('first',array('fields'=>array('id','tariff_standard_id','is_staff_register'),'conditions'=>array('Patient.person_id'=>$id)));
+					$formData['Patient']['patient_id'] = $data['Person']['patient_uid'];
+					$formData['Patient']['full_name'] = $data['Person']['first_name']." ".$data['Person']['last_name'];
+					$formData['Patient']['age'] = $this->Patient->getCurrentAge($data['Person']['dob']);
+					$formData['Patient']['sex']=$data['Person']['sex'];
+					$formData['Patient']['person_id']=$data['Person']['id'];
+					$formData['Patient']['tariff_standard_id']=$patientData['Patient']['tariff_standard_id'];
+					$formData['Patient']['is_staff_register']=$patientData['Patient']['is_staff_register'];
+					$this->data = $formData ;
+						
+				}else{
+					//reset ward data
+					$this->request->data['Patient']['ward_id'] = '';
+				}
+			}
+			//BOF pankaj
+
+			if(empty($this->params->query['type'])){
+				$this->redirect($this->referer());
+			}
+			//EOF pankaj
+
+		}
+		//BOF pankaj autopopulating form
+		if(($this->params->query['from']=='dashboard') && (!empty($this->params->query['person_id']))){
+			$data = $this->Person->setDataForDashboardRegistration($this->params->query['person_id'],$this->params->query['apptId']);
+			$this->data  = $data ;
+
+		}
+		//EOF pankaj autopopulating form
+			
+		$billing = $this->AdvanceType->find('list',array('fields'=>array('type'),'conditions'=>array('location_id'=>$this->Session->read('locationid'), 'AdvanceType.is_active' => 'Active')));
+		$standardAgainst = $this->AdvanceType->find('list',array('fields'=>array('standard_amount'),'conditions'=>array('location_id'=>$this->Session->read('locationid'), 'AdvanceType.is_active' => 'Active')));
+		$tariffStandard = $this->TariffStandard->find('list',array('order' => array('TariffStandard.name'),'conditions'=>array('is_deleted'=>0,'TariffStandard.location_id'=>$this->Session->read('locationid'))));
+		$this->set(array('tariffStandard'=>$tariffStandard,'against'=>$billing,'standardAgainst'=>$standardAgainst));
+		$this->set('reffererdoctors',$this->ReffererDoctor->find('list',array('order' => array('ReffererDoctor.name'),'conditions' => array('ReffererDoctor.is_deleted' => 0, 'ReffererDoctor.is_referral' => 'Y'), 'fields' => array('ReffererDoctor.id', 'ReffererDoctor.name'))));
+		$this->set('departments',$this->Department->find('list',array('fields'=>array('id','name'),'conditions'=>array('Department.location_id'=>$location_id),'order' => array('Department.name'))));
+		$this->loadModel('User');
+		$this->set('doctors',$this->User->getDoctorsByLocation());
+		$this->set('opddoc',$this->User->getOpdDoctors());// for only opd doctors-atul
+		$this->set('treatmentConsultant',$this->Consultant->find('list',array('fields'=>array('id','full_name'),'order' => array('Consultant.first_name'), 'conditions'=>array('Consultant.location_id'=>$location_id, 'Consultant.is_deleted'=>0), 'recursive' => 1)));
+		$wards=$this->Ward->getAvailableWards();
+		$this->set('wardsAvailable',$this->Ward->getAvailableWards());
+
+		$icdOptions = $this->PhvsIcd9cm->find('list',array('fields'=>array('description')));
+		$this->set(compact('icdOptions'));
+
+		$phvsVisit = $this->PhvsVisit->find('list',array('fields'=>array('description')));
+		$this->set(compact('phvsVisit'));
+
+		$obs_id = $this->ObservationIdentifier->find('list',array('fields'=>array('description')));
+		$this->set(compact('obs_id'));
+		//*******BOF-Other Consultant ---Mahalaxmi
+		$getOtherConsultant=$this->Patient->otherConsultantDoctors();
+		$this->set(compact('getOtherConsultant'));
+		//*******EOF-Other Consultant ---Mahalaxmi
+		if(!empty($id) && !$errors){
+			//find insurance data.
+
+			$this->loadModel('NewInsurance');$this->loadModel('Location');
+			$personUid=$this->Person->find('first',array('fields'=>array('patient_uid','insurance_type_id','last_name','first_name','dob'),'conditions'=>array('id'=>$id)));//gaurav
+
+			$insuranceData=$this->NewInsurance->find('first',array('conditions'=>array('patient_uid'=>$personUid["Person"]["patient_uid"])));
+			$this->set('insuranceData',$insuranceData);
+			$this->loadModel('ServiceCategory');
+			$this->set('serviceCategoryID',$this->ServiceCategory->getServiceGroupId(Configure::read('Consultation')));
+			
+			$hospitalLocation = $this->Location->find('first', array('fields'=> array('Location.name'),'conditions'=>array('Location.id'=>$this->Session->read('locationid'), 'Location.is_active' => 1, 'Location.is_deleted' => 0)));
+			$PatientDob=explode('-',$personUid['Person']['dob']);
+			$PersonDob=$PatientDob['1']."/".$PatientDob['2']."/".$PatientDob['0'];
+			$this->set('personUidData',$personUid);
+			$this->set('hospitalLocation',$hospitalLocation['Location']['name']);
+			$this->set('PersonDob',$PersonDob);
+
+
+		}
+		//find array of patient id - for previous receivables
+		// Following Code commented by atul bcz there is no need to show previous balance
+	  /*   $patient_ids=$this->Patient->getAllPatientIds($getdata['Person']['id']);
+		 $cntPatientId=$patient_ids[count($patient_ids)-1];
+
+		//for previous remaining amount by amit jain.
+		 $finalTotalAmount = $this->Billing->find('first', array('fields'=> array('Billing.total_amount'),'conditions'=>array('Billing.patient_id'=>$cntPatientId,'Billing.payment_category'=>'Finalbill','Billing.is_deleted'=>'0'),'order'=>array('id DESC')));
+		 $allBillingAmount=$this->Billing->find('all', array('fields'=> array('SUM(Billing.paid_to_patient) as totalRefund','SUM(Billing.amount) as amountPaid','SUM(Billing.discount) as totalDiscount'),'conditions'=>array('Billing.patient_id'=>$cntPatientId,'Billing.is_deleted'=>'0')));
+		 $totalAmount = $finalTotalAmount['Billing']['total_amount'];
+		 $totalRefund = $allBillingAmount['0']['0']['totalRefund'];
+		 $totalPaid = $allBillingAmount['0']['0']['amountPaid'];
+		 $totalDiscount = $allBillingAmount['0']['0']['totalDiscount'];
+		 $previousReceivable = $totalAmount - $totalPaid - $totalDiscount + $totalRefund;
+		 
+		 $this->set('previousReceivable',$previousReceivable);	*/
+	}
+
+
+
+	public function edit($id=null){
+// 		 if($this->request->data){
+// 			debug($this->request->data);exit;
+// 		} 
+// 		exit;
+		
+		$this->set('title_for_layout', __('-Patient Registration', true));
+		$this->layout = 'advance';
+		$this->uses = array('AdvanceType','TariffStandard','TariffList','WardPatient','Person','Note','Department','DoctorProfile',
+				'Consultant','Ward','ReffererDoctor','Billing','patient_past_histories','patient_personal_histories','patient_family_history',
+				'patient_allergies','Bed','CorporateLocation','Corporate', 'CorporateSublocation', 'InsuranceType', 'InsuranceCompany',
+				'CreditType','User','CouponTransaction','PatientReferralConsultant');
+		$location_id = $this->Session->read('locationid');
+
+		$this->Patient->bindModel(array(
+				'belongsTo'=>array('Person'=>array('foreignKey'=>'person_id')
+				)));
+		$result=$this->Patient->find('first',array('conditions'=>array('Patient.id'=>$id) ));
+		$this->set('result',$result);
+
+		/**  For private id**/
+		$privateID = $this->TariffStandard->getPrivateTariffID();
+		$this->set('privateID',$privateID);
+		/**  **/
+		$this->set('reffererdoctors',$this->ReffererDoctor->find('list',array('conditions' => array('ReffererDoctor.is_deleted' => 0, 'ReffererDoctor.is_referral' => 'Y'), 'fields' => array('ReffererDoctor.id', 'ReffererDoctor.name'),'order'=>array('ReffererDoctor.name'))));
+
+		$this->set('departments',$this->Department->find('list',array('fields'=>array('id','name'),'conditions'=>array('Department.location_id'=>$location_id),'order'=>array('Department.name'))));
+		/** OP Check  **/
+		$OPCheckUpOptions=$this->TariffList->find('list',array('fields'=>array('id','name'),'conditions'=>array('check_status'=>'1','is_deleted'=>'0','location_id'=>$this->Session->read('locationid'))));
+		$this->set('opdoptions',$OPCheckUpOptions);
+		/** **/
+		//*******BOF-Other Consultant ---Mahalaxmi
+		$getOtherConsultant=$this->Patient->otherConsultantDoctors('');
+		$this->set(compact('getOtherConsultant'));
+		//*******EOF-Other Consultant ---Mahalaxmi
+		$this->set('opddoc',$this->User->getOpdDoctors());// for only opd doctors-atul
+		$this->set('doctors',$this->DoctorProfile->getDoctors());// for only opd doctors-atul
+		$treatmentConsultant=$this->Consultant->find('list',array('fields'=>array('id','full_name'),'conditions'=>array('Consultant.location_id'=>$location_id),'order'=>array('Consultant.first_name')));
+		$mergeArray = array('None'=>'None')+$treatmentConsultant;	
+		$this->set('treatmentConsultant',$mergeArray);
+		//$this->set('wardsAvailable',$this->Ward->find('list',array('fields'=>array('id', 'name'),'conditions'=>array('Ward.location_id'=>$location_id))));
+		// get doctor reference id //
+		$doctorRefId = $this->Patient->find('first', array('fields' => array('Patient.known_fam_physician'),'conditions' => array('Patient.id' => $id)));
+		$this->set('doctorlist',$this->Consultant->find('list',array('fields' => array('Consultant.id','Consultant.full_name'), 'conditions'=> array('Consultant.refferer_doctor_id' => $doctorRefId['Patient']['known_fam_physician'],'Consultant.location_id'=>$location_id,'Consultant.is_deleted'=> 0),'order'=>array('Consultant.first_name'))));
+		// for registrar listing //
+		$this->set('registrarlist', $this->DoctorProfile->getRegistrar());
+
+
+		$this->set('authPerson',$this->User->getUsersByRoleName(Configure :: read('businessHead')));
+		if(isset($this->request->data) && !empty($this->request->data)){
+
+			if($result['Patient']['tariff_standard_id']!=$this->request->data['Patient']['tariff_standard_id']){//for changing tariff charges when tariff is changed.
+				$chengedTariffCharges=$this->Billing->changeTariff($this->request->data['Patient']['id'],$this->request->data['Patient']['tariff_standard_id']);
+			}
+
+			$this->request->data["Patient"]["modify_time"] = date("Y-m-d H:i:s");
+			$this->request->data["Patient"]["modified_by"] = $this->Session->read('userid');
+
+			/*if($this->request->data["Patient"]['room_alloted'] != ''){
+			 $this->request->data["Patient"]["ward_id"] = $this->request->data["Patient"]['room_alloted'];
+			}*/
+
+			//check other date field
+			$this->convertingDatetoSTD($this->data['Patient']);
+			if(!empty($this->request->data['Patient']['upload_image']['name'])){
+				//creating runtime image name
+				$original_image_extension  = explode(".",$this->request->data['Patient']['upload_image']['name']);
+				if(!isset($original_image_extension[1])){
+					$imagename= "patient_".mktime().'.'.$original_image_extension[0];
+				}else{
+					$imagename= "patient_".mktime().'.'.$original_image_extension[1];
+				}
+				//set new image name to DB
+				$this->request->data["Patient"]['photo']  = $imagename ;
+			}else{
+				unset($this->request->data["Patient"]['photo']);
+			}
+
+			//combining communication method if both are selected
+			if(!empty($this->request->data["Patient"]['communication_email']) || !empty($this->request->data["Patient"]['communication_phone'])){
+				$this->request->data["Patient"]['communication_method'] =$this->request->data["Patient"]['communication_email']."|".$this->request->data["Patient"]['communication_phone'];
+			}
+
+			/*if(!empty($this->request->data['Note']['note'])){
+			 //first insert note into DB
+			$this->request->data["Patient"]["notes_id"] = $this->Note->insertNote($this->request->data,'update');
+			}*/
+			//QR code image generation
+			$admission_data = $this->Patient->read('admission_id,photo,person_id,patient_id',$id) ;
+			$admission_id   = $admission_data['Patient']['admission_id'];
+			//$this->request->data['Patient']['admission_id'] =$admission_id ;
+
+			/*$qrformat =  $this->qrFormat($this->request->data['Patient'],$admission_id);
+			App::import('Vendor', 'qrcode', array('file' => 'qrcode/qrlib.php'));
+			QRcode::png($qrformat, "uploads/qrcodes/$admission_id.png", 'L', 4, 2);
+			$UIDQRFormat =  $this->UIDQRFormat($this->request->data['Patient']);
+			$patientUID = $admission_data['Patient']['patient_id'] ;
+
+			QRcode::png($UIDQRFormat, "uploads/qrcodes/$patientUID.png", 'L', 4, 2);*/
+			//BOF retrive ward patient entry
+			$wardRec= $this->WardPatient->find('first',array('conditions'=>array('patient_id'=>$id),'order'=>'id Asc'));
+			//EOF ward patient entry
+
+			if(!empty($wardRec)){
+				$ward_data['id'] = $wardRec['WardPatient']['id'];
+				$ward_data['in_date']=$this->request->data['Patient']['form_received_on'];
+				$this->WardPatient->save($ward_data);
+			}
+			//QR code image generation
+			$this->Patient->create();
+			//update executive_emp_id_no or non_executive_emp_id_no
+			if(!empty($this->request->data['Patient']['executive_emp_id_no'])){
+				$this->request->data['Patient']['non_executive_emp_id_no']='' ;
+				$this->request->data['Patient']['emp_id_suffix']='' ;
+			}
+			if(!empty($this->request->data['Patient']['non_executive_emp_id_no'])){
+				$this->request->data['Patient']['executive_emp_id_no']='' ;
+			}
+
+			/*if(!empty($this->request->data['Patient']['executive_emp_id_no'])){
+			 $this->request->data['Patient']['non_executive_emp_id_no']='' ;
+			$this->request->data['Patient']['emp_id_suffix']='' ;
+			}
+			if(!empty($this->request->data['Patient']['non_executive_emp_id_no'])){
+			$this->request->data['Patient']['executive_emp_id_no']='' ;
+			}*/
+			//EOF update
+			// change corporate location , name and sublocations set to zero if insurance exist in edit and vice versa
+			if(isset($this->request->data['Patient']['credit_type_id'])) {
+				if($this->request->data['Patient']['credit_type_id'] == 1) {
+					$this->request->data['Patient']['insurance_type_id'] = 0;
+					$this->request->data['Patient']['insurance_company_id'] = 0;
+				}
+				if($this->request->data['Patient']['credit_type_id'] == 2) {
+					$this->request->data['Patient']['corporate_location_id'] = 0;
+					$this->request->data['Patient']['corporate_id'] = 0;
+					$this->request->data['Patient']['corporate_sublocation_id'] = 0;
+				}
+			} else {
+				$this->request->data['Patient']['credit_type_id'] = 0;
+				$this->request->data['Patient']['insurance_type_id'] = 0;
+				$this->request->data['Patient']['insurance_company_id'] = 0;
+				$this->request->data['Patient']['corporate_location_id'] = 0;
+				$this->request->data['Patient']['corporate_id'] = 0;
+				//$this->request->data['Patient']['corporate_sublocation_id'] = 0;
+			}
+			if($data["Person"]['payment_category']=='cash'){
+				$data["Patient"]['name_of_ip']  = '';
+				$data["Patient"]['relation_to_employee']  = '';
+				$data["Patient"]['executive_emp_id_no']  = '';
+				$data["Patient"]['non_executive_emp_id_no']  = '';
+				$data["Patient"]['suffix']  = '';
+				$data["Patient"]['designation']  = '';
+				$data["Patient"]['insurance_number']  = '';
+				$data["Patient"]['sponsor_company']  = '';
+				$this->Person->updateSponsorDetails($this->request->data,$admission_data['Patient']['person_id']);
+			}else{
+				$this->Person->updateSponsorDetails($this->request->data,$admission_data['Patient']['person_id']);
+			}
+			// end corporate location //
+			//check for status
+			if(empty($this->request->data['Patient']['status'])){
+				unset($this->request->data['Patient']['status']) ; //no need to save empty value for status
+			}
+
+			//EOF status check
+			// for updating referral doctor in person table if we change from patient edit form-atul
+			$knw_fam_phys=$this->request->data["Patient"]['known_fam_physician'] ;
+			//$consultant_id= serialize($this->request->data["Patient"]['consultant_id'] );
+			//$this->Person->updateAll(array('known_fam_physician'=>"'".$knw_fam_phys."'",'consultant_id'=>"'".$consultant_id."'"),array('Person.patient_uid'=>$this->request->data['Patient']['patient_id']));
+			$this->request->data['Patient']['other_consultant'] = serialize($this->request->data['Patient']['other_consultant']); //save
+			
+			if(!empty($this->request->data['Patient']['consultant_id'])){
+				$this->request->data["Patient"]['consultant_id']=serialize($this->request->data["Patient"]['consultant_id']);
+			}else{
+				$this->request->data["Patient"]['consultant_id']=$result['Patient']['consultant_id'];
+			}
+			
+			$this->Patient->save($this->request->data);
+			
+			// delete previous entries before saving-Atul
+			$this->PatientReferralConsultant->deleteAll(array('PatientReferralConsultant.patient_id'=>$this->request->data['Patient']['id']));
+			// save consultant_id  in Patient refferal-Atul
+			$unserConsultantIds= unserialize($this->request->data['Patient']['consultant_id']);
+			$this->PatientReferralConsultant->insertPatientReferralConsultant($unserConsultantIds,$this->request->data['Patient']['id']);
+			
+			//Billing
+			if($this->request->data['Billing']['amount']!=''){
+				$this->request->data['Billing']['date'] = date('Y-m-d H:i:s');
+				$this->request->data['Billing']['modified_by'] = $this->Session->read('userid');
+				$this->request->data['Billing']['modify_time'] = date('Y-m-d H:i:s');
+				$this->Billing->save($this->request->data['Billing']);
+			}//debug($this->request->data['Billing']); exit;
+			//Billing
+			$errors = $this->Patient->invalidFields();
+
+			if(!empty($errors)) {
+				$this->set("errors", $errors);
+			}else {
+					
+				if(!empty($this->request->data['Patient']['upload_image']['name'])){
+					//remove previous image
+					$this->ImageUpload->removeFile($admission_data['Patient']['photo'],'uploads/patient_images');
+					$showError = $this->ImageUpload->uploadFile($this->params,'upload_image','uploads/patient_images',$imagename);
+
+					if(empty($showError)) {
+						// making thumbnail of 100X100
+						$this->ImageUpload->load($this->request->data['Patient']['upload_image']['tmp_name']);
+						$this->ImageUpload->resize(100,100);
+						$this->ImageUpload->save("uploads/patient_images/thumbnail/".$imagename);
+						$this->ImageUpload->removeFile($admission_data['Patient']['photo'],'uploads/patient_images/thumbnail/');
+					}
+				}
+					
+				$this->Session->setFlash(__('Patient Information Updated Successfully' ),'default',array('class'=>'message'));
+					
+				//check patient type
+				if($this->request->data['Patient']['admission_type'] == "IPD"){
+					//BOF unset already assigned bed
+					//$bedData = $this->Patient->find('first',array('fields'=>array('ward_id'),'conditions' => array('id' => $this->request->data['Patient']['id'])));
+					//$this->redirect(array("controller" => "wards", "action" => "index","?" => array("Ward" =>$bedData['Patient']['ward_id'])));//redirect to ward mgmt page
+					$this->redirect(array("controller" => "Users", "action" => "doctor_dashboard"));//redirect to ward mgmt page
+				}else{
+						
+					if($this->request->data['Patient']['print_sheet']=='extra'){
+						$personid = $this->Patient->find('first',array('fields'=>array('Patient.person_id'),'conditions' => array('Patient.id' => $id)));
+						//debug($personid); exit;
+						//$this->redirect(array("controller" => "persons","action" => "patient_information",$personid['Patient']['person_id'],'?'=>array('registration'=>'done')));
+						$this->redirect(array("controller" => "Appointments","action" => "appointments_management",'?'=>array('registration'=>'done')));
+					}else{
+						// aptid is used for tranfering appointment from one doctor to another //
+						$this->redirect(array("controller" => "doctor_schedules", "action" => "doctor_event", $this->request->data['Patient']['doctor_id'], 'patientid' => $id, 'aptid' => $this->params['named']['aptid']));
+					}
+				}
+			}
+		}else if (empty($id) || (!($this->Patient->read('id',$id)))) {
+
+			$this->Session->setFlash(__('Invalid Edit Process'),'default',array('class'=>'error'));
+			$this->redirect(array('action'=>'search'));
+		}
+
+			
+		$this->Patient->bindModel(array(
+				'belongsTo'=>array('Bed'=>array('foreignKey'=>'bed_id','fields'=>array('bedno')),
+						'Room'=>array('foreignKey'=>'room_id','fields'=>array('name','bed_prefix')),
+						'Ward'=>array('foreignKey'=>'ward_id','fields'=>array('name'))
+				)));
+		$patient_edit_data  = $this->Patient->read(null,$id); 
+		$dobFromPerson = $this->Person->find('first',array('fields'=>array('dob','pregnant_week','expected_date_del'),'conditions'=>array('id'=>$patient_edit_data['Patient']['person_id'])));
+		$patient_edit_data['Patient']['age'] = $this->Patient->getCurrentAge($dobFromPerson['Person']['dob']);
+		$patient_edit_data['Patient']['expected_date_del'] = $patient_edit_data['Patient']['expected_date_del'] ? $patient_edit_data['Patient']['expected_date_del'] : $dobFromPerson['Person']['expected_date_del'];
+		$patient_edit_data['Patient']['pregnant_week'] = $patient_edit_data['Patient']['pregnant_week']? $patient_edit_data['Patient']['pregnant_week'] : $dobFromPerson['Person']['pregnant_week'];
+		$this->set('ddOption',$patient_edit_data['Patient']['treatment_type']);
+		if(!empty($patient_edit_data['Patient']['communication_method'])){
+			$splitted_method = explode("|",$patient_edit_data['Patient']['communication_method']);
+			$patient_edit_data['Patient']['communication_email'] = $splitted_method[0];
+			$patient_edit_data['Patient']['communication_phone'] = $splitted_method[1];
+		} 
+		//for set coupon transaction if coupon is applied
+		//if(!empty($patient_edit_data['Patient']['coupon_name']))
+		//	$this->CouponTransaction->setCouponTransaction($id,$patient_edit_data['Patient']['coupon_name']);
+		
+		if(!empty($patient_edit_data['Patient']['non_executive_emp_id_no'])){
+			$patient_edit_data['Patient']['emp_id_suffix'] = $patient_edit_data['Patient']['relation_to_employee'];
+		}
+			
+		$convertedData  = $this->convertingDatetoLocal($patient_edit_data["Patient"]);
+
+		$merged = array_merge($patient_edit_data,$convertedData);//merging  of 2 array's
+		//set billing data
+		if($patient_edit_data["Patient"]['admission_type']=='IPD'){
+			$billingArr = $this->Billing->find('first',array('conditions'=>array('Billing.patient_id'=>$patient_edit_data["Patient"]['id'])));
+			if(!empty($billingArr)){
+				$this->data   = array_merge($merged,$billingArr);//merging  of 2 array's
+			}else{
+				$this->data   = $merged ;
+			}
+		}else{
+			$this->data   = $merged ;
+		}
+			
+		$paytypeAry = Configure :: read('SponsorValue');
+		// this code is used for ajax drop down payment category //
+		$this->set('credittypes',$this->CreditType->find('list',array('fields' => array('CreditType.id','CreditType.name'), 'conditions'=> array('CreditType.is_deleted' => 0))));
+		$this->set('corporatelocations',$this->CorporateLocation->find('list',array('fields' => array('CorporateLocation.id','CorporateLocation.name'),
+				'conditions'=> array('CorporateLocation.credit_type_id' => $paytypeAry[$patient_edit_data['Patient']['payment_category']],'CorporateLocation.is_deleted' => 0),'order'=>array('CorporateLocation.name'))));
+
+		$this->set('corporates',$this->Corporate->find('list',array('fields' => array('Corporate.id','Corporate.name'),
+				'conditions'=> array('Corporate.is_deleted' => 0,'Corporate.corporate_location_id' => $patient_edit_data['Patient']['corporate_location_id']),'order'=>array('Corporate.name'))));
+
+		/*$this->set('corporatesublocations',$this->CorporateSublocation->find('list',array('fields' => array('CorporateSublocation.id',
+				'CorporateSublocation.name'), 'conditions'=> array('CorporateSublocation.is_deleted' => 0,'CorporateSublocation.corporate_id' =>
+						$patient_edit_data['Patient']['corporate_id']),'order'=>array('CorporateSublocation.name'))));*/
+		
+		$this->set('corporatesublocations',$this->CorporateSublocation->find('list',array('fields' => array('CorporateSublocation.id','CorporateSublocation.name'), 
+				'conditions'=> array('CorporateSublocation.is_deleted' => 0,'CorporateSublocation.tariff_standard_id' => $patient_edit_data['Patient']['tariff_standard_id']))));
+
+		// for insurance drop down //
+		$this->set('insurancetypes',$this->InsuranceType->find('list',array('fields' => array('InsuranceType.id','InsuranceType.name'),
+				'conditions'=> array('InsuranceType.is_deleted' => 0),'order'=>array('InsuranceType.name'))));
+
+		$this->set('insurancecompanies',$this->InsuranceCompany->find('list',array('fields' => array('InsuranceCompany.id','InsuranceCompany.name'),
+				'conditions'=> array('InsuranceCompany.is_deleted' => 0,'InsuranceCompany.insurance_type_id' => $paytypeAry[$patient_edit_data['Patient']['payment_category']]),'order'=>array('InsuranceCompany.name'))));
+		$corporateList = $this->Corporate->find('list');
+		$corporateList[0]='Private';
+		$this->set('corporateList',$corporateList);
+
+		$billing = $this->AdvanceType->find('list',array('fields'=>array('type'),'conditions'=>array('location_id'=>$this->Session->read('locationid'), 'AdvanceType.is_active' => 'Active')));
+		$standardAgainst = $this->AdvanceType->find('list',array('fields'=>array('standard_amount'),'conditions'=>array('location_id'=>$this->Session->read('locationid'), 'AdvanceType.is_active' => 'Active')));
+		$tariffStandard = $this->TariffStandard->find('list',array('conditions'=>array('is_deleted'=>0,'TariffStandard.location_id'=>$this->Session->read('locationid')),'order'=>'TariffStandard.name ASC'));
+		$this->set(array('tariffStandard'=>$tariffStandard,'against'=>$billing,'standardAgainst'=>$standardAgainst));
+		#pr($this->data);exit;
+
+		//find array of patient id - for previous receivables
+		// Following code commented for there is no need to show previous balance- Atul
+	/*	$patient_ids=$this->Patient->getAllPatientIds($getdata['Person']['id']);
+		$cntPatientId=$patient_ids[count($patient_ids)-1];
+		$previousReceivable=$this->Billing->find('first', array('fields'=> array('Billing.total_amount','Billing.amount_pending','Billing.amount_paid'),'conditions'=>array('Billing.patient_id'=>$cntPatientId)));
+		$this->set('previousReceivable',$previousReceivable['Billing']['amount_pending']);*/
+	}
+
+
+	public function edit_ambi($id=null){
+		$this->uses=array('Race','Person','Country','State','Language','Religion','Appointment');
+		$Race = $this->Race->find('list',array('fields'=>array('value_code','race_name')));
+		$this->set('race',$Race);
+		//------------get the patient id useing patient table-----------------
+		$getid= $this->Patient->find('list',array('fields'=>array('Patient.person_id'),'conditions'=>array('id'=>$id)));
+		$getid1= $this->Patient->find('all',array('fields'=>array('admission_type'),'conditions'=>array('id'=>$id)));
+		$this->set('gettype',$getid1);
+		//---------------------------to get race useing above id form the person table-------------------------
+
+		$getdata= $this->Person->find('all',array('fields'=>array('language','race','ethnicity','dob','age','sex','expected_date_del','pregnant_week'),'conditions'=>array('id'=>$getid)));
+		$this->set('getdemo',$getdata);
+		//---------------------------------end of the code------------------------------
+		$religion= $this->Religion->find('list');
+
+		$this->set('religion',$religion);
+		//--------------------------------code for Address----------------
+
+
+		$getadd=$this->Person->find('first',array('fields'=>array('plot_no','landmark','pin_code','zip_four','home_phone','mobile','email','fax','work','country','state','city','religion'),'conditions'=>array('Person.id'=>$getid)));
+		$countries=$this->Country->find('list', array('fields'=> array('id', 'name'),'order' => array('Country.name')));
+
+		if($getadd['Person']['country'] == "2"){
+
+			$states=$this->State->find('list', array('fields'=> array('state_code', 'name'),'conditions'=>array('State.country_id'=>"2"),'order' => array('State.name')));
+
+		}
+		else
+		{
+			$states=$this->State->find('list', array('fields'=> array('name', 'name'),'conditions'=>array('State.country_id !='=>"2"),'order' => array('State.name')));
+
+		}
+
+
+		$this->set('getadd',$getadd);
+		$this->set('countries',$countries);
+		$this->set('states',$states);
+
+		//$state_code = $this->State->find('all',array('fields'=>'name'),'condition'=> array('State.name'=>$getadd['Person']['state']));
+		$plot_no= $this->request->data['Patient']['plot_no'];
+		$landmark= $this->request->data['Patient']['landmark'];
+		$pin_code= $this->request->data['Patient']['pin_code'];
+		$zip_four= $this->request->data['Patient']['zip_four'];
+		$home_phone= $this->request->data['Patient']['home_phone'];
+		$mobile= $this->request->data['Patient']['mobile'];
+		$email= $this->request->data['Patient']['email'];
+		$fax= $this->request->data['Patient']['fax'];
+		$work= $this->request->data['Patient']['work'];
+		$country= $this->request->data['Patient']['country'];
+		$state= $this->request->data['Person']['state'];
+		$city= $this->request->data['Patient']['city'];
+		$religion= $this->request->data['Patient']['religion'];
+
+		if(!empty($this->request->data)){
+			$this->Person->updateAll(array('plot_no'=>"'$plot_no'",'landmark'=>"'$landmark'",'pin_code'=>"'$pin_code'",'zip_four'=>"'$zip_four'",'home_phone'=>"'$home_phone'",'mobile'=>"'$mobile'"
+					,'email'=>"'$email'",'fax'=>"'$fax'",'work'=>"'$work'",'country'=>"'$country'",'state'=>"'$state'",'city'=>"'$city'",'portal'=>"'$portal'",'religion'=>"'$religion'"),array('Person.id'=>$getid));
+		}
+
+
+
+		//--------------------------------end of the code-----------------
+		//-----------aditya code for race--------------------------
+		if(!empty($this->request->data)){
+			$this->request->data['Patient']['race'] = implode(',',$this->request->data['Patient']['race']);
+
+		}
+		if(!empty($this->request->data)){
+			//$this->request->data['Person']['race'] = implode(',',$this->request->data['Person']['race']);
+			$this->request->data['Patient']['language'] = implode(',',$this->request->data['Patient']['language']);
+		}
+		//-------------end the code for race---------------
+
+		$languages = $this->Language->find('list',array('fields'=>array('code','language')));
+		//pr($languages);
+		$this->set('languages',$languages);
+		//echo $this->request->data['Patient']['credit_type_id'];
+		//exit;
+		//------------------------- code for the race-------------------------------------
+		if(!empty($this->request->data)){
+			$selected = explode(',',$this->request->data['Person']['race']);
+		}
+		//----------------------------end of the code for the race------------------------
+		$this->set('title_for_layout', __('-Patient Registration', true));
+
+
+		$this->uses = array('AdvanceType','TariffStandard','WardPatient','Person','Note','Department','DoctorProfile','Consultant','Ward','ReffererDoctor','Billing','patient_past_histories','patient_personal_histories','patient_family_history','patient_allergies','Bed','CorporateLocation','Corporate', 'CorporateSublocation', 'InsuranceType', 'InsuranceCompany','CreditType');
+
+		$location_id = $this->Session->read('locationid');
+
+		$this->set('reffererdoctors',$this->ReffererDoctor->find('list',array('conditions' => array('ReffererDoctor.is_deleted' => 0, 'ReffererDoctor.is_referral' => 'Y'), 'fields' => array('ReffererDoctor.id', 'ReffererDoctor.name'),'order'=>array('ReffererDoctor.name'))));
+
+		$this->set('departments',$this->Department->find('list',array('fields'=>array('id','name'),'conditions'=>array('Department.location_id'=>$location_id),'order'=>array('Department.name'))));
+		$this->set('doctors',$this->DoctorProfile->getDoctors());
+		$this->set('treatmentConsultant',$this->Consultant->find('list',array('fields'=>array('id','full_name'),'conditions'=>array('Consultant.location_id'=>$location_id),'order'=>array('Consultant.first_name'))));
+		//$this->set('wardsAvailable',$this->Ward->find('list',array('fields'=>array('id', 'name'),'conditions'=>array('Ward.location_id'=>$location_id))));
+		// get doctor reference id //
+		$doctorRefId = $this->Patient->find('first', array('fields' => array('Patient.known_fam_physician'),'conditions' => array('Patient.id' => $id)));
+		$this->set('doctorlist',$this->Consultant->find('list',array('fields' => array('Consultant.id','Consultant.full_name'), 'conditions'=> array('Consultant.refferer_doctor_id' => $doctorRefId['Patient']['known_fam_physician'],'Consultant.location_id'=>$location_id,'Consultant.is_deleted'=> 0),'order'=>array('Consultant.first_name'))));
+		// for registrar listing //
+		$this->set('registrarlist', $this->DoctorProfile->getRegistrar());
+		if(isset($this->request->data) && !empty($this->request->data)){
+
+
+			$this->request->data["Patient"]["modify_time"] = date("Y-m-d H:i:s");
+			$this->request->data["Patient"]["modified_by"] = $this->Session->read('userid');
+
+			/*if($this->request->data["Patient"]['room_alloted'] != ''){
+			 $this->request->data["Patient"]["ward_id"] = $this->request->data["Patient"]['room_alloted'];
+			}*/
+
+			//check other date field
+			$this->convertingDatetoSTD($this->data['Patient']);
+			if(!empty($this->request->data['Patient']['upload_image']['name'])){
+				//creating runtime image name
+				$original_image_extension  = explode(".",$this->request->data['Patient']['upload_image']['name']);
+				if(!isset($original_image_extension[1])){
+					$imagename= "patient_".mktime().'.'.$original_image_extension[0];
+				}else{
+					$imagename= "patient_".mktime().'.'.$original_image_extension[1];
+				}
+				//set new image name to DB
+				$this->request->data["Patient"]['photo']  = $imagename ;
+			}else{
+				unset($this->request->data["Patient"]['photo']);
+			}
+
+			//combining communication method if both are selected
+			if(!empty($this->request->data["Patient"]['communication_email']) || !empty($this->request->data["Patient"]['communication_phone'])){
+				$this->request->data["Patient"]['communication_method'] =$this->request->data["Patient"]['communication_email']."|".$this->request->data["Patient"]['communication_phone'];
+			}
+
+			/*if(!empty($this->request->data['Note']['note'])){
+			 //first insert note into DB
+			$this->request->data["Patient"]["notes_id"] = $this->Note->insertNote($this->request->data,'update');
+			}*/
+			//QR code image generation
+			$admission_data = $this->Patient->read('admission_id,photo,person_id,patient_id',$id) ;
+			$admission_id   = $admission_data['Patient']['admission_id'];
+			//$this->request->data['Patient']['admission_id'] =$admission_id ;
+
+			$qrformat =  $this->qrFormat($this->request->data['Patient'],$admission_id);
+			App::import('Vendor', 'qrcode', array('file' => 'qrcode/qrlib.php'));
+			QRcode::png($qrformat, "uploads/qrcodes/$admission_id.png", 'L', 4, 2);
+			$UIDQRFormat =  $this->UIDQRFormat($this->request->data['Patient']);
+			$patientUID = $admission_data['Patient']['patient_id'] ;
+
+			QRcode::png($UIDQRFormat, "uploads/qrcodes/$patientUID.png", 'L', 4, 2);
+			//BOF retrive ward patient entry
+			$wardRec= $this->WardPatient->find('first',array('conditions'=>array('patient_id'=>$id),'order'=>'id Asc'));
+			//EOF ward patient entry
+
+			if(!empty($wardRec)){
+				$ward_data['id'] = $wardRec['WardPatient']['id'];
+				$ward_data['in_date']=$this->request->data['Patient']['form_received_on'];
+				$this->WardPatient->save($ward_data);
+			}
+			//QR code image generation
+			$this->Patient->create();
+			//update executive_emp_id_no or non_executive_emp_id_no
+			if(!empty($this->request->data['Patient']['executive_emp_id_no'])){
+				$this->request->data['Patient']['non_executive_emp_id_no']='' ;
+				$this->request->data['Patient']['emp_id_suffix']='' ;
+			}
+			if(!empty($this->request->data['Patient']['non_executive_emp_id_no'])){
+				$this->request->data['Patient']['executive_emp_id_no']='' ;
+			}
+
+			/*if(!empty($this->request->data['Patient']['executive_emp_id_no'])){
+			 $this->request->data['Patient']['non_executive_emp_id_no']='' ;
+			$this->request->data['Patient']['emp_id_suffix']='' ;
+			}
+			if(!empty($this->request->data['Patient']['non_executive_emp_id_no'])){
+			$this->request->data['Patient']['executive_emp_id_no']='' ;
+			}*/
+			//EOF update
+			// change corporate location , name and sublocations set to zero if insurance exist in edit and vice versa
+			if(isset($this->request->data['Patient']['credit_type_id'])) {
+				if($this->request->data['Patient']['credit_type_id'] == 1) {
+					$this->request->data['Patient']['insurance_type_id'] = 0;
+					$this->request->data['Patient']['insurance_company_id'] = 0;
+				}
+				if($this->request->data['Patient']['credit_type_id'] == 2) {
+					$this->request->data['Patient']['corporate_location_id'] = 0;
+					$this->request->data['Patient']['corporate_id'] = 0;
+					$this->request->data['Patient']['corporate_sublocation_id'] = 0;
+				}
+			} else {
+				$this->request->data['Patient']['credit_type_id'] = 0;
+				$this->request->data['Patient']['insurance_type_id'] = 0;
+				$this->request->data['Patient']['insurance_company_id'] = 0;
+				$this->request->data['Patient']['corporate_location_id'] = 0;
+				$this->request->data['Patient']['corporate_id'] = 0;
+				$this->request->data['Patient']['corporate_sublocation_id'] = 0;
+			}
+			if($data["Person"]['payment_category']=='cash'){
+				$data["Patient"]['name_of_ip']  = '';
+				$data["Patient"]['relation_to_employee']  = '';
+				$data["Patient"]['executive_emp_id_no']  = '';
+				$data["Patient"]['non_executive_emp_id_no']  = '';
+				$data["Patient"]['suffix']  = '';
+				$data["Patient"]['designation']  = '';
+				$data["Patient"]['insurance_number']  = '';
+				$data["Patient"]['sponsor_company']  = '';
+				$this->Person->updateSponsorDetails($this->request->data,$admission_data['Patient']['person_id']);
+			}else{
+				$this->Person->updateSponsorDetails($this->request->data,$admission_data['Patient']['person_id']);
+			}
+			// end corporate location //
+			//check for status
+			if(empty($this->request->data['Patient']['status'])){
+				unset($this->request->data['Patient']['status']) ; //no need to save empty value for status
+			}
+
+			//EOF status check
+			$getethnicity=$this->request->data["Patient"]["ethnicity"];
+			$getlanguage=$this->request->data["Patient"]["language"];
+			$getrace=$this->request->data["Patient"]["race"];
+
+			$getdob=$this->request->data["Patient"]["dob"];
+			$getage=$this->request->data["Patient"]["age"];
+			$getdob = explode('/',$this->request->data['Patient']['dob']);
+			$setdate=$getdob[2]."-".$getdob[1]."-".$getdob[0];
+			$this->Patient->save($this->request->data);
+
+
+			$this->Person->updateAll(array('language'=>"'$getlanguage'",'race'=>"'$getrace'",'ethnicity'=>"'$getethnicity'",'age'=>"'$getage'",'dob'=>"'$setdate'"),array('Person.id'=>$getid));
+			$getdata= $this->Person->find('all',array('fields'=>array('language','race','ethnicity','dob','age','expected_date_del','pregnant_week'),'conditions'=>array('Person.id'=>$getid)));
+			$this->set('getdemo',$getdata);
+			//$this->Person->query("UPDATE persons SET ethnicity = 'Latino' WHERE persons.id =$id");
+			//Billing
+			if($this->request->data['Billing']['amount']!=''){
+				$this->request->data['Billing']['date'] = date('Y-m-d H:i:s');
+				$this->request->data['Billing']['modified_by'] = $this->Session->read('userid');
+				$this->request->data['Billing']['modify_time'] = date('Y-m-d H:i:s');
+				$this->Billing->save($this->request->data['Billing']);
+			}
+			//Billing
+			$errors = $this->Patient->invalidFields();
+
+			if(!empty($errors)) {
+				$this->set("errors", $errors);
+			}else {
+
+				if(!empty($this->request->data['Patient']['upload_image']['name'])){
+					//remove previous image
+					$this->ImageUpload->removeFile($admission_data['Patient']['photo'],'uploads/patient_images');
+					$showError = $this->ImageUpload->uploadFile($this->params,'upload_image','uploads/patient_images',$imagename);
+
+					if(empty($showError)) {
+						// making thumbnail of 100X100
+						$this->ImageUpload->load($this->request->data['Patient']['upload_image']['tmp_name']);
+						$this->ImageUpload->resize(100,100);
+						$this->ImageUpload->save("uploads/patient_images/thumbnail/".$imagename);
+						$this->ImageUpload->removeFile($admission_data['Patient']['photo'],'uploads/patient_images/thumbnail/');
+					}
+				}
+
+				$this->Session->setFlash(__('Patient Information Updated Successfully' ),'default',array('class'=>'message'));
+
+				//check patient type
+				if($this->request->data['Patient']['admission_type'] == "IPD"){
+					//BOF unset already assigned bed
+					$bedData = $this->Patient->find('first',array('fields'=>array('ward_id'),'conditions' => array('id' => $this->request->data['Patient']['id'])));
+					//$this->redirect(array("controller" => "wards", "action" => "index","?" => array("Ward" =>$bedData['Patient']['ward_id'])));//redirect to ward mgmt page
+					$this->redirect(array("controller" => "patients","action" => "patient_information",$this->request->data['Patient']['id']));
+
+				}else{
+					// aptid is used for tranfering appointment from one doctor to another //
+					//$this->redirect(array("controller" => "doctor_schedules", "action" => "doctor_event", $this->request->data['Patient']['doctor_id'], 'patientid' => $id, 'aptid' => $this->params['named']['aptid']));
+
+					$futureapppersonid = $this->Patient->read('person_id', $latest_insert_id);
+					$checkFutureApp = $this->Appointment->find('first', array('conditions' => array('Appointment.person_id' => $futureapppersonid['Patient']['person_id'], 'Appointment.is_future_app' => 1)));
+					if($checkFutureApp['Appointment']['id']) {
+						$this->Appointment->id = $checkFutureApp['Appointment']['id'];
+						$this->request->data['Appointment']['id'] = $checkFutureApp['Appointment']['id'];
+						$this->request->data['Appointment']['patient_id'] = $latest_insert_id;
+						$this->request->data['Appointment']['doctor_id'] = $this->request->data['Patient']['doctor_id'];
+						$this->request->data['Appointment']['department_id'] = $this->request->data['Patient']['department_id'];
+						$this->request->data['Appointment']['appointment_with'] = $this->request->data['Patient']['doctor_id'];
+						$this->request->data['Appointment']['modified_by'] = $this->Session->read('userid');
+						$this->request->data['Appointment']['is_future_app'] = 0;
+						$this->request->data['Appointment']['modify_time'] = date('Y-m-d H:i:s');
+						if($this->Appointment->save($this->request->data)) {
+							$this->Session->setFlash(__('The patient with future appointment has been confirmed', true));
+						}
+						$this->redirect(array("controller" => "appointments", "action" => "appointments_management"));
+					}
+
+					if($this->request->data['Patient']['print_sheet']=='extra'){
+						$this->redirect(array("controller" => "patients","action" => "patient_information",$id,'?'=>array('registration'=>'done')));
+					}else{
+						$this->redirect(array("controller" => "doctor_schedules", "action" => "doctor_event", 'doctorid' => $this->request->data['Patient']['doctor_id'], 'deptid' => $this->request->data['Patient']['department_id'], 'patientid' => $latest_insert_id));
+							
+					}
+				}
+			}
+		}else if (empty($id) || (!($this->Patient->read('id',$id)))) {
+
+			$this->Session->setFlash(__('Invalid Edit Process'),'default',array('class'=>'error'));
+			$this->redirect(array('action'=>'search'));
+		}
+
+
+		$this->Patient->bindModel(array(
+				'belongsTo'=>array('Bed'=>array('foreignKey'=>'bed_id','fields'=>array('bedno')),
+						'Room'=>array('foreignKey'=>'room_id','fields'=>array('name','bed_prefix')),
+						'Ward'=>array('foreignKey'=>'ward_id','fields'=>array('name'))
+				)));
+		$patient_edit_data  = $this->Patient->read(null,$id);
+
+		if(!empty($patient_edit_data['Patient']['communication_method'])){
+			$splitted_method = explode("|",$patient_edit_data['Patient']['communication_method']);
+			$patient_edit_data['Patient']['communication_email'] = $splitted_method[0];
+			$patient_edit_data['Patient']['communication_phone'] = $splitted_method[1];
+		}
+		if(!empty($patient_edit_data['Patient']['non_executive_emp_id_no'])){
+			$patient_edit_data['Patient']['emp_id_suffix'] = $patient_edit_data['Patient']['relation_to_employee'];
+		}
+
+		$convertedData  = $this->convertingDatetoLocal($patient_edit_data["Patient"]);
+
+		$merged = array_merge($patient_edit_data,$convertedData);//merging  of 2 array's
+		//set billing data
+		if($patient_edit_data["Patient"]['admission_type']=='IPD'){
+			$billingArr = $this->Billing->find('first',array('conditions'=>array('Billing.patient_id'=>$patient_edit_data["Patient"]['id'])));
+			if(!empty($billingArr)){
+				$this->data   = array_merge($merged,$billingArr);//merging  of 2 array's
+			}else{
+				$this->data   = $merged ;
+			}
+		}else{
+			$this->data   = $merged ;
+		}
+
+
+		// this code is used for ajax drop down payment category //
+		$this->set('credittypes',$this->CreditType->find('list',array('fields' => array('CreditType.id','CreditType.name'), 'conditions'=> array('CreditType.is_deleted' => 0))));
+		$this->set('corporatelocations',$this->CorporateLocation->find('list',array('fields' => array('CorporateLocation.id','CorporateLocation.name'),
+				'conditions'=> array('CorporateLocation.credit_type_id' => 1,'CorporateLocation.is_deleted' => 0),'order'=>array('CorporateLocation.name'))));
+
+		$this->set('corporates',$this->Corporate->find('list',array('fields' => array('Corporate.id','Corporate.name'),
+				'conditions'=> array('Corporate.is_deleted' => 0,'Corporate.corporate_location_id' => $patient_edit_data['Patient']['corporate_location_id']),'order'=>array('Corporate.name'))));
+
+		$this->set('corporatesublocations',$this->CorporateSublocation->find('list',array('fields' => array('CorporateSublocation.id',
+				'CorporateSublocation.name'), 'conditions'=> array('CorporateSublocation.is_deleted' => 0,'CorporateSublocation.corporate_id' =>
+						$patient_edit_data['Patient']['corporate_id']),'order'=>array('CorporateSublocation.name'))));
+
+		// for insurance drop down //
+		$this->set('insurancetypes',$this->InsuranceType->find('list',array('fields' => array('InsuranceType.id','InsuranceType.name'),
+				'conditions'=> array('InsuranceType.is_deleted' => 0),'order'=>array('InsuranceType.name'))));
+
+		$this->set('insurancecompanies',$this->InsuranceCompany->find('list',array('fields' => array('InsuranceCompany.id','InsuranceCompany.name'),
+				'conditions'=> array('InsuranceCompany.is_deleted' => 0,'InsuranceCompany.insurance_type_id' => $patient_edit_data['Patient']['insurance_type_id']),'order'=>array('InsuranceCompany.name'))));
+		$corporateList = $this->Corporate->find('list');
+		$corporateList[0]='Private';
+		$this->set('corporateList',$corporateList);
+
+		$billing = $this->AdvanceType->find('list',array('fields'=>array('type'),'conditions'=>array('location_id'=>$this->Session->read('locationid'), 'AdvanceType.is_active' => 'Active')));
+		$standardAgainst = $this->AdvanceType->find('list',array('fields'=>array('standard_amount'),'conditions'=>array('location_id'=>$this->Session->read('locationid'), 'AdvanceType.is_active' => 'Active')));
+		$tariffStandard = $this->TariffStandard->find('list',array('conditions'=>array('is_deleted'=>0,'TariffStandard.location_id'=>$this->Session->read('locationid'))));
+		$this->set(array('tariffStandard'=>$tariffStandard,'against'=>$billing,'standardAgainst'=>$standardAgainst));
+		#pr($this->data);exit;
+
+		$this->patient_info($id);
+	}
+	/**
+	 * @author Swati Newale
+	 * function for send approval request of change tariff
+	 * @return number
+	 */
+	public function requestForApproval()
+	{
+		$this->autoRender = false;
+		$this->layout = false;
+		$this->loadModel("ApproveRequest");
+		$this->request->data['type']= 'Change Tariff';
+		$this->ApproveRequest->saveRequest($this->request->data);
+		return '1';
+	}
+	
+	/**
+	 * @author Swati Newale.
+	 * function for send request to Change tariff
+	 */
+	public function resultofrequest()
+	{
+		$this->autoRender = false;
+		$this->layout = false;
+		
+		$this->loadModel("ApproveRequest");
+		$result = $this->ApproveRequest->find('first',array( 
+				'conditions'=>array('ApproveRequest.patient_id'=>$this->request->data['patient_id'],
+						'ApproveRequest.is_deleted'=>0,
+				),
+				'order'=>array('ApproveRequest.id'=>"DESC")
+		)); 
+		return $result['ApproveRequest']['is_approved'];
+	}
+	
+	/**
+	 * @author Swati Newale. 
+	 * function for Cancelling request by Bussiness head  
+	 */
+	public function cancelApproval()
+	{
+		$this->loadModel("ApproveRequest");
+		$this->autoRender = false;
+		$this->layout = false;
+		$this->ApproveRequest->deleteRequest($this->request->data);
+	}
+	
+
+	/**
+	 * Method to delete patient
+	 *
+	 * @param id: patient ID
+	 *
+	 **/
+	public function delete($id = null) {
+		$this->uses =array('Bed','WardPatient','WardPatientService');
+		if($id){
+			$this->Patient->id = $id;
+			//find the bed_id
+
+			if ($this->Patient->save(array('is_deleted' => 1))) {
+				$bedResult = $this->Patient->read('bed_id',$id);
+				$this->Bed->id = $bedResult['Patient']['bed_id'];
+				$this->Bed->save(array('Bed'=>array('patient_id'=>0)));
+				$this->WardPatient->updateAll(array('is_deleted'=>"1"),array('WardPatient.patient_id'=>$id));
+				$this->WardPatientService->updateAll(array('is_deleted'=>"1"),array('WardPatientService.patient_id'=>$id));
+
+				$this->Session->setFlash(__('Record Deleted Successfully','',array('class'=>'message')));
+				$this->redirect($this->referer());
+			}
+		}else{
+			$this->Session->setFlash(__('Invalid Operation'),array('class'=>'error'));
+			$this->redirect(array('action' => 'index'));
+		}
+	}
+
+	public function search(){
+
+		$this->set('data','');
+		$this->paginate = array(
+				'limit' => Configure::read('number_of_rows')
+
+		);
+
+		$role = $this->Session->read('role');
+		$department_id = $_Session['Auth']['User']['department_id'];
+
+		//Search patient as per the url request
+		if(!empty($this->params->query['type'])){
+			if(strtolower($this->params->query['type'])=='emergency'){
+				$search_key['Patient.admission_type'] = "IPD";
+				$search_key['Patient.is_emergency'] = "1";
+			}else if($this->params->query['type']=='IPD'){
+				$search_key['Patient.admission_type'] = $this->params->query['type'];
+				$search_key['Patient.is_emergency'] = "0";
+			}else{
+				$search_key['Patient.admission_type'] = $this->params->query['type'];
+			}
+		}
+		//Search patient if type is empty for future appointment //
+		if(empty($this->params->query['type']) && ($this->params->query['listflag']=='appt')){
+			//$inpatientUID = $this->Patient->find('list',array('fields'=>'patient_id','conditions'=>array('Patient.patient_id <>'=>'', 'Patient.is_discharge'=>0,'Patient.is_deleted'=>0),'group'=>'Patient.patient_id','order'=>'patient_id DESC'));
+			//$search_key['Patient.admission_type'] = array('IPD','OPD');
+			//$search_key["NOT"] = array("Patient.patient_id" => $inpatientUID);
+			$search_key['Patient.is_discharge'] = 1;
+			$orderstatus = array('Patient.discharge_date' => 'desc');
+		} else {
+			$orderstatus = array('Patient.id' => 'desc');
+		}
+
+		if(!empty($this->params->query['dept_id'])){
+			$search_key['Patient.department_id'] = $this->params->query['dept_id'];
+		}
+		if(!empty($this->params->query['type'])){
+			if($this->params->query['patientstatus']=='discharged' || $this->params->query['patientstatus']=='processed') {
+				$search_key['Patient.is_discharge'] = 1;//display only non-discharge patient
+			} else {
+				$search_key['Patient.is_discharge'] = 0;//display only non-discharge patient
+			}
+		}
+		//EOF patient search as per category
+
+		$search_key['Patient.is_deleted'] = 0;
+		if($role== Configure::read('adminLabel')){
+			//if($_SESSION['Auth']['User']['role_id']=='2'){
+			$search_key['Patient.location_id']=$this->Session->read('locationid');
+
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'User' =>array('foreignKey' => false,'conditions'=>array('User.id=Patient.doctor_id' )),
+							'Initial' =>array('foreignKey' => false,'conditions'=>array('User.initial_id=Initial.id' )),
+							'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+							'PatientInitial' =>array('foreignKey' => false,'conditions'=>array('PatientInitial.id =Person.initial_id' )),
+							'State' =>array('foreignKey' => false,'conditions'=>array('State.id =Person.state' )),
+							'Country' =>array('foreignKey' => false,'conditions'=>array('Country.id =Person.country' )),
+							'Department' =>array('foreignKey' => false,'conditions'=>array('Department.id =Patient.department_id' )),
+							'Location' =>array('foreignKey' => 'location_id')
+					)),false);
+		}else if($role== Configure::read('doctorLabel')){
+
+			$search_key['Patient.location_id']=$this->Session->read('locationid');
+			//$search_key['Patient.doctor_id']=$this->Session->read('userid');
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'User' =>array('foreignKey' => false,'conditions'=>array('User.id=Patient.doctor_id' )),
+							'Initial' =>array('foreignKey' => false,'conditions'=>array('User.initial_id=Initial.id' )),
+							'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+							'PatientInitial' =>array('foreignKey' => false,'conditions'=>array('PatientInitial.id =Person.initial_id' )),
+							'State' =>array('foreignKey' => false,'conditions'=>array('State.id =Person.state' )),
+							'Country' =>array('foreignKey' => false,'conditions'=>array('Country.id =Person.country' )),
+							'Department' =>array('foreignKey' => false,'conditions'=>array('Department.id =Patient.department_id' )),
+
+					)),false);
+		}else if($role== Configure::read('nurseLabel')){
+
+			$search_key['Patient.location_id']=$this->Session->read('locationid');
+			$search_key['Patient.nurse_id']=$this->Session->read('userid');
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'User' =>array('foreignKey' => false,'conditions'=>array('User.id=Patient.doctor_id' )),
+							'Initial' =>array('foreignKey' => false,'conditions'=>array('User.initial_id=Initial.id' )),
+							'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+							'PatientInitial' =>array('foreignKey' => false,'conditions'=>array('PatientInitial.id =Person.initial_id' )),
+							'State' =>array('foreignKey' => false,'conditions'=>array('State.id =Person.state' )),
+							'Country' =>array('foreignKey' => false,'conditions'=>array('Country.id =Person.country' )),
+							'Department' =>array('foreignKey' => false,'conditions'=>array('Department.id =Patient.department_id' )),
+
+					)),false);
+		}
+		else{
+
+			$search_key['Patient.location_id']=$this->Session->read('locationid');
+
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'User' =>array('foreignKey' => false,'conditions'=>array('User.id=Patient.doctor_id' )),
+							'Initial' =>array('foreignKey' => false,'conditions'=>array('User.initial_id=Initial.id' )),
+							'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+							'PatientInitial' =>array('foreignKey' => false,'conditions'=>array('PatientInitial.id =Person.initial_id' )),
+							'State' =>array('foreignKey' => false,'conditions'=>array('State.id =Person.state' )),
+							'Country' =>array('foreignKey' => false,'conditions'=>array('Country.id =Person.country' )),
+							'Department' =>array('foreignKey' => false,'conditions'=>array('Department.id =Patient.department_id' )),
+							'Location' =>array('foreignKey' => 'location_id')
+					)),false);
+
+		}
+
+		// Anand's Code //
+		// If Search is for emergency patient
+		if(isset($this->params['named']['searchFor']) AND $this->params['named']['searchFor'] == 'emergency'){
+			// Condition is here
+
+			$conditions = array('OR'=>array(array('User.department_id'=>$department_id),array($search_key,'Patient.is_discharge'=>0,'Patient.admission_type'=>'IPD','Patient.is_emergency'=>1)));
+
+		} else {
+			// If patient is OPD
+
+			if(!empty($this->params->query)){
+
+				if($this->params->query['type'] == 'OPD'){
+					$search_ele = $this->params->query ;//make it get
+
+					if(!empty($search_ele['lookup_name'])){
+						$search_ele['lookup_name'] = explode(" ",$search_ele['lookup_name']);
+						if(count($search_ele['lookup_name']) > 1){
+							$search_key['SOUNDEX(Person.first_name) like'] = "%".soundex(trim($search_ele['lookup_name'][0]))."%";
+							$search_key['SOUNDEX(Person.last_name) like'] = "%".soundex(trim($search_ele['lookup_name'][1]))."%";
+						}else if(count($search_ele['lookup_name)']) == 0){
+							$search_key['OR'] = array(
+									'SOUNDEX(Person.first_name)  like'  => "%".soundex(trim($search_ele['lookup_name'][0]))."%",
+									'SOUNDEX(Person.last_name)   like'  => "%".soundex(trim($search_ele['lookup_name'][0]))."%");
+						}
+					}/* if(!empty($search_ele['patient_id'])){
+					$search_key['Patient.patient_id like '] = "%".trim($search_ele['patient_id']) ;
+					} */if(!empty($search_ele['admission_id'])){
+					$search_key['Patient.admission_id like '] = "%".trim($search_ele['admission_id']) ;
+					}if(!empty($search_ele['dob'])){
+						$search_key['Person.dob like '] = "%".trim(substr($this->DateFormat->formatDate2STD($search_ele['dob'],Configure::read('date_format')),0,10));
+					}/* if(!empty($search_ele['ssn_us'])){
+					$search_key['Person.ssn_us like '] = $this->request->query['ssn_us']."%" ;
+					} */
+				}else{
+
+					$search_ele = $this->params->query  ;//make it get
+
+					if(!empty($search_ele['lookup_name'])){
+							
+						$search_ele['lookup_name'] = explode(" ",$search_ele['lookup_name']);
+						if(count($search_ele['lookup_name']) > 1){
+							$search_key['SOUNDEX(Person.first_name) like'] = "%".soundex(trim($search_ele['lookup_name'][0]))."%";
+								
+							$search_key['SOUNDEX(Person.last_name) like'] = "%".soundex(trim($search_ele['lookup_name'][1]))."%";
+						}else if(count($search_ele['lookup_name)']) == 0){
+							$search_key['OR'] = array(
+									'SOUNDEX(Person.first_name)  like'  => "%".soundex(trim($search_ele['lookup_name'][0]))."%",
+									'SOUNDEX(Person.last_name)   like'  => "%".soundex(trim($search_ele['lookup_name'][0]))."%");
+						}
+					}/* if(!empty($search_ele['patient_id'])){
+					$search_key['Patient.patient_id like '] = "%".trim($search_ele['patient_id']) ;
+					} */if(!empty($search_ele['admission_id'])){
+					$search_key['Patient.admission_id like '] = "%".trim($search_ele['admission_id']) ;
+					}if(!empty($search_ele['dob'])){
+						$search_key['Person.dob like '] = "%".trim(substr($this->DateFormat->formatDate2STD($search_ele['dob'],Configure::read('date_format')),0,10));
+					}/* if(!empty($search_ele['ssn_us'])){
+					$search_key['Person.ssn_us like '] = "%".trim($search_ele['ssn_us'])."%" ;
+					} */
+				}
+				// Condition is here
+				/* $conditions = $this->params->query['lookup_name'];
+				 debug($conditions); */
+				$conditions = $search_key;
+
+			}else{
+				// For IPD patient
+				// Condition is here
+				//$conditions = array($search_key,'Patient.is_discharge'=>0,'Patient.admission_type'=>'IPD');
+				$conditions = array('OR'=>array(array('User.department_id'=>$department_id),array($search_key,'Patient.is_discharge'=>0,'Patient.admission_type'=>'IPD')));
+			}
+
+		}
+		/* $this->Person->bindModel(array(
+		 'belongsTo'=>array('Patient'=>array('type'=>'INNER','foreignKey'=>false,'conditions'=>array('Patient.patient_id = Person.patient_uid')))
+		)); */
+		// Paginate Data here
+		$this->paginate = array(
+				'limit' => Configure::read('number_of_rows'),
+				'order' => $orderstatus,
+				'group' => 'Patient.person_id',
+				'fields'=> array('Patient.form_received_on,Patient.form_received_on,Patient.discharge_date,CONCAT(PatientInitial.name," ",Patient.lookup_name) as lookup_name,
+						Patient.id,Patient.patient_id,Patient.admission_id,Patient.mobile_phone,Patient.landline_phone,CONCAT(User.first_name," ",User.last_name) as name, User.initial_id,
+						Patient.create_time, Initial.name','Person.ssn_us','Department.name','Person.sex','Person.dob','Person.first_name','Person.last_name','Person.mobile','Person.plot_no','Person.city','State.name','Country.name'),
+				'conditions'=>$conditions ,
+		);
+		$this->set('data',$this->paginate('Patient'));
+
+		//EOF Anand's Code //
+	}
+
+	public function search_ambi(){
+
+		$this->set('data','');
+		$this->paginate = array(
+				'limit' => Configure::read('number_of_rows'),
+				'order' => array(
+						'Patient.id' => 'asc'
+				)
+		);
+
+		$role = $this->Session->read('role');
+
+		//Search patient as per the url request
+		if(!empty($this->params->query['type'])){
+			if(strtolower($this->params->query['type'])=='emergency'){
+				$search_key['Patient.admission_type'] = "IPD";
+				$search_key['Patient.is_emergency'] = "1";
+			}else if($this->params->query['type']=='IPD'){
+				$search_key['Patient.admission_type'] = $this->params->query['type'];
+				$search_key['Patient.is_emergency'] = "0";
+			}else{
+				$search_key['Patient.admission_type'] = $this->params->query['type'];
+			}
+		}
+		if(!empty($this->params->query['dept_id'])){
+			$search_key['Patient.department_id'] = $this->params->query['dept_id'];
+		}
+		if($this->params->query['patientstatus']=='discharged' || $this->params->query['patientstatus']=='processed') {
+			$search_key['Patient.is_discharge'] = 1;//display only non-discharge patient
+		} else {
+			$search_key['Patient.is_discharge'] = 0;//display only non-discharge patient
+		}
+		//EOF patient search as per category
+
+		$search_key['Patient.is_deleted'] = 0;
+
+		if(($role == 'admin') || empty($this->params->query['doctor_id'])){
+
+			$search_key['Patient.location_id']=$this->Session->read('locationid');
+
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'User' =>array('foreignKey' => false,'conditions'=>array('User.id=Patient.doctor_id' )),
+							'Initial' =>array('foreignKey' => false,'conditions'=>array('User.initial_id=Initial.id' )),
+							'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+							'PatientInitial' =>array('foreignKey' => false,'conditions'=>array('PatientInitial.id =Person.initial_id' )),
+							'Location' =>array('foreignKey' => 'location_id')
+					)),false);
+		}else if($role=='doctor' && !empty($this->params->query['doctor_id'])){
+			$search_key['Patient.location_id']=$this->Session->read('locationid');
+			$search_key['Patient.doctor_id']=$this->Session->read('userid');
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'User' =>array('foreignKey' => false,'conditions'=>array('User.id=Patient.doctor_id' )),
+							'Initial' =>array('foreignKey' => false,'conditions'=>array('User.initial_id=Initial.id' )),
+							'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+							'PatientInitial' =>array('foreignKey' => false,'conditions'=>array('PatientInitial.id =Person.initial_id' )),
+					)),false);
+		}
+
+		// Anand's Code //
+		// If Search is for emergency patient
+		if(isset($this->params['named']['searchFor']) AND $this->params['named']['searchFor'] == 'emergency'){
+			// Condition is here
+			$conditions = array($search_key,'Patient.is_discharge'=>0,'Patient.admission_type'=>'IPD','Patient.is_emergency'=>1);
+
+		} else {
+			// If patient is OPD
+			if(!empty($this->params->query)){
+				$search_ele = $this->params->query  ;//make it get
+				if(!empty($search_ele['lookup_name'])){
+					$search_key['Patient.lookup_name like '] = "%".trim($search_ele['lookup_name'])."%" ;
+				}if(!empty($search_ele['patient_id'])){
+					$search_key['Patient.patient_id like '] = "%".trim($search_ele['patient_id']) ;
+				}if(!empty($search_ele['admission_id'])){
+					$search_key['Patient.admission_id like '] = "%".trim($search_ele['admission_id']) ;
+				}
+				// Condition is here
+				$conditions = $search_key;
+			}else{
+				// For IPD patient
+				// Condition is here
+				$conditions = array($search_key,'Patient.is_discharge'=>0,'Patient.admission_type'=>'IPD');
+			}
+
+		}
+		// Paginate Data here
+
+		$this->paginate = array(
+				'limit' => Configure::read('number_of_rows'),
+				'order' => array('Patient.id' => 'desc'),
+				'fields'=> array('Patient.form_received_on,Patient.form_received_on,Patient.discharge_date,CONCAT(PatientInitial.name," ",Patient.lookup_name) as lookup_name,
+						Patient.id,Patient.patient_id,Patient.admission_id,Patient.mobile_phone,Patient.landline_phone,CONCAT(User.first_name," ",User.last_name) as name, User.initial_id, Patient.create_time, Initial.name'),
+				'conditions'=>$conditions
+		);
+
+		$this->set('data',$this->paginate('Patient'));
+		//EOF Anand's Code //
+	}
+
+
+	/**
+	 * patient notes listing by ajax calling
+	 *
+	 */
+	public function patient_notes($patient_id=null,$search=null,$sign=null,$note_id=null) {
+		$this->uses =array('icds','SuggestedDrug','XmlNote');
+		$this->loadModel("Note","Patient");
+		//	$this->patient_info($patient_id); commented boz now its use by new Soap Note Aditya
+		$patientElementData = $this->patient_details;
+		$this->paginate = array(
+				'limit' => Configure::read('number_of_rows'),
+				'order' => array('Note.id' => 'desc'),
+				'fields'=> array('Note.id', 'Note.note', 'Note.note_type',
+						'Note.created_by', 'Note.note_date','Note.compelete_note', 'Note.sign_note', 'Note.create_time'),
+				'conditions'=>array('Note.patient_id'=>$patient_id,'Note.note_type NOT'=>array('ward','extra note')),
+				//'group' => 'Note.note_date'
+		);
+
+
+		//----EOF --sign note
+
+		if(isset($search) && $search != "#list_patient"){
+			//---icd search--
+			$this->Note->unBindModel(array(
+					'belongsTo' => array('Patient','User','Doctor','Initial','InitialAlias','SuggestedDrug','PharmacyItem')));
+			$stricd = $this->Note->find('all',array('fields'=>array('Note.icd','Note.id'),'conditions'=>array('Note.patient_id'=>$patient_id)));
+
+			$noOfstr= count($stricd);
+			for($k=0;$k<$noOfstr;$k++){
+				$istr.= $stricd[$k][Note][icd];
+				$notster[] = $stricd[$k][Note][id];
+			}
+
+			$istr = explode('|',$istr);
+
+			$result1 = $this->icds->find('all',array('fields'=>array('icds.id'),
+					'conditions'=>array("OR" => array('icds.icd_code LIKE'=> "%".$search."%" ,'icds.description LIKE'=> "%".$search."%" ))));
+
+			$noOficount= count($result1); $icar =array();
+			for($k=0;$k<$noOficount;$k++){
+				$icar[] = $result1[$k][icds][id];
+			}
+			$filtericd = array();
+			for($k=0 ; $k < count($istr); $k++){
+				if(in_array($istr[$k],$icar))
+				{
+					$filtericd[] = $istr[$k];
+
+				}
+			}
+			for($k=0; $k<count($filtericd); $k++){
+				$this->Note->unBindModel(array(
+						'belongsTo' => array('Patient','User','Doctor','Initial','InitialAlias','SuggestedDrug','PharmacyItem')));
+				$result_icd = $this->Note->find('all',array('fields'=>array('Note.id','Note.note_date'),
+						'conditions'=>array("AND"=>array('Note.icd LIKE'=> "%".$filtericd[$k]."|"."%",'Note.patient_id'=>$patient_id)),
+						'order'=>array('Note.id'=>'DESC')));
+			}
+			//----EOF  icd search
+			//------Medication Search----
+			$phar_resu = $this->Note->find('all',array('fields'=>array('Note.id','Note.note_date'),
+					'conditions'=>array('PharmacyItem.name LIKE'=> "%".$search."%",'Note.patient_id'=>$patient_id)));
+			//----EOF-----Medication Search----
+			//------core soap search
+			$this->Note->unBindModel(array(
+					'belongsTo' => array('Patient','User','Doctor','Initial','InitialAlias','SuggestedDrug','PharmacyItem')));
+
+			$result = $this->Note->find('all',array('fields'=>array('Note.id','Note.note_date'),
+					'conditions'=>array("OR" => array('Note.subject LIKE'=> "%".$search."%" ,'Note.object LIKE'=> "%".$search."%" ,
+							'Note.assis LIKE'=> "%".$search."%",'Note.plan LIKE'=> "%".$search."%",'Note.cc LIKE'=> "%".$search."%",
+							'Note.investigation LIKE'=> "%".$search."%"),'Note.patient_id'=>$patient_id),'order'=>array('Note.id'=>'DESC')));
+			if(!empty($result_icd)){
+				for($k=0; $k < count($result_icd);$k++){
+					$result[] =     $result_icd[$k];
+				}
+			}
+			for($k=0; $k < count($phar_resu);$k++){
+				$result[]= $phar_resu[$k];
+			}
+		}
+		//---------EOF core search
+		$result =  array_unique($result);
+
+		$this->set(compact('search','result'));
+		$this->set('patientid',$patient_id);
+		if($patientElementData)
+			$this->set('patientuid',$patientElementData['Patient']['patient_id']);
+		$this->set('noteData',$this->paginate('Note'));
+		//	echo $this->render('patient_notes');
+	}
+
+	function signNote($sign=null,$noteId=null){
+		$this->layout = false;
+		$this->autoRender = false;
+		$this->uses = array('Note');
+		$this->Note->updateAll(array('sign_note' => "'$sign'"),array('Note.id' => $noteId));
+		//exit;
+
+
+	}
+	function complete($sign=null,$noteId=null){
+		$this->layout = false;
+		$this->autoRender = false;
+		$this->uses = array('Note');
+		$this->Note->updateAll(array('compelete_note' => "'$sign'"),array('Note.id' => $noteId));
+		//exit;
+
+
+	}
+
+	public function quick_notes($patient_id=null,$search=null,$sign=null,$note_id=null) {
+		$this->uses =array('icds','SuggestedDrug','XmlNote');
+		$this->loadModel("Note","Patient");
+		$this->patient_info($patient_id);
+		$puid = $this->Patient->find('first',array('fields'=>array('patient_id','lookup_name'),'conditions'=>array('Patient.id'=>$patient_id)));
+		$uid=$puid['Patient']['patient_id'];
+		$this->Note->bindModel(array('belongsTo' => array(
+				'Patient' =>array('foreignKey'=>'patient_id'),
+				'User' =>array('foreignKey'=>'sb_registrar'),
+				'Doctor' =>array('foreignKey'=>'sb_consultant'),
+				'Initial' =>array('foreignKey'=>false, 'conditions' => array('Initial.id=User.initial_id')),
+				'InitialAlias' =>array('foreignKey'=>false, 'conditions' => array('InitialAlias.id=Doctor.initial_id')),
+				'SuggestedDrug' =>array('foreignKey'=>false, 'conditions' => array('Note.id=SuggestedDrug.note_id')),
+				'PharmacyItem' =>array('foreignKey'=>false, 'conditions' => array('PharmacyItem.id=SuggestedDrug.drug_id')),
+		)),false);
+		$data = $this->paginate = array(
+				'limit' => Configure::read('number_of_rows'),
+				'order' => array('Note.id' => 'desc'),
+				'fields'=> array('PharmacyItem.name','PharmacyItem.pack','SuggestedDrug.drug_id','Note.id', 'Note.note', 'Note.note_type', 'Note.created_by', 'Note.note_date', 'Note.sign_note', 'Note.create_time','CONCAT(User.first_name, " ", User.last_name) as doctor_name','CONCAT(Doctor.first_name, " ", Doctor.last_name) as registrar', 'InitialAlias.name', 'Initial.name'),
+				'conditions'=>array('Note.patient_id'=>$patient_id,'Note.note_type !='=>'ward'),
+				'group' => 'Note.note_date'
+		);
+
+		//$record = $this->Note->find('all',array('fields'=>array('Note.id','Note.patient_id'),'conditions'=>array('Note.patient_id'=>$patient_id)));
+
+		//---------for sign note
+		if($sign=='1'){
+			//----for cda---
+			//$ccda_id=$this->XmlNote->autoGeneratedCcrID($patient_id);
+			//$get_ccda_body=$this->XmlNote->singleCcdaBody($patient_id,$uid,$note_id);
+			//$this->XmlNote->saveall(array('message'=>$get_ccda_body,'patient_id'=>$patient_id,'xml_type'=>'cda','ccda_id'=>$ccda_id,'note_id'=>$note_id));
+			//$this->XmlNote->save(array('filename'=>$puid['Patient']['lookup_name'].'_'.$uid.'_'.single));
+			//--------end of cda----
+
+			$this->Note->query("UPDATE notes SET sign_note = '1' WHERE notes.id = $note_id");
+
+		}
+		if($sign=='0')
+		{
+			$this->Note->query("UPDATE notes SET sign_note = '0' WHERE notes.id = $note_id");
+
+		}
+		//----EOF --sign note
+
+		if(isset($search) && $search != "#list_patient"){
+			//---icd search--
+			$this->Note->unBindModel(array(
+					'belongsTo' => array('Patient','User','Doctor','Initial','InitialAlias','SuggestedDrug','PharmacyItem')));
+			$stricd = $this->Note->find('all',array('fields'=>array('Note.icd','Note.id'),'conditions'=>array('Note.patient_id'=>$patient_id)));
+
+			$noOfstr= count($stricd);
+			for($k=0;$k<$noOfstr;$k++){
+				$istr.= $stricd[$k][Note][icd];
+				$notster[] = $stricd[$k][Note][id];
+			}
+
+			$istr = explode('|',$istr);
+
+			$result1 = $this->icds->find('all',array('fields'=>array('icds.id'),'conditions'=>array("OR" => array('icds.icd_code LIKE'=> "%".$search."%" ,'icds.description LIKE'=> "%".$search."%" ))));
+
+			$noOficount= count($result1); $icar =array();
+			for($k=0;$k<$noOficount;$k++){
+				$icar[] = $result1[$k][icds][id];
+			}
+			$filtericd = array();
+			for($k=0 ; $k < count($istr); $k++){
+				if(in_array($istr[$k],$icar))
+				{
+					$filtericd[] = $istr[$k];
+
+				}
+			}
+			for($k=0; $k<count($filtericd); $k++){
+				$this->Note->unBindModel(array(
+						'belongsTo' => array('Patient','User','Doctor','Initial','InitialAlias','SuggestedDrug','PharmacyItem')));
+				$result_icd = $this->Note->find('all',array('fields'=>array('Note.id','Note.note_date'),'conditions'=>array("AND"=>array('Note.icd LIKE'=> "%".$filtericd[$k]."|"."%",'Note.patient_id'=>$patient_id)),'order'=>array('Note.id'=>'DESC')));
+			}
+			//----EOF  icd search
+			//------Medication Search----
+			$phar_resu = $this->Note->find('all',array('fields'=>array('Note.id','Note.note_date'),'conditions'=>array('PharmacyItem.name LIKE'=> "%".$search."%",'Note.patient_id'=>$patient_id)));
+			//----EOF-----Medication Search----
+			//------core soap search
+			$this->Note->unBindModel(array(
+					'belongsTo' => array('Patient','User','Doctor','Initial','InitialAlias','SuggestedDrug','PharmacyItem')));
+
+			$result = $this->Note->find('all',array('fields'=>array('Note.id','Note.note_date'),'conditions'=>array("OR" => array('Note.subject LIKE'=> "%".$search."%" ,'Note.object LIKE'=> "%".$search."%" ,'Note.assis LIKE'=> "%".$search."%",'Note.plan LIKE'=> "%".$search."%",'Note.cc LIKE'=> "%".$search."%",'Note.investigation LIKE'=> "%".$search."%"),'Note.patient_id'=>$patient_id),'order'=>array('Note.id'=>'DESC')));
+			if(!empty($result_icd)){
+				for($k=0; $k < count($result_icd);$k++){
+					$result[] =     $result_icd[$k];
+				}
+			}
+			for($k=0; $k < count($phar_resu);$k++){
+				$result[]= $phar_resu[$k];
+			}
+		}
+		//---------EOF core search
+		$result =  array_unique($result);
+
+		$this->set(compact('search','result'));
+		$this->set('patientid',$patient_id);
+		$this->set('patientuid',$uid);
+		$this->set('datapost',$this->paginate('Note'));
+		$this->render('patient_notes');
+
+
+
+
+	}
+
+	/**
+	 * patient notes entry by ajax calling
+	 *
+	 */
+	public function sampleadd($patient_id=null,$notes_id=null) {
+
+
+		$this->uses =array('Laboratory','FunctionalResult','RiskCategory','ProcedurePerform','DeviceUse','DeviceMaster','ProcedureMaster','SymptomMaster','Symptom','DiagnosticMaster','Diagnostic','Intervention','DignosticStudy','PatientCharacter','PlannedProblem','ClinicalSupport','ConsultantBilling','DiagnosisMaster','AmbulatoryVisitType','CognitiveFunction','InpatientVisitType','NoteDiagnosis','Consultant','Note','User','Consultant','SuggestedDrug','ProcedureMaster','Patient','Finalization','icds','Diagnosis');
+		//-----------------------------------ClinicalSupport--------------------------------------------------------------------------
+		$name=$_SESSION['Auth']['User']['username'];
+
+		$CDS_Data=$this->ClinicalSupport->find('all',array('conditions'=>array('username'=>$name)));
+		$CDS_Data_hyp=$CDS_Data['0']['ClinicalSupport']['Hyptension'];
+		$this->set('CDS_Data',$CDS_Data);
+
+		//---gaurav
+		$dbproblems  = $this->DiagnosisMaster->find('list',array('fields'=>array('id','diagnoses_name'),'group' =>'DiagnosisMaster.icd_id'));
+		$this->set('dbproblems',$dbproblems);
+		///$this->DiagnosisMaster->id=false;
+			
+		//vikas-------------
+		//$this->ProcedureMaster->virtualFields =  array('name'=>'CONCAT(ProcedureMaster.code_value,"|",ProcedureMaster.procedure_name)') ;
+		$procedurep_per  = $this->ProcedureMaster->find('list',array('fields'=>array('id','procedure_name'),'order' => array('procedure_name ASC')));
+		$this->set('procedurep_per',$procedurep_per);
+		//--------
+		$device_list  = $this->DeviceMaster->find('list',array('fields'=>array('id','device_name'),'order' => array('device_name ASC')));
+		$this->set('device_list',$device_list);
+
+
+		$symptom_name  = $this->SymptomMaster->find('list',array('fields'=>array('id','symptom_name'),'order' => array('symptom_name ASC')));
+		$this->set('symptom_name',$symptom_name);
+
+		$patient_char  = $this->PatientCharacter->find('list',array('fields'=>array('id','character_name'),'order' => array('character_name ASC')));
+		$this->set('patient_char',$patient_char);
+		$diagnostic_name  = $this->DiagnosticMaster->find('list',array('fields'=>array('id','diagnostic_name'),'order' => array('diagnostic_name ASC')));
+		$this->set('diagnostic_name',$diagnostic_name);
+
+
+
+		//----------------------------------Display the diagnosis in the notes add page author Aditya chitmitwar-------------------------------------------
+		$getdiagnoses_name=$this->NoteDiagnosis->find('all',array('fields'=>array('id','diagnoses_name'),'conditions'=>array('patient_id'=>$patient_id),'order' => array('diagnoses_name ASC')));
+
+		$this->set('getdiagnoses_name',$getdiagnoses_name);
+		//--------------------------------------end Display the diagnosis in the notes add page author Aditya chitmitwar--------------------------------------------
+		$total = $this->Note->find('count',array('fields'=>array('COUNT(Note.id) as count'),'conditions'=>array('Note.patient_id'=>$patient_id)));
+
+		$record = $this->Note->find('all',array('fields'=>array('*'),'conditions'=>array('Note.patient_id'=>$patient_id),'order'=>array('Note.id ASC')));
+		$this->set('total',$total);
+		$this->set('record',$record);
+		//---------------- clinical support System----------------------------
+		$dataage = $this->Patient->find('all',array('fields'=>array('Patient.age','Patient.admission_type','Patient.patient_id'),'conditions'=>array('id'=>$patient_id)));
+		$dataage = (array) $dataage;
+		$this->set('data',$dataage);
+
+
+		$geticds = $this->NoteDiagnosis->find('all',array('fields'=>array('NoteDiagnosis.diagnoses_name'),'conditions'=>array('NoteDiagnosis.patient_id'=>$patient_id)));
+
+		//-------Notesadd Plan
+		//$plannedProblem = $this->PlannedProblem->find('all',array('conditions'=>array('patient_id'=>$patient_id)));
+		//	$this->set('plannedProblem',$plannedProblem);
+
+		$this->paginate = array(
+				'limit' => '100',
+				'order' => array('PlannedProblem.create_time' => 'desc'),
+				'fields'=> array('PlannedProblem.*'),
+				'conditions'=>array('PlannedProblem.patient_id'=>$patient_id,'PlannedProblem.is_deleted'=>'0')
+		);
+
+		$this->set('plannedProblem',$this->paginate('PlannedProblem'));
+
+
+		$studyResult  = $this->DignosticStudy->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		$this->set('studyResult',$studyResult);
+
+		$functionalResult  = $this->FunctionalResult->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		$this->set('functionalResult',$functionalResult);
+
+
+		$interventionResult  = $this->Intervention->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		$this->set('interventionResult',$interventionResult);
+
+
+		$risk_category_result  = $this->RiskCategory->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		$this->set('risk_category_result',$risk_category_result);
+
+		$procedure_perform  = $this->ProcedurePerform->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		$this->set('procedure_perform',$procedure_perform);
+
+		$device_use  = $this->DeviceUse->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		$this->set('device_use',$device_use);
+
+		$symptom_list  = $this->Symptom->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		$this->set('symptom_list',$symptom_list);
+
+		$diagnostic_list  = $this->Diagnostic->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		$this->set('diagnostic_list',$diagnostic_list);
+
+		//------
+		$noOfId =  count($geticds);
+		$string="";
+		for($k=0;$k<$noOfId;$k++){
+			$string = $geticds[$k][NoteDiagnosis][diagnoses_name] .",". $string;
+		}
+
+		$string = str_replace("|",",",$string);
+		$string2 = explode(",",$string);
+		$hypertension= '';
+		if(in_array('Benign intracranial hypertension',$string2)||in_array('Hypertensive disorder, systemic arterial (disorder)',$string2)||in_array('Hypertension associated with transplantation',$string2)||in_array('Malignant tumor of cervix (disorder)',$string2)){
+			$hypertension = 'ok';
+		}
+		$cancer= "";
+		if(in_array('Malignant tumor of cervix (disorder)',$string2)){
+			$cancer = 'cancer';
+		}
+		$this->set('geticds', $hypertension);
+		$this->set('geticds1', $cancer);
+		$this->set('role',$_SESSION['role']);
+		//----------- end of clicnical support---------------------------------
+
+		//-----------For no active diagnoses-----------------------------------------
+		$icdTrack = $this->Note->find('count',array('conditions'=>array('patient_id'=>$patient_id)));
+
+		$this->set('icdTrack',$icdTrack);////now hidden field to no act diag
+			
+		//-------------------------------------------------------------------
+		if (!empty($this->request->data['Note'])) {
+			//---GULSHAN
+			$data = $this->Session->read('makeDignosis');
+
+			//eof
+			//converting date to standard format
+			if(!empty($this->request->data["Note"]['note_date'])){
+				$last_split_date_time = $this->request->data['Note']['note_date'];
+				$this->request->data["Note"]['note_date'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+			}
+			$vital_date = $this->request->data['Note']['vital_date'];
+			$this->request->data["Note"]['vital_date'] = $this->DateFormat->formatDate2STD($vital_date,Configure::read('date_format'));
+
+			$final_date = $this->request->data["Note"]['finalization_date'];
+			$this->request->data["Note"]['finalization_date'] = $this->DateFormat->formatDate2STD($final_date,Configure::read('date_format'));
+
+			$final_character_date = $this->request->data["Note"]['patient_char_date'];
+			$this->request->data["Note"]['patient_char_date'] = $this->DateFormat->formatDate2STD($final_character_date,Configure::read('date_format'));
+
+			$medication_date = $this->request->data["Note"]['medication_order_date'];
+			$this->request->data["Note"]['medication_order_date'] = $this->DateFormat->formatDate2STD($medication_date,Configure::read('date_format'));
+
+			$procedureDate = $this->request->data["Note"]['procedure_perform_date'];
+			$this->request->data["Note"]['procedure_perform_date'] = $this->DateFormat->formatDate2STD($procedureDate,Configure::read('date_format'));
+
+			$this->request->data['Note']['visitid']= implode('|', $this->request->data['Note']['visitid']);
+
+
+			$this->request->data['Note']['final']= implode('|',$this->request->data['Note']['final']);
+
+			$queryReturn = $this->Note->insertNote($this->request->data);
+			if($queryReturn['0']){
+				//--gulshan
+				$lastNotesId=$queryReturn['1'];
+				if($lastNotesId == "") $lastNotesId = $this->request->data['Note']['id'] ;
+
+				foreach($data as $key => $val){
+					$this->NoteDiagnosis->updateAll(array('note_id'=>"'$lastNotesId'"),array('NoteDiagnosis.id'=>$val));
+				}
+				if(!empty($this->request->data['CognitiveFunction']['cog_name'])){
+					$this->request->data['CognitiveFunction']['location_id'] = $this->Session->read('locationid');
+					$this->request->data['CognitiveFunction']['created_by'] = $this->Session->read('userid');
+					$this->request->data['CognitiveFunction']['create_time'] = date("Y-m-d H:i:s");
+					$this->request->data['CognitiveFunction']['is_cognitive'] = 1;
+					$cogni_date = $this->request->data['CognitiveFunction']['cog_date'];
+					$this->request->data['CognitiveFunction']['cog_date'] = $this->DateFormat->formatDate2STD($cogni_date,Configure::read('date_format'));
+					$this->request->data['CognitiveFunction']['patient_id'] = $this->request->data['patientid'];
+					$this->request->data['CognitiveFunction']['note_id'] = $lastNotesId;
+					$this->CognitiveFunction->save($this->request->data['CognitiveFunction']);
+					$this->CognitiveFunction->id='';
+				}
+				if(!empty($this->request->data['FunctionalStatus']['funct_name'])){
+					$functArray= array();
+
+					$functArray['CognitiveFunction']['location_id'] = $this->Session->read('locationid');
+					$functArray['CognitiveFunction']['patient_id'] = $this->request->data['patientid'];
+					$functArray['CognitiveFunction']['note_id'] = $lastNotesId;
+					$functArray['CognitiveFunction']['cog_name'] = $this->request->data['FunctionalStatus']['funct_name'];
+					$cog_date=$this->request->data['FunctionalStatus']['funct_date'];
+					$functArray['CognitiveFunction']['cog_date'] = $this->DateFormat->formatDate2STD($cog_date,Configure::read('date_format'));
+					$functArray['CognitiveFunction']['cog_snomed_code'] = $this->request->data['FunctionalStatus']['funct_snomed_code'];
+					$functArray['CognitiveFunction']['created_by'] = $this->Session->read('userid');
+					$functArray['CognitiveFunction']['create_time'] = date("Y-m-d H:i:s");
+					//$this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+					$functArray['CognitiveFunction']['is_cognitive'] = 0;
+					$this->CognitiveFunction->save($functArray);
+				}
+
+				$this->Session->delete('makeDignosis');
+				$this->Session->setFlash(__('Patient Note Added Successfully' ),true,array('class'=>'message'));
+				$this->redirect("/patients/patient_notes/".$this->request->data['patientid']);
+			}else{
+				$this->Session->setFlash(__('Please Try Again' ),true,array('class'=>'error'));
+
+			}
+		}else{
+			$this->set('patientid',$patient_id);
+
+			if(!empty($notes_id)){
+				$data  =$this->Note->read(null, $notes_id);
+				$selected= explode('|', $data[Note][visitid]);
+				$selectfinal= explode('|', $data['Note']['final']);
+				//converting date to local formatldshfhhdskhkdfj
+				if(!empty($data['Note']['note_date'])){
+					$data['Note']['note_date'] = $this->DateFormat->formatDate2Local($data['Note']['note_date'],Configure::read('date_format'),true);
+
+				}
+
+				/* if(!empty($data['Note']['vital_date'])){
+				 $data['Note']['vital_date'] = $this->DateFormat->formatDate2Local($data['Note']['vital_date'],Configure::read('date_format'),true);
+				//print($data['Note']['vital_date']);exit;
+				}
+
+				if(!empty($data['Note']['finalization_date'])){
+				$data['Note']['finalization_date'] = $this->DateFormat->formatDate2Local($data['Note']['finalization_date'],Configure::read('date_format'),true);
+				} */
+				$this->set(array('selected'=> $selected,'selectfinal'=>$selectfinal,'notedata'=>$data));
+				$this->data = $data ;
+
+			}
+		}
+		if(!empty($notes_id)){
+			$notesRec = $this->Note->read(null,$notes_id);
+
+
+			//converting date to local format
+			if(!empty($notesRec['Note']['note_date'])){
+				$notesRec['Note']['note_date'] = $this->DateFormat->formatDate2Local($notesRec['Note']['note_date'],Configure::read('date_format'),true);
+			}
+
+
+
+			$suggestedDrugRec = $this->SuggestedDrug->find('all',array('fields'=>array('SuggestedDrug.route,SuggestedDrug.dose,SuggestedDrug.quantity,SuggestedDrug.frequency,
+					SuggestedDrug.first,SuggestedDrug.second,SuggestedDrug.third,SuggestedDrug.forth,SuggestedDrug.start_date,SuggestedDrug.end_date,PharmacyItem.name,PharmacyItem.pack'),'conditions'=>array('note_id'=>$notes_id)));
+
+			$this->set('icd_ids',array());
+			$count = count($suggestedDrugRec);
+
+			if($count){
+				for($i=0;$i<$count;){
+					$notesRec['drug'][$i]  = $suggestedDrugRec[$i]['PharmacyItem']['name'];
+					$notesRec['pack'][$i]  = $suggestedDrugRec[$i]['PharmacyItem']['pack'];
+					$notesRec['route'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['route'];
+					$notesRec['dose'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['dose'];
+					$notesRec['frequency'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['frequency'];
+					$notesRec['quantity'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['quantity'];
+					$notesRec['first'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['first'];
+					$notesRec['second'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['second'];
+					$notesRec['third'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['third'];
+					$notesRec['forth'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['forth'];
+					$notesRec['start_date'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['start_date'];
+					$notesRec['end_date'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['end_date'];
+
+					$i++;
+				}
+			}
+			$this->data = $notesRec ;
+		}
+
+		$cogFunc = $this->CognitiveFunction->find('all',array('conditions'=>array('CognitiveFunction.patient_id'=>$notesRec['Note']['patient_id'],'CognitiveFunction.note_id'=>$notes_id,'is_cognitive'=>1)));
+		$funStatus = $this->CognitiveFunction->find('all',array('conditions'=>array('patient_id'=>$notesRec['Note']['patient_id'],'note_id'=>$notes_id,'is_cognitive'=>0)));
+
+
+		$this->set('cogFunc' ,$cogFunc); //cognitive
+		$this->set('funStatus' ,$funStatus); //functional status
+
+		// Collect the date and set it as min date in date piker
+		$admissionDate = $this->Patient->field('Patient.form_received_on',array('Patient.id'=>$this->params['pass'][0],'Patient.location_id'=>$this->Session->read('locationid')));
+		$this->set(compact('admissionDate'));
+		$this->set('registrar',$this->User->getDoctorsByLocation($this->Session->read('locationid')));
+		$this->set('consultant',$this->Consultant->getRegistrar());
+
+		$this->request->data['Note']['risk_snow']= $this->request->data['Note']['risk_snow'];
+		//--saving Icd for assessment--GAURAV
+		if(isset($this->request->data) && !empty($this->request->data)){
+
+			$icdCodes = explode('|',$this->request->data['Note']['icd']);
+			if(count($icdCodes) > 0){
+				$icdArrLength  =count($icdCodes);
+				unset($icdCodes[$icdArrLength-1]);//empty value is there
+				$icdCodes = array_unique($icdCodes);
+				$icdCodes = implode("|" ,$icdCodes);
+				if($icdCodes !='')
+					$icdCodes = $icdCodes.'|';
+				$this->request->data['Note']['icd'] = $icdCodes;
+				///exit;
+			}
+			$vtype = explode('|',$this->request->data['Note']['visitid']);
+			if(count($vtype) > 0){
+				$vtypeArrLength  =count($vtype);
+				unset($vtype[$vtypeArrLength-1]);//empty value is there
+				$vtype = array_unique($vtype);
+				$vtype = implode("|" ,$vtype);
+
+				if($vtype !='')
+					$vtype = $vtype.'|';
+				$this->request->data['Note']['visitid'] = $vtype;
+			}
+		}
+		$visittype = $this->Finalization->find('all',array('fields'=>array('Finalization.id','Finalization.description')));
+		$this->set('visittype',$visittype);
+		/* if(!empty($notesRec['Note']['icd'])){
+
+		$splitICD = explode('|',$notesRec['Note']['icd']);
+
+		$arrLength  =count($splitICD);
+		unset($splitICD[$arrLength-1]);//empty value is there
+
+		//$attachedICD = implode(",",$splitICD) ;
+		$icdArray  = $this->icds->find('all',array('fields'=>array('id','icd_code','description'),'conditions'=>array('id'=>$splitICD)));
+		$this->set('icd_ids',$icdArray);
+		} */
+		$icdArray = explode("|", $notesRec['Note']['icd']) ;
+		$this->set('icd_ids',$icdArray);
+
+		$type  = $this->AmbulatoryVisitType->find('list',array('fields'=>array('value_code','code_description')));
+		$this->set('visit_type',$type);
+
+
+		$inpatient  = $this->InpatientVisitType->find('list',array('fields'=>array('code','description')));
+		$this->set('visit_inpatient',$inpatient);
+
+		$this->DiagnosisMaster->virtualFields =  array('name'=>'CONCAT(DiagnosisMaster.imo_code,"|",DiagnosisMaster.icd_id)') ;
+
+		$problems  = $this->DiagnosisMaster->find('list',array('fields'=>array('name','diagnoses_name')));
+
+		$this->set('icdOptions',$problems);
+		$procedure  = $this->Laboratory->find('list',array('fields'=>array('lonic_code','name')));
+
+		$this->set('lonicOptions',$procedure);
+
+		$this->ProcedureMaster->virtualFields =  array('name'=>'CONCAT(ProcedureMaster.code_value,"|",ProcedureMaster.procedure_name)') ;
+		$procedure  = $this->ProcedureMaster->find('list',array('fields'=>array('name','procedure_name')));
+		$this->set('procedure',$procedure);
+		//cognitive function--------
+		//$this->layout = false;
+	}
+
+	public function notesadd($patient_id=null,$notes_id=null,$flag=null) {
+		//debug($this->params);
+		//$this->layout='advance';
+		$this->uses =array('TariffList','Configuration','RiskcategoryassesmentMaster','DiagnosticstudyresultMaster','FunctionalstatusresultMaster','EKG','RadiologyTestOrder',
+				'LaboratoryToken','NewCropPrescription','NewCropAllergies','OrderSetRad','OrderSetEkg','OrderSetMed','OrderSetLab','Laboratory','FunctionalResult',
+				'RiskCategory','ProcedurePerform','DeviceUse','DeviceMaster','ProcedureMaster','SymptomMaster','Symptom','DiagnosticMaster',
+				'Diagnostic','Intervention','DignosticStudy','PatientCharacter','PlannedProblem','ClinicalSupport','ConsultantBilling','DiagnosisMaster',
+				'AmbulatoryVisitType','CognitiveFunction','InpatientVisitType','NoteDiagnosis','Consultant','Note','User','Consultant',
+				'SuggestedDrug','ProcedureMaster','Patient','Finalization','icds','Diagnosis','SpecialityCat','Template','TemplateCategories','TemplateSubCategories',
+				'TemplateTypeContent','Surgery','BillingOtherCode');
+		// Bring CC form Diagnosis Table
+		$getCcFromDiagnosis=$this->Diagnosis->find('first',array('conditions'=>array('patient_id'=>$patient_id),'fields'=>array('complaints')));
+		$this->set('CcFromDiagnosis',$getCcFromDiagnosis['Diagnosis']['complaints']);
+		//EOF
+
+		//***BOF if no medication selected----yashwant calls on Ajax Request
+		if($this->request->data['value']=='1' && ($this->request->isAjax)){
+			$data['NewCropPrescription']['location_id']=$this->Session->read('locationid');
+			$data['NewCropPrescription']['patient_uniqueid'] = $patient_id;
+			$data['NewCropPrescription']['no_medication']= $this->request->data['value'];
+			$this->NewCropPrescription->save($data['NewCropPrescription']);
+			exit;
+		}// EOFyashwant
+		if(!empty($flag)){
+			$this->set('flag',$flag);
+		}
+		//Procedure Performs-Mahalaxmi
+		///to get data for Patient Diagnosis
+		$getNoteDaignosis=$this->NoteDiagnosis->find('all',array('conditions'=>array('patient_id'=>$patient_id),'fields'=>array('icd_id','diagnoses_name')));
+		foreach($getNoteDaignosis as $data){
+			$codeId = ($data['NoteDiagnosis']['icd_id']) ? " : (".$data['NoteDiagnosis']['icd_id'].")" : '';
+			$nameNoteDiagnosis[trim($data['NoteDiagnosis']['diagnoses_name'].$codeId)]=trim($data['NoteDiagnosis']['diagnoses_name'].$codeId);
+		}
+		////end of -to get data for Patient Diagnosis
+		// Modifer
+		$getModifiers=$this->BillingOtherCode->find('all',array('fields'=>array('code','name'),'conditions'=>array('BillingOtherCode.status'=>'1')));
+		foreach($getModifiers as $data){
+			$codeId = ($data['BillingOtherCode']['code']) ? " - (".$data['BillingOtherCode']['code'].")" : '';
+			$nameBillingOtherCode[$data['BillingOtherCode']['code']]=trim($data['BillingOtherCode']['name'].$codeId);
+		}
+		//EOF
+		///to get data for Procedure Name
+		//$optTariffList=$this->TariffList->find('all',array('fields'=>array('id','name','code_type','cbt','hcpcs')));
+		//debug($optTariffList);exit;
+		/*foreach($optTariffList as $key=>$data){
+			if(!empty($data['TariffList']['cbt'])){
+		$codeName = ($data['TariffList']['cbt']) ? "".$data['TariffList']['cbt']."" : '';
+		}else if(!empty($data['TariffList']['hcpcs'])){
+		$codeName = ($data['TariffList']['hcpcs']) ? "".$data['TariffList']['hcpcs']."" : '';
+		}
+		//$nameTariffList[$data['TariffList']['id']]=trim($data['TariffList']['name'].$codeName);
+		//$codeType[$data['TariffList']['id']]=$data['TariffList']['code_type'];
+		}	*/
+		//debug($codeType);exit;
+		$this->set(compact('nameTariffList','codeName','nameBillingOtherCode','nameNoteDiagnosis'));
+		//EOF-to get data for Procedure Name
+		///-----------------------EOF-Procedure Performs-Mahalaxmi--------------------------------------------------------
+		$this->patient_info($patient_id);
+		$patientData = $this->patient_details;
+		//--- New Medication Unit DOSE AND STRENGHT ADD DO NOT REMOVE Aditya
+		$getConfiguration=$this->Configuration->find('all');
+		$strenght=unserialize($getConfiguration[0]['Configuration']['value']);
+		$dose=unserialize($getConfiguration[1]['Configuration']['value']);
+		$route=unserialize($getConfiguration[2]['Configuration']['value']);
+		//$str1='<select style="width:80px;" id="dose_type'+counter+'" class="" name="dose_type[]">';
+		foreach($strenght as $strenghts){
+			$str.='<option value='.'"'.stripslashes($strenghts).'"'.'>'.$strenghts.'</option>';
+		}
+		$str.='</select>';
+		$this->set('str',$str);
+		//================================ dose
+		foreach($dose as $doses){
+			$str_dose.='<option value='.'"'.stripslashes($doses).'"'.'>'.$doses.'</option>';
+		}
+		$str_dose.='</select>';
+		$this->set('str_dose',$str_dose);
+		// =======================================end dose
+		//============================== route
+		foreach($route as $routes){
+			$str_route.='<option value='.'"'.stripslashes($routes).'"'.'>'.$routes.'</option>';
+		}
+		$str_route.='</select>';
+		$this->set('str_route',$str_route);
+		//================= end dose
+		//$this->set('strenght',unserialize($getConfiguration[0]['Configuration']['value']));
+		foreach(unserialize($getConfiguration[0]['Configuration']['value']) as $key=>$strenght){
+			if(!empty($strenght))
+				$strenght_var[$strenght]=$strenght;
+		}
+		$this->set('strenght',$strenght_var);
+		//$this->set('dose',unserialize($getConfiguration[1]['Configuration']['value']));
+		foreach(unserialize($getConfiguration[1]['Configuration']['value']) as $key=>$doses){
+			if(!empty($doses))
+				$dose_var[$doses]=$doses;
+		}
+		$this->set('dose',$dose_var);
+		//$this->set('route',unserialize($getConfiguration[2]['Configuration']['value']));
+		foreach(unserialize($getConfiguration[2]['Configuration']['value']) as $key=>$route){
+			if(!empty($route))
+				$route_var[$route]=$route;
+		}
+		$this->set('route',$route_var);
+		//==========================================================
+		//---------------------Review Of System----------------
+		$this->Template->bindModel(array(
+				'hasMany' => array('TemplateSubCategories' =>array('foreignKey'=>'template_id','conditions'=>array('TemplateSubCategories.is_deleted=0')))));
+		$rosData=$this->Template->find('all',array('conditions'=>array('Template.template_category_id'=>1,'Template.is_deleted=0')));
+		$this->set('rosData',$rosData);
+		//--------------------------EOF Review Of System---------
+		//---------------------Review Of System Examination----------------
+		$this->Template->bindModel(array(
+				'hasMany' => array('TemplateSubCategories' =>array('foreignKey'=>'template_id','conditions'=>array('TemplateSubCategories.is_deleted=0')))));
+		$roseData=$this->Template->find('all',array('conditions'=>array('Template.template_category_id'=>2,'Template.is_deleted=0')));
+		$this->set('roseData',$roseData);
+		//$this->set('templateTypeContent',$this->TemplateTypeContent->find('list',array('fields'=>array('template_id','template_subcategory_id'))));
+		$this->set('templateTypeContent',$this->TemplateTypeContent->find('list',array('fields'=>array('template_id','template_subcategory_id'),'conditions'=>array('note_id'=>$notes_id))));
+		//--------------------------EOF Review Of System---------
+		//-----------------------------------ClinicalSupport--------------------------------------------------------------------------
+		$name=$_SESSION['Auth']['User']['username'];
+		$CDS_Data=$this->ClinicalSupport->find('all',array('conditions'=>array('username'=>$name)));
+		//$CDS_Data_hyp=$CDS_Data['0']['ClinicalSupport']['Hyptension'];
+		$this->set('CDS_Data',$CDS_Data);
+		//-----------------------------------------------------------------------------------------------------------------------
+		//---------------- clinical support System----------------------------
+		$dataage = $this->Patient->find('all',array('fields'=>array('Patient.age','Patient.patient_id'),'conditions'=>array('Patient.id'=>$patient_id)));
+		$getage=$dataage[0]['Patient']['age'];
+		$this->set('data',$getage);
+		$this->set('patient_uniqueid',$dataage[0]['Patient']['patient_id']);
+		$this->set('smoking_dates',$smoking_dates);
+		$geticds = $this->NoteDiagnosis->find('all',array('fields'=>array('NoteDiagnosis.diagnoses_name'),'conditions'=>array('NoteDiagnosis.patient_id'=>$patient_id)));
+		$noOfId =  count($geticds);
+		$string="";
+		for($k=0;$k<$noOfId;$k++){
+			$string = $geticds[$k][NoteDiagnosis][diagnoses_name] .",". $string;
+		}
+		$string = str_replace("|",",",$string);
+		$string2 = explode(",",$string);
+		$cancer= "";
+		if(in_array('Malignant tumor of cervix',$string2)||in_array('Ca cervix - screening done (finding)',$string2)){
+			$cancer = 'cancer';
+		}
+		$Diabetes= "";
+		if(in_array('Diabetes mellitus',$string2)){
+			$Diabetes = 'Diabetes';
+		}
+		$this->set('role',$_SESSION['role']);
+		$this->set('geticds1', $cancer);
+		$this->set('Diabetes', $Diabetes);
+		//----------- end of clicnical support---------------------------------
+		//-----------------------------orderset code--------------------------------------------------------------------------------
+		$labOrderName=$this->OrderSetLab->find('all',array('fields'=>array('department_id','name'),'conditions'=>array('OrderSetLab.is_deleted'=>0)));
+		$this->set('dataOrderSetLab',$labOrderName);
+		$this->LaboratoryToken->bindModel(array(
+				'belongsTo' => array(
+						'Laboratory' =>array('foreignKey' => false,'conditions'=>array('LaboratoryToken.laboratory_id=Laboratory.id' )),
+				)));
+		$selected=$this->LaboratoryToken->find('all',array('fields'=>array('Laboratory.name'),'conditions'=>array('LaboratoryToken.patient_id'=>$patient_id),'resursive'=>1));
+		for($i=0;$i<count($selected);$i++){
+			$selectedData[]=$selected[$i]['Laboratory']['name'];
+		}
+		$this->set('selectedLab',$selectedData);
+		$this->set('p_id',$patient_id);
+		$medOrderName=$this->OrderSetMed->find('all',array('fields'=>array('department_id','name'),'conditions'=>array('OrderSetMed.is_deleted'=>0)));
+		$this->set('dataOrderSetMed',$medOrderName);
+		$selectedAllergy=$this->NewCropPrescription->find('list',array('fields'=>array('description'),'conditions'=>array('NewCropPrescription.patient_uniqueid'=>$patient_id)));
+		$this->set('selectedAllergy',$selectedAllergy);
+		$selectedMed=$this->NewCropAllergies->find('list',array('fields'=>array('name'),'conditions'=>array('NewCropAllergies.patient_uniqueid'=>$patient_id)));
+		$this->set('selectedMed',$selectedMed);
+		$radOrderName=$this->OrderSetRad->find('all',array('fields'=>array('department_id','name','id','loinc_code','cpt_code'),'conditions'=>array('OrderSetRad.speciality_cat_id'=>1,'OrderSetRad.is_deleted'=>0)));
+		$this->set('dataOrderSetRad',$radOrderName);
+		$radOrderName_neck=$this->OrderSetRad->find('all',array('fields'=>array('department_id','name','id','loinc_code','cpt_code'),'conditions'=>array('OrderSetRad.speciality_cat_id'=>2,'OrderSetRad.is_deleted'=>0)));
+		$this->set('dataOrderSetRad_neck',$radOrderName_neck);
+		$radOrderName_upper=$this->OrderSetRad->find('all',array('fields'=>array('department_id','name','id','loinc_code','cpt_code'),'conditions'=>array('OrderSetRad.speciality_cat_id'=>3,'OrderSetRad.is_deleted'=>0)));
+		$this->set('dataOrderSetRad_upper',$radOrderName_upper);
+		$radOrderName_lower=$this->OrderSetRad->find('all',array('fields'=>array('department_id','name','id','loinc_code','cpt_code'),'conditions'=>array('OrderSetRad.speciality_cat_id'=>4,'OrderSetRad.is_deleted'=>0)));
+		$this->set('dataOrderSetRad_lower',$radOrderName_lower);
+		$radOrderName_knee=$this->OrderSetRad->find('all',array('fields'=>array('department_id','name','id','loinc_code','cpt_code'),'conditions'=>array('OrderSetRad.speciality_cat_id'=>31,'OrderSetRad.is_deleted'=>0)));
+		$this->set('dataOrderSetRad_knee',$radOrderName_knee);
+		$this->RadiologyTestOrder->bindModel(array(
+				'belongsTo' => array(
+						'Radiology' =>array('foreignKey' => false,'conditions'=>array('RadiologyTestOrder.radiology_id=Radiology.id' )),
+				)));
+		$selected_rad=$this->RadiologyTestOrder->find('all',array('fields'=>array('Radiology.name'),'conditions'=>array('RadiologyTestOrder.patient_id'=>$patient_id),'resursive'=>1));
+		$this->set('specialitycat', $this->SpecialityCat->find('list', array('fields'=> array('id', 'name'),'order' => array('SpecialityCat.id'))));
+		for($i=0;$i<count($selected_rad);$i++){
+			$selectedDataRad[]=$selected_rad[$i]['Radiology']['name'];
+		}
+		$this->set('selectedDataRad',$selectedDataRad);
+		$ekgOrderName=$this->OrderSetEkg->find('all',array('fields'=>array('department_id','name')));
+		$this->set('dataOrderSetEkg',$ekgOrderName);
+		$selectedEKG=$this->EKG->find('list',array('fields'=>array('EKG.patient_id'),'conditions'=>array('EKG.patient_id'=>$patient_id)));
+		$this->set('selectedEKG',$selectedEKG);
+		$getMedName=$this->NewCropPrescription->find('all',array('fields'=>array('description'),'conditions'=>array('NewCropPrescription.patient_uniqueid'=>$patient_id)));
+		$this->set('dataGivenMed',$getMedName);
+		//-----------------------------------ClinicalSupport--------------------------------------------------------------------------
+		$name=$_SESSION['Auth']['User']['username'];
+		$CDS_Data=$this->ClinicalSupport->find('all',array('conditions'=>array('username'=>$name)));
+		$CDS_Data_hyp=$CDS_Data['0']['ClinicalSupport']['Hyptension'];
+		$this->set('CDS_Data',$CDS_Data);
+		$dbproblems  = $this->DiagnosisMaster->find('list',array('fields'=>array('id','diagnoses_name'),'order' => array('diagnoses_name ASC')));
+		$this->set('dbproblems',$dbproblems);
+		//Surgery
+		/* $this->Surgery->bindModel(array('belongsTo' => array('OptAppointment' =>array('foreignKey' =>false,'conditions'=>array('OptAppointment.surgery_id=Surgery.id')))),false); */
+		/* $procedurep_per  = $this->Surgery->find('list',array('fields'=>array('Surgery.id','Surgery.name'), 'conditions'=>array('OptAppointment.patient_id'=>$patient_id), 'order' => array('Surgery.name ASC'),'recursive' => 1));
+		 $this->set('procedurep_per',$procedurep_per); */ // commeted becoz new qurey added
+
+		//EOF Surgery
+		//--------
+		$device_list  = $this->DeviceMaster->find('list',array('fields'=>array('id','device_name'),'order' => array('device_name ASC')));
+		$this->set('device_list',$device_list);
+		$symptom_name  = $this->SymptomMaster->find('list',array('fields'=>array('id','symptom_name'),'order' => array('symptom_name ASC')));
+		$this->set('symptom_name',$symptom_name);
+		$patient_char  = $this->PatientCharacter->find('list',array('fields'=>array('id','character_name'),'order' => array('character_name ASC')));
+		$this->set('patient_char',$patient_char);
+		$diagnostic_name  = $this->DiagnosticMaster->find('list',array('fields'=>array('id','diagnostic_name'),'order' => array('diagnostic_name ASC')));
+		$this->set('diagnostic_name',$diagnostic_name);
+		/*$functionalStatus  = $this->FunctionalstatusresultMaster->find('list',array('fields'=>array('id','diagnoses_name'),'order' => array('diagnoses_name ASC')));
+		 $this->set('functionalStatus',$functionalStatus);*/
+		/*$diagnosticStatus  = $this->DiagnosticstudyresultMaster->find('list',array('fields'=>array('id','diagnoses_name'),'order' => array('diagnoses_name ASC')));
+		 $this->set('diagnosticStatus',$diagnosticStatus);*/
+		$riskStatus  = $this->RiskcategoryassesmentMaster->find('list',array('fields'=>array('id','diagnoses_name'),'order' => array('diagnoses_name ASC')));
+		$this->set('riskStatus',$riskStatus);
+		$dbproblems1  = $this->DiagnosisMaster->find('list',array('fields'=>array('id','diagnoses_name')));
+		$this->set('dbproblems1',$dbproblems1);
+		//----------------------------------Display the diagnosis in the notes add page author Aditya chitmitwar-------------------------------------------
+		$getdiagnoses_name=$this->NoteDiagnosis->find('all',array('fields'=>array('id','diagnoses_name'),'conditions'=>array('patient_id'=>$patient_id),'order' => array('NoteDiagnosis.id DESC')));
+		$this->set('getdiagnoses_name',$getdiagnoses_name);
+		//--------------------------------------end Display the diagnosis in the notes add page author Aditya chitmitwar--------------------------------------------
+		$total = $this->Note->find('count',array('fields'=>array('COUNT(Note.id) as count'),'conditions'=>array('Note.patient_id'=>$patient_id)));
+		$record = $this->Note->find('all',array('fields'=>array('*'),'conditions'=>array('Note.patient_id'=>$patient_id,'Note.note_type !='=>'extra note'),'order'=>array('Note.id ASC')));
+		$this->set('total',$total);
+		$this->set('record',$record);//pr($record);exit;
+		//---------------- clinical support System----------------------------
+		$dataage = $this->Patient->find('all',array('fields'=>array('Patient.age','Patient.admission_type'),'conditions'=>array('Patient.id'=>$patient_id)));
+		$this->set('data',$dataage);
+		$geticds = $this->NoteDiagnosis->find('all',array('fields'=>array('NoteDiagnosis.diagnoses_name'),'conditions'=>array('NoteDiagnosis.patient_id'=>$patient_id)));
+		//-------Notesadd Plan
+		//$plannedProblem = $this->PlannedProblem->find('all',array('conditions'=>array('patient_id'=>$patient_id)));
+		//	$this->set('plannedProblem',$plannedProblem);
+		$this->paginate = array(
+				'limit' => '100',
+				'order' => array('PlannedProblem.create_time' => 'desc'),
+				'fields'=> array('PlannedProblem.*'),
+				'conditions'=>array('PlannedProblem.patient_id'=>$patient_id,'PlannedProblem.is_deleted'=>'0')
+		);
+		$this->set('plannedProblem',$this->paginate('PlannedProblem'));
+		/*$studyResult  = $this->DignosticStudy->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		 $this->set('studyResult',$studyResult);*/
+		/*$functionalResult  = $this->FunctionalResult->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		 $this->set('functionalResult',$functionalResult);*/
+		/*$interventionResult  = $this->Intervention->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		 $this->set('interventionResult',$interventionResult);*/
+		/*$risk_category_result  = $this->RiskCategory->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		 $this->set('risk_category_result',$risk_category_result);*/
+		$procedure_perform  = $this->ProcedurePerform->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		$this->set('procedure_perform',$procedure_perform);
+		$device_use  = $this->DeviceUse->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		$this->set('device_use',$device_use);
+		$symptom_list  = $this->Symptom->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		$this->set('symptom_list',$symptom_list);
+		$diagnostic_list  = $this->Diagnostic->find('all',array('conditions'=>array('patient_id'=>$patient_id,'is_deleted'=>'0')));
+		$this->set('diagnostic_list',$diagnostic_list);
+		//------
+		$noOfId =  count($geticds);
+		$string="";
+		for($k=0;$k<$noOfId;$k++){
+			$string = $geticds[$k][NoteDiagnosis][diagnoses_name] .",". $string;
+		}
+		$string = str_replace("|",",",$string);
+		$string2 = explode(",",$string);
+		$hypertension= '';
+		if(in_array('Benign intracranial hypertension',$string2)||in_array('Hypertensive disorder, systemic arterial (disorder)',$string2)||in_array('Hypertension associated with transplantation',$string2)||in_array('Malignant tumor of cervix (disorder)',$string2)){
+			$hypertension = 'ok';
+		}
+		$cancer= "";
+		if(in_array('Malignant tumor of cervix (disorder)',$string2)){
+			$cancer = 'cancer';
+		}
+		$this->set('geticds', $hypertension);
+		$this->set('geticds1', $cancer);
+		$this->set('role',$_SESSION['role']);
+		//----------- end of clicnical support---------------------------------
+		//-----------For no active diagnoses-----------------------------------------
+		$icdTrack = $this->Note->find('all',array('conditions'=>array('patient_id'=>$patient_id)));
+		$this->set('icdTrack',$icdTrack);////now hidden field to no act diag
+		//-------------------------------------------------------------------
+		if (!empty($this->request->data['Note'])) {
+			//converting date to standard format
+			if(!empty($this->request->data["Note"]['note_date'])){
+				$last_split_date_time = $this->request->data['Note']['note_date'];
+				$this->request->data["Note"]['note_date'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+			}
+			$vital_date = $this->request->data['Note']['vital_date'];
+			$this->request->data["Note"]['vital_date'] = $this->DateFormat->formatDate2STD($vital_date,Configure::read('date_format'));
+			/*$final_date = $this->request->data["Note"]['finalization_date'];
+			 $this->request->data["Note"]['finalization_date'] = $this->DateFormat->formatDate2STD($final_date,Configure::read('date_format'));*/
+			/*$final_character_date = $this->request->data["Note"]['patient_char_date'];
+			 $this->request->data["Note"]['patient_char_date'] = $this->DateFormat->formatDate2STD($final_character_date,Configure::read('date_format'));*/
+			$medication_date = $this->request->data["Note"]['medication_order_date'];
+			$this->request->data["Note"]['medication_order_date'] = $this->DateFormat->formatDate2STD($medication_date,Configure::read('date_format'));
+			$procedureDate = $this->request->data["Note"]['procedure_perform_date'];
+			$this->request->data["Note"]['procedure_perform_date'] = $this->DateFormat->formatDate2STD($procedureDate,Configure::read('date_format'));
+			if(!empty($this->request->data['Note']['bpDysto'])){
+				$this->request->data['Note']['bp'] = $this->request->data['Note']['bpSysto'].'/'.$this->request->data['Note']['bpDysto'];
+			}else{
+				$this->request->data['Note']['bp']= $this->request->data['Note']['bpSysto'];
+			}
+			if(!empty($this->request->data['Note']['notediagnosis_id']))
+				$this->request->data['Note']['notediagnosis_id'] = substr($this->request->data['Note']['notediagnosis_id'],10);
+			if($this->Note->insertNote($this->request->data)){
+
+				//After sign note change status to "seen" by pooja
+				if($this->request->data['Note']['sign_note']=='1'){
+					$this->loadModel('Appointment') ;
+					$this->Appointment->updateAll(array('status'=>"'Seen'"),array('Appointment.is_future_app'=>0,'Appointment.id'=>$this->params->named['appt']));
+				}
+				//EOF status
+				//if no follow up needed--- Pooja
+				/* if(!empty($this->request->data['Note']['no_follow'])){
+					$this->loadModel('Appointment') ;
+				$this->Appointment->updateAll(array('has_no_followup'=>"'1'"),array('Appointment.patient_id'=>$patient_id,'Appointment.is_future_app'=>0));
+				} */
+				//EOF follow up
+
+				$lastNotesId=$this->Note->getLastInsertID();
+				if($lastNotesId == "") $lastNotesId = $this->request->data['Note']['id'];
+				$notediagnosis_id= explode('|',$this->request->data['Note']['notediagnosis_id']);
+				for($i=0;$i<=count($notediagnosis_id);$i++){
+					$this->NoteDiagnosis->updateAll(array('note_id'=>"'$lastNotesId'"),array('NoteDiagnosis.id'=>$notediagnosis_id[$i]));
+				}
+				/*if(!empty($this->request->data['CognitiveFunction']['cog_name'])){
+					$this->request->data['CognitiveFunction']['location_id'] = $this->Session->read('locationid');
+				$this->request->data['CognitiveFunction']['created_by'] = $this->Session->read('userid');
+				$this->request->data['CognitiveFunction']['create_time'] = date("Y-m-d H:i:s");
+				$this->request->data['CognitiveFunction']['is_cognitive'] = 1;
+				$cogni_date = $this->request->data['CognitiveFunction']['cog_date'];
+				$this->request->data['CognitiveFunction']['cog_date'] = $this->DateFormat->formatDate2STD($cogni_date,Configure::read('date_format'));
+				$this->request->data['CognitiveFunction']['patient_id'] = $this->request->data['patientid'];
+				$this->request->data['CognitiveFunction']['note_id'] = $lastNotesId;
+				$this->CognitiveFunction->save($this->request->data['CognitiveFunction']);
+				$this->CognitiveFunction->id='';
+				}*/
+				/*if(!empty($this->request->data['FunctionalStatus']['funct_name'])){
+					$functArray= array();
+				$functArray['CognitiveFunction']['location_id'] = $this->Session->read('locationid');
+				$functArray['CognitiveFunction']['patient_id'] = $this->request->data['patientid'];
+				$functArray['CognitiveFunction']['note_id'] = $lastNotesId;
+				$functArray['CognitiveFunction']['cog_name'] = $this->request->data['FunctionalStatus']['funct_name'];
+				$cog_date=$this->request->data['FunctionalStatus']['funct_date'];
+				$functArray['CognitiveFunction']['cog_date'] = $this->DateFormat->formatDate2STD($cog_date,Configure::read('date_format'));
+				$functArray['CognitiveFunction']['cog_snomed_code'] = $this->request->data['FunctionalStatus']['funct_snomed_code'];
+				$functArray['CognitiveFunction']['created_by'] = $this->Session->read('userid');
+				$functArray['CognitiveFunction']['create_time'] = date("Y-m-d H:i:s");
+				//$this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+				$functArray['CognitiveFunction']['is_cognitive'] = 0;
+				$this->CognitiveFunction->save($functArray);
+				}*/
+				$cntRos=0;
+				if(!empty($this->request->data['TemplateTypeContent'])){
+					//debug($this->request->data['TemplateTypeContent']);
+					foreach($this->request->data['TemplateTypeContent'] as $key=>$checkData){
+						if (in_array("1", $checkData)) {
+							$cntRos++;
+						}
+					}
+					if($cntRos>0){
+						$categoryData=$this->TemplateTypeContent->insertCategory($this->request->data['TemplateTypeContent'],$lastNotesId);
+					}
+				}
+				$cntRoe=0;
+				if(!empty($this->request->data['subCategory_examination'])){
+					foreach($this->request->data['subCategory_examination'] as $keyRoe=>$checkDataRoe){
+						if (in_array("1", $checkDataRoe)) {
+							$cntRoe++;
+						}
+					}
+					if($cntRoe>0){
+						$categoryExaminationData=$this->TemplateTypeContent->insertRosExamination($this->request->data['subCategory_examination'],$lastNotesId);
+					}
+				}
+				$this->Session->delete('makeDignosis');
+				if($this->request->data['Note']['id']) {
+					$msg='Patient Note Update Successfully.';
+				}else{
+					$msg='Patient Note Added Successfully.';
+				}
+				$this->Session->setFlash(__($msg ),true,array('class'=>'message'));
+
+
+				if($this->request->data['Note']['flag']=='sbar'){
+					$this->redirect("/PatientsTrackReports/sbar/".$this->request->data['patientid']);
+				}else{
+					$this->redirect(array('controller'=>'appointments','action'=>'appointments_management'));
+					//$this->redirect("/Landings/index");
+				}
+
+				//$this->redirect("/Landings/index");
+				//$this->redirect("/patients/patient_notes/".$this->request->data['patientid']);
+			}else{
+				$this->Session->setFlash(__('Please Try Again' ),true,array('class'=>'error'));
+			}
+		}/* else{
+		$this->set('patientid',$patient_id);
+		if(!empty($notes_id)){
+		$data  =$this->Note->read(null, $notes_id);
+		$selected= explode('|', $data[Note][visitid]);
+		$selectfinal= explode('|', $data['Note']['final']);
+		//converting date to local formatldshfhhdskhkdfj
+		if(!empty($data['Note']['note_date'])){
+		$data['Note']['note_date'] = $this->DateFormat->formatDate2Local($data['Note']['note_date'],Configure::read('date_format'),true);
+		}
+		/* if(!empty($data['Note']['vital_date'])){
+		$data['Note']['vital_date'] = $this->DateFormat->formatDate2Local($data['Note']['vital_date'],Configure::read('date_format'),true);
+		//print($data['Note']['vital_date']);exit;
+		}
+		if(!empty($data['Note']['finalization_date'])){
+		$data['Note']['finalization_date'] = $this->DateFormat->formatDate2Local($data['Note']['finalization_date'],Configure::read('date_format'),true);
+		}  * /
+		$this->set(array('selected'=> $selected,'selectfinal'=>$selectfinal,'notedata'=>$data));
+		$this->data = $data ;
+		}
+		} */
+		if(!empty($notes_id)){
+			$notesRec = $this->Note->read(null,$notes_id);
+			$this->set('patientid',$patient_id);
+			//$selected= explode('|', $notesRec['Note']['visitid']);
+			//$selectfinal= explode('|', $notesRec['Note']['final']);//pr($notesRec);exit;
+			//converting date to local format
+			if(!empty($notesRec['Note']['note_date'])){
+				$notesRec['Note']['note_date'] = $this->DateFormat->formatDate2Local($notesRec['Note']['note_date'],Configure::read('date_format'),true);
+			}
+			$this->set('patientid',$patient_id);
+			$this->set(array('notedata'=>$notesRec));//'selected'=> $selected,'selectfinal'=>$selectfinal,));
+			$suggestedDrugRec = $this->SuggestedDrug->find('all',array('fields'=>array('SuggestedDrug.route,SuggestedDrug.drug_id,SuggestedDrug.dose,SuggestedDrug.quantity,SuggestedDrug.frequency,
+					SuggestedDrug.first,SuggestedDrug.second,SuggestedDrug.third,SuggestedDrug.forth,SuggestedDrug.start_date,SuggestedDrug.end_date,SuggestedDrug.strength,SuggestedDrug.refills,SuggestedDrug.day,SuggestedDrug.prn,SuggestedDrug.daw,SuggestedDrug.special_instruction,SuggestedDrug.isactive,PharmacyItem.name,PharmacyItem.pack'),'conditions'=>array('note_id'=>$notes_id),'order'=>array('SuggestedDrug.id Asc')));
+			$this->set('icd_ids',array());
+			$count = count($suggestedDrugRec);
+			if($count){
+				for($i=0;$i<$count;){
+					$notesRec['drug'][$i]  = $suggestedDrugRec[$i]['PharmacyItem']['name'];
+					$notesRec['pack'][$i]  = $suggestedDrugRec[$i]['PharmacyItem']['pack'];
+					$notesRec['route'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['route'];
+					$notesRec['drug_id'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['drug_id'];
+					$notesRec['dose'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['dose'];
+					$notesRec['strength'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['strength'];
+					$notesRec['frequency'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['frequency'];
+					$notesRec['quantity'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['quantity'];
+					$notesRec['day'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['day'];
+					$notesRec['refills'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['refills'];
+					$notesRec['first'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['first'];
+					$notesRec['second'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['second'];
+					$notesRec['third'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['third'];
+					$notesRec['forth'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['forth'];
+					$notesRec['start_date'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['start_date'];
+					$notesRec['end_date'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['end_date'];
+					$notesRec['special_instruction'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['special_instruction'];
+					$notesRec['prn'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['prn'];
+					$notesRec['daw'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['daw'];
+					$notesRec['isactive'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['isactive'];
+					$i++;
+				}
+			}
+			$notesRec['Note']['bp'] = explode('/',$notesRec['Note']['bp']);
+			$notesRec['Note']['bpSysto'] = $notesRec['Note']['bp']['0'];
+			$notesRec['Note']['bpDysto'] = $notesRec['Note']['bp']['1'];
+			$this->data = $notesRec ;
+		}
+		/*$cogFunc = $this->CognitiveFunction->find('all',array('conditions'=>array('CognitiveFunction.patient_id'=>$notesRec['Note']['patient_id'],'CognitiveFunction.note_id'=>$notes_id,'is_cognitive'=>1)));
+		 $funStatus = $this->CognitiveFunction->find('all',array('conditions'=>array('patient_id'=>$notesRec['Note']['patient_id'],'note_id'=>$notes_id,'is_cognitive'=>0)));
+		$this->set('cogFunc' ,$cogFunc); //cognitive
+		$this->set('funStatus' ,$funStatus); //functional status*/
+		/** Collect the date and set it as min date in date piker and prefilled vitals from initial assessment  */
+		$this->Patient->unBindModel(array(
+				'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+		$this->Patient->bindModel(array(
+				'belongsTo' => array(
+						'BmiResult' =>array('foreignKey' => false,'conditions'=>array('Patient.id=BmiResult.patient_id' )),
+						'BmiBpResult' =>array('foreignKey' => false,'conditions'=>array('BmiResult.id =BmiBpResult.bmi_result_id' ),'order'=>array('BmiBpResult.id DESC')),
+				)));
+		$admissionDateAndVitals = $this->Patient->find('all',array('fields'=>array('Patient.form_received_on','BmiResult.temperature','BmiResult.myoption',
+				'BmiResult.equal_value','BmiResult.respiration','BmiResult.date',
+				'BmiBpResult.pulse_text','BmiBpResult.systolic','BmiBpResult.diastolic',
+				'BmiResult.chief_complaint','BmiResult.pain','BmiResult.location','BmiResult.duration','BmiResult.frequency','BmiResult.spo'
+				,'BmiResult.sposelect'),
+				'conditions'=>array('Patient.id'=>$this->params['pass'][0]),'limit'=>'1'));
+		$this->set('admissionDate',$admissionDateAndVitals['0']['Patient']['form_received_on']);
+		if($admissionDateAndVitals['0']['BmiResult']['myoption'] == 'F'){
+			$temperature = $admissionDateAndVitals['0']['BmiResult']['temperature'];
+		}else{
+			$centigrate =  explode(' ',$admissionDateAndVitals['0']['BmiResult']['equal_value']);
+			$temperature = $centigrate['0'];
+		}
+		$assessmentVitals = array('temperature'=>$temperature,'respiration'=>$admissionDateAndVitals['0']['BmiResult']['respiration'],
+				'pulse_rate'=>$admissionDateAndVitals['0']['BmiBpResult']['pulse_text'],'bpSystolic'=>$admissionDateAndVitals['0']['BmiBpResult']['systolic'],
+				'bpDystolic'=>$admissionDateAndVitals['0']['BmiBpResult']['diastolic'],
+				'chiefComplaints'=>$admissionDateAndVitals['0']['BmiResult']['chief_complaint'],
+				'date'=>$admissionDateAndVitals['0']['BmiResult']['date'],
+				'spo'=>$admissionDateAndVitals['0']['BmiResult']['spo'],
+				'location'=>$admissionDateAndVitals['0']['BmiResult']['location'],
+				'duration'=>$admissionDateAndVitals['0']['BmiResult']['duration'],
+				'pain'=>$admissionDateAndVitals['0']['BmiResult']['pain'],
+				'frequency'=>$admissionDateAndVitals['0']['BmiResult']['frequency'],
+				'spo2'=>$admissionDateAndVitals['0']['BmiResult']['sposelect']
+		);
+		$this->set('assessmentVitals',json_encode($assessmentVitals));
+		$this->loadModel('User');
+		$this->set('registrar',$this->User->getDoctorsByLocation());
+		$this->set('consultant',$this->Consultant->getRegistrar());
+		$this->request->data['Note']['risk_snow']= $this->request->data['Note']['risk_snow'];
+		//--saving Icd for assessment--
+		if(isset($this->request->data) && !empty($this->request->data)){
+			$icdCodes = explode('|',$this->request->data['Note']['icd']);
+			if(count($icdCodes) > 0){
+				$icdArrLength  =count($icdCodes);
+				unset($icdCodes[$icdArrLength-1]);//empty value is there
+				$icdCodes = array_unique($icdCodes);
+				$icdCodes = implode("|" ,$icdCodes);
+				if($icdCodes !='')
+					$icdCodes = $icdCodes.'|';
+				$this->request->data['Note']['icd'] = $icdCodes;
+			}
+			/*$vtype = explode('|',$this->request->data['Note']['visitid']);
+			 if(count($vtype) > 0){
+			$vtypeArrLength  =count($vtype);
+			unset($vtype[$vtypeArrLength-1]);//empty value is there
+			$vtype = array_unique($vtype);
+			$vtype = implode("|" ,$vtype);
+			if($vtype !='')
+				$vtype = $vtype.'|';
+			$this->request->data['Note']['visitid'] = $vtype;
+			}*/
+		}
+		/*$visittype = $this->Finalization->find('all',array('fields'=>array('Finalization.id','Finalization.description')));
+		 $this->set('visittype',$visittype);*/
+		/* if(!empty($notesRec['Note']['icd'])){
+		 $splitICD = explode('|',$notesRec['Note']['icd']);
+		$arrLength  =count($splitICD);
+		unset($splitICD[$arrLength-1]);//empty value is there
+		//$attachedICD = implode(",",$splitICD) ;
+		$icdArray  = $this->icds->find('all',array('fields'=>array('id','icd_code','description'),'conditions'=>array('id'=>$splitICD)));
+		$this->set('icd_ids',$icdArray);
+		} */
+		$icdArray = explode("|", $notesRec['Note']['icd']) ;
+		$this->set('icd_ids',$icdArray);
+		if($patientData['Patient']['admission_type'] == 'OPD')
+			$visitType  = $this->AmbulatoryVisitType->find('list',array('fields'=>array('value_code','code_description')));
+		else
+			$visitType  = $this->InpatientVisitType->find('list',array('fields'=>array('code','description')));
+		$this->set('visitType',$visitType);
+		$this->DiagnosisMaster->virtualFields =  array('name'=>'CONCAT(DiagnosisMaster.imo_code,"|",DiagnosisMaster.icd_id)') ;
+		$problems  = $this->DiagnosisMaster->find('list',array('fields'=>array('name','diagnoses_name')));
+		$this->set('icdOptions',$problems);
+		$procedure  = $this->Laboratory->find('list',array('fields'=>array('lonic_code','name')));
+		$this->set('lonicOptions',$procedure);
+		$this->ProcedureMaster->virtualFields =  array('name'=>'CONCAT(ProcedureMaster.code_value,"|",ProcedureMaster.procedure_name)') ;
+		$procedure  = $this->ProcedureMaster->find('list',array('fields'=>array('name','procedure_name')));
+		$this->set('procedure',$procedure);
+		//cognitive function--------
+		//-----------------------------------ClinicalSupport--------------------------------------------------------------------------
+		$this->uses=array('ClinicalSupport','NoteDiagnosis');
+		$name=$_SESSION['Auth']['User']['username'];
+		$CDS_Data=$this->ClinicalSupport->find('all',array('conditions'=>array('username'=>$name)));
+		$this->set('CDS_Data',$CDS_Data);
+		//-----------------------------------------------------------------------------------------------------------------------
+		//---------------- clinical support System----------------------------
+		$dataage = $this->Patient->find('first',array('fields'=>array('Patient.age'),'conditions'=>array('Patient.id'=>$patient_id)));
+		$getage=$dataage['Patient']['age'];
+		$this->set('data',$dataage);
+		$geticds = $this->NoteDiagnosis->find('all',array('fields'=>array('NoteDiagnosis.diagnoses_name'),'conditions'=>array('NoteDiagnosis.patient_id'=>$patient_id)));
+		$noOfId =  count($geticds);
+		$string="";
+		for($k=0;$k<$noOfId;$k++){
+			$string = $geticds[$k][NoteDiagnosis][diagnoses_name] .",". $string;
+		}
+		$string = str_replace("|",",",$string);
+		$string2 = explode(",",$string);
+		$cancer= "";
+		if(in_array('Malignant tumor of cervix',$string2)||in_array('Ca cervix - screening done (finding)',$string2)){
+			$cancer = 'cancer';
+		}
+		$Diabetes= "";
+		if(in_array('Diabetes mellitus',$string2)){
+			$Diabetes = 'Diabetes';
+		}
+		$this->set('role',$_SESSION['role']);
+		$this->set('geticds1', $cancer);
+		$this->set('Diabetes', $Diabetes);
+		$this->set('patient_id',$patient_id);
+		$this->set('global_note_id',$notes_id);
+
+		//----------- end of clicnical support---------------------------------
+		//$this->layout = false;
+		//pulling vitals
+
+
+	}
+
+	public function snowmedId($tariffListId){
+		$this->uses =array('TariffList');
+		$optTariffList=$this->TariffList->find('first',array('fields'=>array('id','name','code_type','cbt','hcpcs'),'conditions'=>array('TariffList.id'=>$tariffListId)));
+		echo json_encode($optTariffList);
+		exit;
+
+	}
+	function orderset($patient_id=null)
+	{
+		//debug($patient_id);
+		//exit;
+		if($this->request->params['isAjax'])
+		{
+			$department_id=13;
+			$diagnosis_type=1;
+
+
+			$this->uses =array('Note','EKG','RadiologyTestOrder','Radiology','LaboratoryToken','NewCropPrescription','OrderSetRad','OrderSetEkg','OrderSetMed','OrderSetLab','Laboratory','Diagnosis','SpecialityCat','LaboratoryTestOrder');
+			//debug($this->Session->read('departmentid'));
+			//-----------------------------orderset code--------------------------------------------------------------------------------
+
+			$labOrderName=$this->Laboratory->find('all',array('fields'=>array('department_id','name','lonic_code','cpt_code'),'conditions'=>array('Laboratory.is_deleted'=>0,'Laboratory.is_orderset'=>1,'Laboratory.department_id'=>$department_id,'Laboratory.department_id'=>$department_id,'FIND_IN_SET(\''. $diagnosis_type .'\',Laboratory.speciality_cat_id)')));
+			$this->set('dataOrderSetLab',$labOrderName);
+
+
+
+			$this->LaboratoryToken->bindModel(array(
+					'belongsTo' => array(
+							'Laboratory' =>array('foreignKey' => false,'conditions'=>array('LaboratoryToken.laboratory_id=Laboratory.id' )),
+					)));
+
+			$selected=$this->LaboratoryToken->find('all',array('fields'=>array('Laboratory.name'),'conditions'=>array('LaboratoryToken.patient_id'=>$patient_id),'resursive'=>1));
+			for($i=0;$i<count($selected);$i++){
+				$selectedData[]=$selected[$i]['Laboratory']['name'];
+			}
+			$this->set('selectedLab',$selectedData);
+
+			$this->set('p_id',$patient_id);
+
+			$medOrderName=$this->OrderSetMed->find('all',array('fields'=>array('department_id','name','rxnorm_code'),'conditions'=>array('OrderSetMed.is_deleted'=>0,'OrderSetMed.department_id'=>$department_id,'FIND_IN_SET(\''. $diagnosis_type .'\',OrderSetMed.speciality_cat_id)')));
+			$this->set('dataOrderSetMed',$medOrderName);
+
+			$selectedMed=$this->NewCropPrescription->find('list',array('fields'=>array('description'),'conditions'=>array('NewCropPrescription.patient_uniqueid'=>$patient_id)));
+			$this->set('selectedMed',$selectedMed);
+
+			$radOrderName=$this->Radiology->find('all',array('fields'=>array('department_id','name','id','lonic_code','cpt_code'),'conditions'=>array('Radiology.speciality_cat_id'=>1,'Radiology.is_deleted'=>0,'Radiology.is_orderset'=>1,'Radiology.department_id'=>$department_id,'FIND_IN_SET(\''. $diagnosis_type .'\',Radiology.speciality_cat_id)')));
+			$this->set('dataOrderSetRad',$radOrderName);
+
+
+			$this->RadiologyTestOrder->bindModel(array(
+					'belongsTo' => array(
+							'Radiology' =>array('foreignKey' => false,'conditions'=>array('RadiologyTestOrder.radiology_id=Radiology.id' )),
+					)));
+
+			$selected_rad=$this->RadiologyTestOrder->find('all',array('fields'=>array('Radiology.name'),'conditions'=>array('RadiologyTestOrder.patient_id'=>$patient_id),'recursive'=>1));
+			//debug($selected_rad);
+			//exit;
+
+			$this->set('specialitycat', $this->SpecialityCat->find('list', array('fields'=> array('id', 'name'),'order' => array('SpecialityCat.id'))));
+
+
+			for($i=0;$i<count($selected_rad);$i++){
+				$selectedDataRad[]=$selected_rad[$i]['Radiology']['name'];
+			}
+			//debug($selectedDataRad);
+			//	exit;
+			$this->set('selectedDataRad',$selectedDataRad);
+
+			$ekgOrderName=$this->OrderSetEkg->find('all',array('fields'=>array('department_id','name')));
+			$this->set('dataOrderSetEkg',$ekgOrderName);
+
+			$selectedEKG=$this->EKG->find('list',array('fields'=>array('EKG.patient_id'),'conditions'=>array('EKG.patient_id'=>$patient_id)));
+			$this->set('selectedEKG',$selectedEKG);
+
+			$getMedName=$this->NewCropPrescription->find('all',array('fields'=>array('description'),'conditions'=>array('NewCropPrescription.patient_uniqueid'=>$patient_id)));
+			$this->set('dataGivenMed',$getMedName);
+
+			//on submitting form
+			if (!empty($this->request->data))
+			{
+
+
+				//for medication order
+				$this->request->data['NewCropPrescription']['patient_uniqueid'] = $patient_id;
+
+				$this->NewCropPrescription->insertMedication_new($this->request->data);
+
+				//for labs
+				$this->request->data['EKG']['patient_id'] = $patient_id;
+				$this->EKG->insertEKG($this->request->data);
+
+				//for lab order
+				$this->request->data['Laboratory']['patient_id'] = $patient_id;
+				$this->LaboratoryTestOrder->insertTestOrder_orderset($this->request->data);
+
+				//for radiology order
+				$this->request->data['Radiology']['patient_id'] = $patient_id;
+				$this->RadiologyTestOrder->insertTestOrder_orderset($this->request->data);
+
+				//for inserting into note
+				$this->request->data['Note']['patient_id'] = $patient_id;
+				$this->request->data['Note']['note_date'] = date('Y-m-d H:i:s');
+				$this->request->data['Note']['create_time'] = date('Y-m-d H:i:s');
+				$this->request->data['Note']['note_type'] = 'general';
+				$this->Note->insertNote($this->request->data);
+
+				//function for inserting medication order
+				$this->NewCropPrescription->insertMedication_order($this->request->data['NewCropPrescription']);
+
+				$this->Session->setFlash(__('Patient Note Added Successfully' ),true,array('class'=>'message'));
+				$this->redirect("/patients/patient_notes/".$patient_id);
+
+			}
+
+		}
+	}
+
+	function displayorderset($diagnosis_type=null,$department_id=null)
+	{
+		$this->autoRender=false;
+		$this->uses =array('Note','EKG','RadiologyTestOrder','Radiology','LaboratoryToken','NewCropPrescription','OrderSetRad','OrderSetEkg','OrderSetMed','OrderSetLab','Laboratory','Diagnosis','SpecialityCat','LaboratoryTestOrder');
+			
+		$department_id=13;
+		$labOrderName=$this->Laboratory->find('all',array('fields'=>array('department_id','name','lonic_code','cpt_code'),'conditions'=>array('Laboratory.is_deleted'=>0,'Laboratory.is_orderset'=>1,'Laboratory.department_id'=>$department_id,'Laboratory.department_id'=>$department_id,'FIND_IN_SET(\''. $diagnosis_type .'\',Laboratory.speciality_cat_id)')));
+		$this->set('dataOrderSetLab',$labOrderName);
+			
+		$medOrderName=$this->OrderSetMed->find('all',array('fields'=>array('department_id','name','rxnorm_code'),'conditions'=>array('OrderSetMed.is_deleted'=>0,'OrderSetMed.department_id'=>$department_id,'FIND_IN_SET(\''. $diagnosis_type .'\',OrderSetMed.speciality_cat_id)')));
+		$this->set('dataOrderSetMed',$medOrderName);
+			
+		$radOrderName=$this->Radiology->find('all',array('fields'=>array('department_id','name','id','lonic_code','cpt_code'),'conditions'=>array('Radiology.is_deleted'=>0,'Radiology.is_orderset'=>1,'Radiology.department_id'=>$department_id,'FIND_IN_SET(\''. $diagnosis_type .'\',Radiology.speciality_cat_id)')));
+		$this->set('dataOrderSetRad',$radOrderName);
+		//$log = $this->Radiology->getDataSource()->getLog(false, false);
+
+		$ekgOrderName=$this->OrderSetEkg->find('all',array('fields'=>array('department_id','name')));
+		$this->set('dataOrderSetEkg',$ekgOrderName);
+			
+		$this->render('displayorderset');
+	}
+
+	function displayorderform($patient_id=null,$patient_order_id=null,$patient_order_type=null)
+	{
+
+		$this->autoRender=false;
+		$this->uses =array('RadiologyTestOrder','NewCropPrescription','PatientOrder','SpecimenType','Laboratory','LaboratoryTestOrder','LaboratoryToken','Patient');
+
+
+		$this->set('patient_order_id',$patient_order_id);
+		if($patient_order_type=='med')
+		{
+			//for medication
+			$getDataMedication=$this->NewCropPrescription->find('first',array('conditions'=>array('NewCropPrescription.patient_order_id'=>$patient_order_id,'NewCropPrescription.patient_uniqueid'=>$patient_id),'order'=>array('NewCropPrescription.id' => 'desc')));
+			$this->set('getDataMedication',$getDataMedication);
+			$patient_order=$this->PatientOrder->find('first',array('fields'=>array('patient_id','name','sentence','status','overrideInstruction','is_orverride'),'conditions'=>array('PatientOrder.id'=>$patient_order_id)));
+			$this->set('patient_order',$patient_order);
+			// check Overridden
+			$patient_id=$patient_order['PatientOrder']['patient_id'];
+			//explode sentence
+			$sentences_split=explode(", ",$patient_order['PatientOrder']['sentence']);
+			//split dose strength
+			$sentences_split_ds=explode(" ",$sentences_split[0]);
+			//split refill data
+			$sentences_split_refill=explode(" ",$sentences_split[4]);
+			//split firstdose time data
+			$sentences_split_firstdosedate=explode(": ",$sentences_split[5]);
+
+
+			//set each values
+			$this->set(array("dose_type"=>$sentences_split_ds[0],"strength"=>$sentences_split_ds[1],"route"=> $sentences_split[1],"frequency"=>$sentences_split[2],"duration"=>$sentences_split[3],
+					"refills"=>$sentences_split_refill[0],"firstdose_datetime"=>$this->DateFormat->formatDate2Local($sentences_split_firstdosedate[1],Configure::read('date_format'),true),
+					"special_instruction"=>$sentences_split[6],"patient_id_new"=>$patient_id));
+
+
+
+
+			$this->render('medication_order');
+		}
+		if($patient_order_type=='lab')
+		{
+			$this->LaboratoryToken->bindModel(array(
+					'belongsTo' => array(
+							'LaboratoryTestOrder' =>array(
+									'foreignKey'=>false,
+									'conditions' => array('LaboratoryToken.laboratory_test_order_id=LaboratoryTestOrder.id')),
+							'Laboratory' =>array(
+									'foreignKey'=>false,
+									'conditions' => array('Laboratory.id=LaboratoryTestOrder.laboratory_id')),
+
+
+					)));
+
+			$getDataLab=$this->LaboratoryToken->find('first',array('conditions'=>array('LaboratoryToken.patient_id'=>$patient_id,'LaboratoryToken.patient_order_id'=>$patient_order_id),'order'=>array('Laboratory.id' => 'desc')));
+
+			$this->set('getDataLab',$getDataLab);
+			$patient_order_lab=$this->PatientOrder->find('first',array('fields'=>array('patient_id','name','sentence','status'),'conditions'=>array('PatientOrder.id'=>$patient_order_id)));
+			$this->set('patient_order_lab',$patient_order_lab);
+			//explode sentence
+			$sentences_split_lab=explode(",",$patient_order_lab['PatientOrder']['sentence']);
+			$sentences_split_collecteddate=explode(": ",$sentences_split_lab[2]);
+
+			$spec_type  = $this->SpecimenType->find('list',array('fields'=>array('SpecimenType.description','SpecimenType.description'),'order' => array('SpecimenType.description ASC')));
+			$this->set(array("specimen_type"=>$sentences_split_lab[0],"collection_priority"=>trim($sentences_split_lab[1]),"collected_date"=> $sentences_split_collecteddate[1],"comment"=>$sentences_split_lab[3]));
+
+			$this->set("spec_type",$spec_type);
+
+
+			$this->render('patient_lab_order');
+
+		}
+		if($patient_order_type=='rad')
+		{
+
+
+
+			$getDataRad=$this->RadiologyTestOrder->find('first',array('conditions'=>array('RadiologyTestOrder.patient_id'=>$patient_id,'RadiologyTestOrder.patient_order_id'=>$patient_order_id),'order'=>array('RadiologyTestOrder.id' => 'desc')));
+			$this->set('getDataRad',$getDataRad);
+			$patient_order_rad=$this->PatientOrder->find('first',array('fields'=>array('patient_id','name','sentence','status'),'conditions'=>array('PatientOrder.id'=>$patient_order_id)));
+
+			$this->set('patient_order_rad',$patient_order_rad);
+			//explode sentence
+			$sentences_split_rad=explode(", ",$patient_order_rad['PatientOrder']['sentence']);
+			//            debug($sentences_split_rad);
+			$sentences_split_requesteddate=explode(": ",$sentences_split_rad[0]);
+			//  debug($sentences_split_requesteddate);
+			$sentences_split_reasonexam=explode(": ",$sentences_split_rad[2]);
+
+
+			$this->set(array("requested_date"=>$sentences_split_requesteddate[1],"collection_priority"=>trim($sentences_split_rad[1]),"reason_exam"=> $sentences_split_reasonexam[1],"pregnant"=>$sentences_split_rad[3],"spec_instr"=>$sentences_split_rad[4]));
+
+			$this->render('patient_rad_order');
+		}
+
+
+
+
+
+	}
+
+
+	/**
+	 * patient notes view by ajax calling
+	 *
+	 */
+	public function notes_view($notes_id=null, $patient_id=null, $search=null) {
+		$this->uses = array('Note','SuggestedDrug','User','Consultant','icd','Finalization');
+		//$this->layout = 'ajax';
+		if (!$notes_id) {
+			$this->Session->setFlash(__('Invalid Note', true, array('class'=>'error')));
+			$this->redirect(array("controller" => "notes", "action" => "patient_notes"));
+		}
+		$notesRec = $this->Note->read(null,$notes_id);
+		$suggestedDrugRec = $this->SuggestedDrug->find('all',array('fields'=>array('SuggestedDrug.*,PharmacyItem.name,PharmacyItem.pack'),
+				'conditions'=>array('note_id'=>$notes_id)));
+
+		$this->set('icd_ids',array());
+		$count = count($suggestedDrugRec);
+		//--gaurav
+
+		$icdC = explode('|',$notesRec['Note']['icd']);
+		$problemName =array();
+		for($i=0;$i<count($icdC);$i++){
+			$problemName[] = end(explode('::',$icdC[$i]));
+		}
+
+		$visittype = explode('|',$notesRec['Note']['visitid']);
+		$visit = $this->Finalization->find('all',array('conditions'=>array('id'=>$visittype)));
+
+		//--gaurav
+		$this->set('registrar',$this->User->getDoctorByID($notesRec['Note']['sb_registrar']));
+		$this->set('consultant',$this->User->getDoctorByID($notesRec['Note']['sb_consultant']));
+		$this->set('note', $notesRec);
+		$this->set('icddesc', $problemName);
+
+		$this->set('visittyp', $visit); // pr($visit);
+		$this->set('medicines',$suggestedDrugRec);//----------------------//
+		$this->set(array('patientid'=> $patient_id,'search'=>$search));
+
+
+	}
+
+	/**
+	 * patient notes edit  by ajax calling
+	 *
+	 */
+	public function notes_edit($notes_id=null,$patientid=null) {
+		$this->loadModel("Note","CognitiveFunction");
+		$this->layout = 'ajax';
+		if (!empty($this->request->data['Note'])) {
+			$this->Note->id = $this->request->data['Note']['id'];
+			$this->request->data['Note']['create_time'] = date("Y-m-d H:i:s");
+			$this->request->data['Note']['created_by'] = $this->Auth->user('id');
+			$this->Note->save($this->request->data);
+			$this->Session->setFlash(__('Patient Note Updated Successfully' ),true,array('class'=>'message'));
+			$this->redirect("/patients/patient_notes/".$this->request->data['Note']['patient_id']);
+
+		}else{
+
+			$this->set('patientid',$patientid);
+			$this->request->data = $this->Note->read(null, $notes_id);
+			$this->render('notes_edit');
+		}
+
+		/* if(!empty($this->request->data['CognitiveFunction'])){
+
+		$this->request->data['CognitiveFunction']['created_by'] = $this->Session->read('userid');
+		$this->request->data['CognitiveFunction']['create_time'] = date("Y-m-d H:i:s");
+		$this->request->data['CognitiveFunction']['is_cognitive'] = 1;
+		$cogni_date = $this->request->data['CognitiveFunction']['cog_date'];
+			
+		$this->request->data['CognitiveFunction']['cog_date'] = $this->DateFormat->formatDate2STD($cogni_date,Configure::read('date_format'));
+		$this->request->data['CognitiveFunction']['patient_id'] = $this->request->data['patientid'];
+		$this->request->data['CognitiveFunction']['note_id'] = $lastNotesId;
+
+		$this->CognitiveFunction->save($this->request->data['CognitiveFunction']);
+
+		$this->CognitiveFunction->id='';
+
+
+		}
+		if(!empty($this->request->data['FunctionalStatus'])){
+
+
+
+		$functArray= array();
+
+		$functArray['CognitiveFunction']['location_id'] = $this->Session->read('locationid');
+		$functArray['CognitiveFunction']['patient_id'] = $this->request->data['patientid'];
+		$functArray['CognitiveFunction']['note_id'] = $lastNotesId;
+		$functArray['CognitiveFunction']['cog_name'] = $this->request->data['FunctionalStatus']['funct_name'];
+		$cog_date=$this->request->data['FunctionalStatus']['funct_date'];
+		//print($cog_date);
+		$functArray['CognitiveFunction']['cog_date'] = $this->DateFormat->formatDate2STD($cog_date,Configure::read('date_format'));
+		$functArray['CognitiveFunction']['cog_snomed_code'] = $this->request->data['FunctionalStatus']['funct_snomed_code'];
+		$functArray['CognitiveFunction']['created_by'] = $this->Session->read('userid');
+		$functArray['CognitiveFunction']['create_time'] = date("Y-m-d H:i:s");
+		//
+		//$this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		$functArray['CognitiveFunction']['is_cognitive'] = 0;
+
+		$this->CognitiveFunction->save($functArray);
+
+
+
+		} */
+
+	}
+
+
+	public function patient_information($id=null) {
+		if(!empty($id)){
+
+			//echo 'Test';
+			$this->uses = array('ElderlyMedication','ClinicalSupport','Race','Language','NewCropPrescription','Laboratory','LaboratoryToken','NewCropAllergies','AdvanceDirective','Person','Consultant','User','Ward','Room','DeathSummary','Bed','Corporate','InsuranceCompany','Diagnosis', 'Appointment','NoteDiagnosis','DrugAllergy','Note','SuggestedDrug','icds','PharmacyItem','RadiologyReport','RadiologyResult','Country','State','City');
+
+			$name=$_SESSION['Auth']['User']['username'];
+			$this->Session->write('smartphrase_patient_id',$id);
+			$currentDate = date("Y-m-d");
+			$this->Patient->unBindModel(array(
+					'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+			$this->patient_info($id); //app function for element
+
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+							'PatientInitial' =>array('foreignKey' => false,'conditions'=>array('PatientInitial.id =Person.initial_id' )),
+							'Consultant' =>array('foreignKey'=>'consultant_treatment'),
+							'TariffStandard' =>array('foreignKey'=>'tariff_standard_id'),
+							'ClinicalSupport' => array('foreignKey'=>false,'conditions'=>array('ClinicalSupport.username'=>$name)),
+							'Corporate' => array('foreignKey'=>false,'conditions'=>array('Corporate.id=Person.corporate_id')),
+							'InsuranceCompany' => array('foreignKey'=>false,'conditions'=>array('InsuranceCompany.id=Person.insurance_company_id')),
+							'Ward' => array('foreignKey'=>false,'conditions'=>array('Ward.id=Patient.ward_id')),
+							'Room' => array('foreignKey'=>false,'conditions'=>array('Room.id=Patient.room_id')),
+							'Bed' => array('foreignKey'=>false,'conditions'=>array('Bed.id=Patient.bed_id')),
+							'Diagnosis' => array('foreignKey'=>false,'conditions'=>array('Diagnosis.patient_id=Patient.id')),
+							'User' => array('foreignKey'=>false,'conditions'=>array('User.id=Patient.doctor_id')),
+							'Initial' =>array('foreignKey' => false,'conditions'=>array('Initial.id =User.initial_id' )),
+							'Appointment' =>array('foreignKey' => false,'conditions'=>array('Appointment.patient_id =Patient.id','Appointment.is_deleted=0',"Appointment.date='$currentDate'")),
+
+
+					),//NewCropAllergies
+					'hasMany' => array(
+					'RadiologyReport' => array( 'foreignKey'=>'patient_id'),
+					'DeathSummary' => array( 'foreignKey'=>'patient_id'),
+					'NewCropPrescription' => array( 'foreignKey'=>'patient_uniqueid','conditions'=>array("NewCropPrescription.archive = 'N'")),
+					'NewCropAllergies' => array( 'foreignKey'=>'patient_uniqueid'),
+					)
+			));
+
+			$patient_details  = $this->Patient->getPatientDetailsByIDWithTariffForPatientInformation($id);
+			$this->set('person_id',$patient_details['Patient']['person_id']);// Aditya for Authorization in Patient Portal(Important)
+
+			if($patient_details['Person']['dob'] == '0000-00-00' || $patient_details['Person']['dob'] == ''){
+				$age = "";
+					
+			}
+			else{
+				$date1 = new DateTime($patient_details['Person']['dob']);
+				$date2 = new DateTime();
+					
+				$interval = $date1->diff($date2);
+				$date1_explode = explode("-",$patient_details['Person']['dob']);
+				$person_age_year =  $interval->y . " Year";
+				$personn_age_month =  $interval->m . " Month";
+				$person_age_day = $interval->d . " Day";
+				//print_r($person_age_day);exit;
+				if($person_age_year == 0 && $personn_age_month > 0){
+					$age = $interval->m . " ".$monthString = ($interval->m > 1) ? "Months" : "Month";
+				}
+				else if($person_age_year == 0 && $personn_age_month == 0 && $person_age_day > -1){
+					$age = $interval->d . " " + 1 . " ".$dayString = ($interval->d > 0) ? "Days" : "Day";
+				}
+				else if($person_age_year == 0 && $personn_age_month == 0 && $person_age_day == 0){
+					$age = "";
+				}
+				else{
+					$age = $interval->y . " ".$yearString = ($interval->y > 1) ? "Years" : "Year";
+				}
+			}
+			$this->set("age",$age);
+			//$this->set('patient_details',$patient_details);
+			//echo"<pre>";print_r($patient_details['Person']['age']);exit;
+			$languages = $this->Language->find('list',array('fields'=>array('code','language')));
+			$this->set('languages',$languages);
+			$race = $this->Person->find('first',array('fields'=>array('race','P_comm'),'conditions'=>array('Person.id'=>$patient_details['Patient']['person_id'])));
+			$this->set('pcomm',$patient_details['Person']['P_comm']);
+
+			$exp=explode(',',$patient_details['Person']['race']);
+			$data_race=$this->Race->find('list',array('fields'=>array('value_code','race_name')));
+			$this->set(compact('exp','data_race'));
+
+			//-----------------------------------ClinicalSupport--------------------------------------------------------------------------
+			$CDS_Data_Drug=$patient_details['ClinicalSupport']['dmc'];
+			$CDS_Data_Cosoli=$patient_details['ClinicalSupport']['conso'];
+			$this->set('CDS_Data_Drug',$patient_details['ClinicalSupport']);
+			$this->set('CDS_Data_Cosoli',$CDS_Data_Cosoli);
+			//-----------------------------------------------------------------------------------------------------------------------
+
+			//-----------------------------------Radiology Images--------------------------------------------------------------------------
+
+			$radData = $patient_details['RadiologyReport'];
+			for($a=0;$a<count($radData);$a++){
+				$b[]='"'.$this->webroot.'uploads/radiology/'.$radData[$a][file_name].'"';
+				$c[]='"'.$radData[$a]['description'].'"';
+			}
+
+			$this->set('data1',$radData);
+			$this->set('b',$b);
+			$this->set('c',$c);
+			//-----------------------------------Radiology Images--------------------------------------------------------------------------
+			$this->set('sex',$patient_details['Person']['sex']);
+			$this->set('causeofdeath',$patient_details['DeathSummary']);
+			//$formatted_address = $this->setAddressFormat($patient_details['Person']);
+
+			if($patient_details['Corporate']['name'] != ''){
+				$corporate = $patient_details['Corporate']['name'];
+					
+			} else if($patient_details['InsuranceCompany']['name'] != ''){
+				$corporate = $patient_details['InsuranceCompany']['name'];
+			}
+			$this->set('corporate',$corporate);
+			if($patient_details['Patient']['admission_type'] == 'IPD'){
+				$this->set(array('ward_details'=>$patient_details,'room_details'=>$patient_details,'bed_details'=>$patient_details));
+			}
+			$this->set(array('diagnosis'=>$patient_details['Diagnosis']['final_diagnosis'],'photo' => $patient_details['Person']['photo'],'patient'=>$patient_details,'id'=>$id,'treating_consultant'=>$patient_details,'corporate_name'=>$corporate));
+			$this->set('isToken', $patient_details[0]['AppointmentCount']);
+			$this->set('id',$id);
+			$patient_id=$patient_details['Patient']['patient_id'];
+			$this->set('patient_id',$patient_id);
+			$this->set('admission_id', $patient_details['Patient']['admission_id']);
+			$this->set('medication',count($patient_details['NewCropPrescription']));
+			$this->set('allergy',count($patient_details['NewCropAllergies']));
+
+			$patient_xml=$this->generateXML_prescription($id);
+			$this->set('patient_xml', $patient_xml);
+
+		}else{
+			$this->redirect(array("controller" => "users", "action" => "common"));
+		}
+		//echo '<pre>';print_r($patient_details);exit;
+
+
+	}
+
+	function rx($id,$noteId=null)//for eprescribing
+	{
+
+		/* if($this->params->query['pageView'] == 'ajax'){
+			$this->layout='advance_ajax';
+		}else{
+		$this->layout='advance';
+		} */
+		$this->layout='advance';
+		$patient_xml=$this->generateXML_prescription($id);
+
+			
+		$this->set('patient_xml', $patient_xml);
+		$this->set('id',$id);
+		if(!empty($noteId)){
+			$this->set('noteId',$noteId);
+		}
+		//$this->layout = false ;
+		//$this->autoRender = false ;
+
+	}
+
+	function generateXML_prescription($id=null,$appointmentId=null)
+	{
+
+		$this->uses = array('Patient','Person','Location','City','State','Country','User','DoctorProfile','NewCropPrescription','NewInsurance','Appointment','NewCropAllergies');
+
+		$this->Patient->unBindModel(array(
+				'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+
+		$UIDpatient_details  = $this->Person->getUIDPatientDetailsByPatientID($id);
+
+
+		$newCropCalled=$this->Session->read('isNewcropCalledOnce');
+
+
+		//$LicensedPrescriberName=$this->DoctorProfile->getDoctorByID($UIDpatient_details['Patient']['doctor_id']);
+
+		if($this->Session->read(role)=='Primary Care Provider')
+		{
+			$LicensedPrescriberName=$this->User->find('first', array('conditions' => array('User.id' => $this->Session->read('userid'))));
+		}
+		else
+		{
+			//find doctor id for this appointment
+			$doctorId=$this->Appointment->find('first', array('fields'=> array('Appointment.doctor_id'),'conditions' => array('Appointment.id' => $appointmentId)));
+			$LicensedPrescriberName=$this->DoctorProfile->getDoctorByID($doctorId);
+		}
+
+		//$LicensedPrescriberName=$this->DoctorProfile->getDoctorByID("70");
+			
+
+			
+		//$LicensedPrescriberName=explode(" ",$LicensedPrescriberName[0][fullname]);
+
+		$gender=$UIDpatient_details['Person']['sex'];
+		if($gender=='Male' or $gender=='M')
+			$gendervalue="M";
+		else
+			$gendervalue="F";
+
+
+		$dob=str_replace("-", "", $UIDpatient_details['Person']['dob']);
+
+		//find facility id
+		$this->loadModel("Facility");
+		$this->Facility->unBindModel(array(
+				'hasOne'=>array('FacilityDatabaseMapping','FacilityUserMapping')
+		));
+		$facility = $this->Facility->find('first', array('fields'=> array('Facility.id','Facility.name','Facility.alias','Facility.address1','Facility.address2','Facility.zipcode','Facility.phone1','Facility.phone2','Facility.fax','Facility.city_id','Facility.state_id','Facility.country_id'),'conditions'=>array('Facility.is_deleted' => 0, 'Facility.is_active' => 1,'Facility.id' => $this->Session->read("facilityid"))));
+
+		//find hospital location
+		$hospital_location = $this->Location->find('all', array('fields'=> array('Location.id', 'Location.name','Location.address1','Location.address2','Location.zipcode','Location.city_id','Location.state_id','Location.country_id','Location.phone1','Location.mobile','Location.fax'),'conditions'=>array('Location.id'=>$this->Session->read('locationid'), 'Location.is_active' => 1, 'Location.is_deleted' => 0)));
+
+		//find city and state and country
+
+		$city_location = $this->City->find('all', array('fields'=> array('City.name'),'conditions'=>array('City.id'=>$hospital_location['0']['Location']['city_id'])));
+		$state_location = $this->State->find('all', array('fields'=> array('State.name'),'conditions'=>array('State.id'=>$hospital_location['0']['Location']['state_id'])));
+
+		$state_location_prescriber = $this->State->find('all', array('fields'=> array('State.state_code'),'conditions'=>array('State.id'=>$LicensedPrescriberName[User][state_id])));
+
+		$city_location_prescriber = $this->City->find('all', array('fields'=> array('City.name'),'conditions'=>array('City.id'=>$LicensedPrescriberName[User][city_id])));
+
+
+		$country_location = $this->Country->find('all', array('fields'=> array('Country.name'),'conditions'=>array('Country.id'=>$hospital_location['0']['Location']['country_id'])));
+
+		//find insurance / health plan of patient
+		$healthPlan = $this->NewInsurance->find('all', array('fields'=> array('NewInsurance.insurance_name','NewInsurance.insurance_company_id','NewInsurance.insurance_number','NewInsurance.tariff_standard_name'),'conditions'=>array('NewInsurance.patient_id' => $id,'NewInsurance.is_active' => "1")));
+
+		//$patientPharmacy = $this->Patient->find('first', array('fields'=> array('Patient.pharmacy_master_id'),'conditions'=>array('Patient.id' => $id)));
+
+
+		$hometelephone=str_replace("-", "", $UIDpatient_details['Person']['person_lindline_no']);
+		$hometelephone=str_replace("(", "", $hometelephone);
+		$hometelephone=str_replace(")", "", $hometelephone);
+		$hometelephone=str_replace(" ", "", $hometelephone);
+
+		if(empty($facility['Facility']['address1']))
+			$facility['Facility']['address1']=Configure::read('company_addr1');
+		if(empty($facility['City']['name']))
+			$facility['City']['name']=Configure::read('company_city');
+		if(empty($facility['State']['state_code']))
+			$facility['State']['state_code']=Configure::read('company_state');
+		if(empty($facility['Facility']['zipcode']))
+			$facility['Facility']['zipcode']=Configure::read('company_zip');
+		if(empty($facility['Facility']['phone1']))
+			$facility['Facility']['phone1']=Configure::read('company_primary_phone');
+		if(empty($facility['Facility']['fax']))
+			$facility['Facility']['fax']=Configure::read('company_primary_fax');
+			
+		if(empty($LicensedPrescriberName['User']['address1']))
+			$LicensedPrescriberName['User']['address1']=Configure::read('doctor_addr1');
+		if(empty($city_location_prescriber['0']['City']['name']))
+			$city_location_prescriber['0']['City']['name']=Configure::read('doctor_city');
+		if(empty($state_location_prescriber['0']['State']['state_code']))
+			$state_location_prescriber['0']['State']['state_code']=Configure::read('doctor_state');
+		if(empty($LicensedPrescriberName['User']['zipcode']))
+			$LicensedPrescriberName['User']['zipcode']=Configure::read('doctor_zip');
+		if(empty($LicensedPrescriberName['User']['phone1']))
+			$LicensedPrescriberName['User']['phone1']=Configure::read('primaryPhoneNumber');
+		if(empty($LicensedPrescriberName['User']['fax']))
+			$LicensedPrescriberName['User']['fax']=Configure::read('primaryFaxNumber');
+		if(empty($LicensedPrescriberName['User']['dea']))
+			$LicensedPrescriberName['User']['dea']=Configure::read('prescriberDea');
+		if(empty($LicensedPrescriberName['User']['npi']))
+			$LicensedPrescriberName['User']['npi']=Configure::read('prescriberNpi');
+
+
+
+
+		//find patient state code
+
+		$state_location_patient = $this->State->find('all', array('fields'=> array('State.state_code'),'conditions'=>array('State.id'=>$UIDpatient_details['Person']['state'])));
+		//find treating consultant
+		if($_SESSION['role']=="Nurse"){ //for nurse
+			$strxml='<?xml version="1.0" encoding="utf-8"?>';
+
+			$strxml.='<NCScript xmlns="http://secure.newcropaccounts.com/interfaceV7" xmlns:NCStandard="http://secure.newcropaccounts.com/interfaceV7:NCStandard" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">';
+			//Account Credentials
+			$strxml.='<Credentials>
+					<partnerName>'.Configure::read('partnername').'</partnerName>
+							<name>'.Configure::read('uname').'</name>
+									<password>'.Configure::read('passw').'</password>
+											<productName>DrmHope Softwares</productName>
+											<productVersion>V 1.1</productVersion>
+											</Credentials>';
+
+			//User type
+			$strxml.='<UserRole>
+					<user>Staff</user>
+					<role>nurse</role>
+					</UserRole>';
+
+			//Newcrop page name
+			$strxml.='<Destination>
+					<requestedPage>compose</requestedPage>
+					</Destination>';
+			//Account id can hospital id and location
+			$strxml.='<Account ID="'.$facility['Facility']['name'].'">
+					<accountName>'.$facility['Facility']['alias'].'</accountName>
+							<siteID>'.$facility['Facility']['id'].'</siteID>
+									<AccountAddress>
+									<address1>'.$facility['Facility']['address1'].'</address1>
+											<address2>'.$facility['Facility']['address2'].'</address2>
+													<city>'.$facility['City']['name'].'</city>
+															<state>'.$facility['State']['state_code'].'</state>
+																	<zip>'.$facility['Facility']['zipcode'].'</zip>
+																			<country>US</country>
+																			</AccountAddress>
+																			<accountPrimaryPhoneNumber>'.$facility['Facility']['phone1'].'</accountPrimaryPhoneNumber>
+																					<accountPrimaryFaxNumber>'.$facility['Facility']['fax'].'</accountPrimaryFaxNumber>
+																							</Account>';
+
+			//Diffrent hospital location
+			$strxml.='<Location ID="'.$hospital_location['0']['Location']['id'].'">
+					<locationName>'.$hospital_location['0']['Location']['name'].'</locationName>
+							<LocationAddress>
+							<address1>'.$LicensedPrescriberName['User']['address1'].'</address1>
+									<address2>'.$LicensedPrescriberName['User']['address2'].'</address2>
+											<city>'.$city_location_prescriber['0']['City']['name'].'</city>
+													<state>'.$state_location_prescriber['0']['State']['state_code'].'</state>
+															<zip>'.$LicensedPrescriberName['User']['zipcode'].'</zip>
+																	<country>US</country>
+																	</LocationAddress>
+																	<primaryPhoneNumber>'.str_replace("-", "", $LicensedPrescriberName['User']['phone1']).'</primaryPhoneNumber>
+																			<primaryFaxNumber>'.str_replace("-", "", $LicensedPrescriberName['User']['fax']).'</primaryFaxNumber>
+																					<pharmacyContactNumber>'.str_replace("-", "", $LicensedPrescriberName['User']['phone1']).'</pharmacyContactNumber>
+																							</Location>';
+			$strxml.='<Staff ID="'.$_SESSION['userid'].'">
+					<StaffName>
+					<last>'.$_SESSION[last_name].'</last>
+							<first>'.$_SESSION[first_name].'</first>
+									</StaffName>
+									</Staff>';
+
+			//Prescribing doctor information
+			//<license>StLic1234</license>
+			/*$strxml.='<LicensedPrescriber ID="1">
+			<LicensedPrescriberName>
+			<last>'.$LicensedPrescriberName[DoctorProfile][last_name].'</last>
+			<first>'.$LicensedPrescriberName[DoctorProfile][first_name].'</first>
+			<middle>'.$LicensedPrescriberName[DoctorProfile][middle_name].'</middle>
+			</LicensedPrescriberName>';*/
+			// Staff
+
+
+
+			/*$strxml.='<dea>AP9010000</dea>';
+			 $strxml.='<upin></upin>';
+			$strxml.='<licenseState>DC</licenseState>';
+			$strxml.='<licenseNumber>12345678</licenseNumber>';
+			$strxml.='<npi>1010000002</npi>';
+			$strxml.='</LicensedPrescriber>';*/
+
+
+			//patient information
+			$strxml.='<Patient ID="'.$UIDpatient_details['Person']['id'].'">
+					<PatientName>
+					<last>'.trim($UIDpatient_details['Person']['last_name']).'</last>
+							<first>'.trim($UIDpatient_details['Person']['first_name']).'</first>
+									<middle>'.trim($UIDpatient_details['Person']['middle_name']).'</middle>
+											</PatientName>
+											<medicalRecordNumber>'.$UIDpatient_details['Patient']['id'].'</medicalRecordNumber>
+													<PatientAddress>
+													<address1>'.$UIDpatient_details['Person']['plot_no'].'</address1>
+															<address2>'.$UIDpatient_details['Person']['landmark'].'</address2>
+																	<city>'.$UIDpatient_details['Person']['city'].'</city>
+																			<state>'.$state_location_patient['0']['State']['state_code'].'</state>
+																					<zip>'.$UIDpatient_details['Person']['pin_code'].'</zip>
+																							<country>US</country>
+																							</PatientAddress>
+																							<PatientContact>
+																							<homeTelephone>'.$hometelephone.'</homeTelephone>
+																									</PatientContact>
+																									<PatientCharacteristics>
+																									<dob>'.$dob.'</dob>
+																											<gender>'.$gendervalue.'</gender>
+
+																													</PatientCharacteristics>';
+
+
+			$allAllergy=$this->NewCropAllergies->find('all',array('fields'=>array('id','name','allergies_id','CompositeAllergyID','AllergySeverityName','note','onset_date'),'conditions'=>array('patient_id'=>$UIDpatient_details['Person']['id'],'status'=>'A','CompositeAllergyID !='=>'','is_deleted'=>'0')));
+
+			for($l=0;$l<count($allAllergy);$l++)
+			{
+					
+				$strxml.='<PatientAllergies>
+						<allergyID>'.$allAllergy[$l]["NewCropAllergies"]["CompositeAllergyID"].'</allergyID>
+								<allergyTypeID>FDB</allergyTypeID>';
+					
+				if(!empty($allAllergy[$l]["NewCropAllergies"]["AllergySeverityName"]))
+					$strxml.='<allergySeverityTypeID>'.$allAllergy[$l]["NewCropAllergies"]["AllergySeverityName"].'</allergySeverityTypeID>';
+					
+				if(!empty($allAllergy[$l]["NewCropAllergies"]["note"]))
+					$strxml.='<allergyComment>'.$allAllergy[$l]["NewCropAllergies"]["note"].'</allergyComment>';
+					
+				if($allAllergy[$l]["NewCropAllergies"]["onset_date"]!='0000-00-00 00:00:00')
+				{
+
+					$onSetDate=explode(" ",$allAllergy[$l]["NewCropAllergies"]["onset_date"]);
+					$onSetDate=str_replace("-", "", $onSetDate[0]);
+					$strxml.='<onsetDate>'.$onSetDate.'</onsetDate>';
+				}
+					
+					
+					
+				$strxml.='</PatientAllergies>';
+				//update is_posted field to yes as allergy is posted to newcrop
+				$this->NewCropAllergies->updateAll(array('is_posted'=>"'yes'"),array('id'=>$allAllergy[$l]["NewCropAllergies"]["id"]));
+					
+			}
+
+			/*for($j=0;$j<count($healthPlan);$j++){
+			 if(!empty($healthPlan[$j]["NewInsurance"]["insurance_number"]))
+			 {
+			$strxml.='<PatientHealthplans>';
+			$strxml.='<healthplanID>'.$healthPlan[$j]["NewInsurance"]["insurance_number"].'</healthplanID>
+			<healthplanTypeID>Summary</healthplanTypeID>
+			<group>Group</group>';
+			$strxml.='</PatientHealthplans>';
+			}
+
+
+			}*/
+			if(!empty($UIDpatient_details['Patient']['patient_health_plan_id']))
+			{
+				$strxml.='<PatientHealthplans>';
+				$strxml.='<healthplanID>'.$UIDpatient_details['Patient']['patient_health_plan_id'].'</healthplanID>
+						<healthplanTypeID>Summary</healthplanTypeID>
+						<group>Group</group>';
+				$strxml.='</PatientHealthplans>';
+			}
+			for($k=0;$k<count($healthPlan);$k++){
+				if(empty($healthPlan[$k]["NewInsurance"]["insurance_number"]))
+				{
+					$strxml.='<PatientFreeformHealthplans>
+							<healthplanName>'.$healthPlan[$k]["NewInsurance"]["tariff_standard_name"].'</healthplanName>
+									</PatientFreeformHealthplans>';
+				}
+
+			}
+
+
+
+			if(!empty($UIDpatient_details['Person']['pharmacy_id']))
+			{
+				$strxml.='<PatientPharmacies>
+						<pharmacyIdentifier>'.$UIDpatient_details['Person']['pharmacy_id'].'</pharmacyIdentifier>
+								</PatientPharmacies>';
+			}
+
+
+
+			$strxml.= '</Patient>';
+
+			//find current prescription
+			if($newCropCalled=="")
+			{
+
+				$allMedications=$this->NewCropPrescription->find('all',array('fields'=>array('id','description','date_of_prescription','rxnorm','archive','route',
+						'frequency','dose','firstdose','prn','stopdose','patient_uniqueid','drug_id','refills','prn','daw','strength','PrescriptionGuid','is_med_administered','quantity','day','DosageForm','DosageRouteTypeId','PrescriptionNotes','PharmacistNotes'),'conditions'=>array('patient_id'=>$UIDpatient_details['Person']['id'],'archive'=>'N','OR'=>array(array('drug_id !='=>''),array('drug_id !='=>'Null')))));
+
+				for($i=0;$i<count($allMedications);$i++){
+
+					//$patientPrescribedData=$this->NewCropPrescription->find('first',array('fields'=>array('id','description','drug_name','date_of_prescription','rxnorm','archive','route',
+					//	'frequency','dose','firstdose','prn','stopdose','patient_uniqueid','drug_id'),'conditions'=>array('patient_uniqueid'=>$patientId,'drug_id'=>$presc_data[$i])));
+
+
+					$externalId=date("Ymd").time().$allMedications[$i]["NewCropPrescription"]["drug_id"].$i."_".$id."_".$allMedications[$i]["NewCropPrescription"]["id"];
+					$datepresc=str_replace("T"," ",$allMedications[$i]["NewCropPrescription"]["date_of_prescription"]);
+					$dateprescFinal=explode(" ",$datepresc);
+					$doctorFullName=$LicensedPrescriberName[DoctorProfile][first_name]." ".$LicensedPrescriberName[DoctorProfile][last_name];
+					//$sig=$allMedications[$i]["NewCropPrescription"]["drug_name"]." ".$allMedications[$i]["NewCropPrescription"]["frequency"]." ".$allMedications[$i]["NewCropPrescription"]["route"];
+					$sig=$allMedications[$i]["NewCropPrescription"]["PrescriptionNotes"];
+
+					if($allMedications[$i]["NewCropPrescription"]["prn"]=='1')
+						$prn="Yes";
+					else
+						$prn="No";
+
+					if($allMedications[$i]["NewCropPrescription"]["daw"]=='1')
+						$daw="DispenseAsWritten";
+					else
+						$daw="SubstitutionAllowed";
+
+
+
+					if(empty($allMedications[$i]["NewCropPrescription"]["dose"]))
+						$allMedications[$i]["NewCropPrescription"]["dose"]=0;
+
+					if(empty($allMedications[$i]["NewCropPrescription"]["DosageForm"]))
+						$allMedications[$i]["NewCropPrescription"]["DosageForm"]=0;
+
+					if(empty($allMedications[$i]["NewCropPrescription"]["DosageRouteTypeId"]))
+						$allMedications[$i]["NewCropPrescription"]["DosageRouteTypeId"]=0;
+
+					if(empty($allMedications[$i]["NewCropPrescription"]["frequency"]))
+						$allMedications[$i]["NewCropPrescription"]["frequency"]=0;
+
+					if($allMedications[$i]["NewCropPrescription"]["frequency"]=='20' || $allMedications[$i]["NewCropPrescription"]["frequency"]=='31' || $allMedications[$i]["NewCropPrescription"]["frequency"]=='32')
+						$allMedications[$i]["NewCropPrescription"]["frequency"]=1; //for As disrected
+
+					$prescriptionGuid=$allMedications[$i]["NewCropPrescription"]["PrescriptionGuid"];
+					if(!empty($prescriptionGuid))
+				  $strxml.='<OutsidePrescription ID="'.$allMedications[$i]["NewCropPrescription"]["PrescriptionGuid"].'">';
+					else
+						$strxml.='<OutsidePrescription>';
+
+					$strxml.='<externalId>'.$externalId.'</externalId><date>'.str_replace("-","",$dateprescFinal[0]).'</date><doctorName>'.$doctorFullName.'</doctorName><drug>'.$allMedications[$i]["NewCropPrescription"]["drug_name"].'</drug>';
+
+
+					$strxml.='<dispenseNumber>'.$allMedications[$i]["NewCropPrescription"]["quantity"].'</dispenseNumber>';
+
+					$strxml.='<sig>'.$sig.'</sig><refillCount>'.$allMedications[$i]["NewCropPrescription"]["refills"].'</refillCount><substitution>'.$daw.'</substitution><pharmacistMessage>'.$allMedications[$i]["NewCropPrescription"]["PharmacistNotes"].'</pharmacistMessage><drugIdentifier>'.$allMedications[$i]["NewCropPrescription"]["drug_id"].'</drugIdentifier><drugIdentifierType>FDB</drugIdentifierType><prescriptionType>reconcile</prescriptionType>
+							<codifiedSigType>
+							<ActionType>0</ActionType>
+							<NumberType>'.$allMedications[$i]["NewCropPrescription"]["dose"].'</NumberType>
+									<FormType>'.$allMedications[$i]["NewCropPrescription"]["DosageForm"].'</FormType>
+											<RouteType>'.$allMedications[$i]["NewCropPrescription"]["DosageRouteTypeId"].'</RouteType>
+													<FrequencyType>'.$allMedications[$i]["NewCropPrescription"]["frequency"].'</FrequencyType>
+															</codifiedSigType><prn>'.$prn.'</prn>';
+
+					if(!empty($allMedications[$i]["NewCropPrescription"]["day"]))
+						$strxml.='<daysSupply>'.$allMedications[$i]["NewCropPrescription"]["day"].'</daysSupply>';
+
+					$strxml.='</OutsidePrescription>';
+
+					//update is_posted field to yes as medication is posted to newcrop
+					$this->NewCropPrescription->updateAll(array('is_posted'=>"'yes'"),array('id'=>$allMedications[$i]["NewCropPrescription"]["id"]));
+
+				}
+			}
+
+			$strxml.='</NCScript>';
+
+			//create xml file here
+			$ourFileName = "uploads/patient_xml/".$UIDpatient_details['Person']['first_name']."_".$UIDpatient_details['Person']['last_name']."_".$UIDpatient_details['Patient']['id'].".xml";
+			//	$ourFileHandle = fopen($ourFileName, 'w') or die("can't open file");
+			$ourFileHandle = fopen($ourFileName, 'w')  ;
+			fwrite($ourFileHandle, $strxml);
+			fclose($ourFileHandle);
+			$this->Session->write('isNewcropCalledOnce','yes');
+			return $strxml;
+		}
+		else if($_SESSION['role']=="Admin" or $_SESSION['role']=="Primary Care Provider"){
+			$strxml='<?xml version="1.0" encoding="utf-8"?>';
+
+			$strxml.='<NCScript xmlns="http://secure.newcropaccounts.com/interfaceV7" xmlns:NCStandard="http://secure.newcropaccounts.com/interfaceV7:NCStandard" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">';
+			//Account Credentials
+			$strxml.='<Credentials>
+					<partnerName>'.Configure::read('partnername').'</partnerName>
+							<name>'.Configure::read('uname').'</name>
+									<password>'.Configure::read('passw').'</password>
+											<productName>DrmHope Softwares</productName>
+											<productVersion>V 1.1</productVersion>
+											</Credentials>';
+
+			//User type
+			$strxml.='<UserRole>
+					<user>LicensedPrescriber</user>
+					<role>doctor</role>
+					</UserRole>';
+
+			//Newcrop page name
+			$strxml.='<Destination>
+					<requestedPage>compose</requestedPage>
+					</Destination>';
+			//Account id can hospital id and location
+			$strxml.='<Account ID="'.$facility['Facility']['name'].'">
+					<accountName>'.$facility['Facility']['alias'].'</accountName>
+							<siteID>'.$facility['Facility']['id'].'</siteID>
+									<AccountAddress>
+									<address1>'.$facility['Facility']['address1'].'</address1>
+											<address2>'.$facility['Facility']['address2'].'</address2>
+													<city>'.$facility['City']['name'].'</city>
+															<state>'.$facility['State']['state_code'].'</state>
+																	<zip>'.$facility['Facility']['zipcode'].'</zip>
+																			<country>US</country>
+																			</AccountAddress>
+																			<accountPrimaryPhoneNumber>'.$facility['Facility']['phone1'].'</accountPrimaryPhoneNumber>
+																					<accountPrimaryFaxNumber>'.$facility['Facility']['fax'].'</accountPrimaryFaxNumber>
+																							</Account>';
+
+			//Diffrent hospital location
+			$strxml.='<Location ID="'.$hospital_location['0']['Location']['id'].'">
+					<locationName>'.$hospital_location['0']['Location']['name'].'</locationName>
+							<LocationAddress>
+							<address1>'.$LicensedPrescriberName[User][address1].'</address1>
+									<address2>'.$LicensedPrescriberName[User][address2].'</address2>
+											<city>'.$city_location_prescriber['0']['City']['name'].'</city>
+													<state>'.$state_location_prescriber[0][State][state_code].'</state>
+															<zip>'.$LicensedPrescriberName[User][zipcode].'</zip>
+																	<country>US</country>
+																	</LocationAddress>
+																	<primaryPhoneNumber>'.str_replace("-", "", $LicensedPrescriberName['User']['phone1']).'</primaryPhoneNumber>
+																			<primaryFaxNumber>'.str_replace("-", "", $LicensedPrescriberName['User']['fax']).'</primaryFaxNumber>
+																					<pharmacyContactNumber>'.str_replace("-", "", $LicensedPrescriberName['User']['phone1']).'</pharmacyContactNumber>
+																							</Location>';
+
+			//Prescribing doctor information
+			$strxml.='<LicensedPrescriber ID="'.$LicensedPrescriberName[User][id].'">
+					<LicensedPrescriberName>
+					<last>'.$LicensedPrescriberName[User][last_name].'</last>
+							<first>'.$LicensedPrescriberName[User][first_name].'</first>
+									<middle>'.$LicensedPrescriberName[User][middle_name].'</middle>
+											</LicensedPrescriberName>';
+			// Staff
+
+
+
+			$strxml.='<dea>'.$LicensedPrescriberName[User][dea].'</dea>';
+			$strxml.='<upin></upin>';
+			$strxml.='<licenseState>'.$state_location_prescriber[0][State][state_code].'</licenseState>';
+			//$strxml.='<licenseNumber>'.$LicensedPrescriberName[User][licensure_no].'</licenseNumber>';
+			$strxml.='<npi>'.$LicensedPrescriberName[User][npi].'</npi>';
+			$strxml.='</LicensedPrescriber>';
+			/*$strxml.='<Staff ID="DEMOST1"><StaffName>
+			 <last>Jackson</last><first>Nurse</first>
+			<middle>J</middle><prefix>Mr.</prefix><suffix>Jr</suffix>
+			</StaffName><license>StLic1234</license></Staff>';*/
+
+			//patient information
+			$strxml.='<Patient ID="'.$UIDpatient_details['Person']['id'].'">
+					<PatientName>
+					<last>'.trim($UIDpatient_details['Person']['last_name']).'</last>
+							<first>'.trim($UIDpatient_details['Person']['first_name']).'</first>
+									<middle>'.trim($UIDpatient_details['Person']['middle_name']).'</middle>
+											</PatientName>
+											<medicalRecordNumber>'.$UIDpatient_details['Patient']['id'].'</medicalRecordNumber>
+													<PatientAddress>
+													<address1>'.$UIDpatient_details['Person']['plot_no'].'</address1>
+															<address2>'.$UIDpatient_details['Person']['landmark'].'</address2>
+																	<city>'.$UIDpatient_details['Person']['city'].'</city>
+																			<state>'.$state_location_patient['0']['State']['state_code'].'</state>
+																					<zip>'.$UIDpatient_details['Person']['pin_code'].'</zip>
+																							<country>US</country>
+																							</PatientAddress>
+																							<PatientContact>
+																							<homeTelephone>'.$UIDpatient_details['Person']['person_lindline_no'].'</homeTelephone>
+																									</PatientContact>
+																									<PatientCharacteristics>
+																									<dob>'.$dob.'</dob>
+																											<gender>'.$gendervalue.'</gender>
+																													</PatientCharacteristics>';
+
+			$allAllergy=$this->NewCropAllergies->find('all',array('fields'=>array('id','name','allergies_id','CompositeAllergyID','AllergySeverityName','note','onset_date'),'conditions'=>array('patient_id'=>$UIDpatient_details['Person']['id'],'status'=>'A','CompositeAllergyID !='=>'','is_deleted'=>'0')));
+
+			for($l=0;$l<count($allAllergy);$l++)
+			{
+					
+				$strxml.='<PatientAllergies>
+						<allergyID>'.$allAllergy[$l]["NewCropAllergies"]["CompositeAllergyID"].'</allergyID>
+								<allergyTypeID>FDB</allergyTypeID>';
+					
+				if(!empty($allAllergy[$l]["NewCropAllergies"]["AllergySeverityName"]))
+					$strxml.='<allergySeverityTypeID>'.$allAllergy[$l]["NewCropAllergies"]["AllergySeverityName"].'</allergySeverityTypeID>';
+					
+				if(!empty($allAllergy[$l]["NewCropAllergies"]["note"]))
+					$strxml.='<allergyComment>'.$allAllergy[$l]["NewCropAllergies"]["note"].'</allergyComment>';
+					
+				if(!empty($allAllergy[$l]["NewCropAllergies"]["onset_date"]))
+				{
+
+					$onSetDate=explode(" ",$allAllergy[$l]["NewCropAllergies"]["onset_date"]);
+					$onSetDate=str_replace("-", "", $onSetDate[0]);
+					if($onSetDate!='00000000')
+				  $strxml.='<onsetDate>'.$onSetDate.'</onsetDate>';
+				}
+					
+				$strxml.='</PatientAllergies>';
+				//update is_posted field to yes as allergy is posted to newcrop
+				$this->NewCropAllergies->updateAll(array('is_posted'=>"'yes'"),array('id'=>$allAllergy[$l]["NewCropAllergies"]["id"]));
+					
+			}
+
+
+			/*for($j=0;$j<count($healthPlan);$j++){
+			 if(!empty($healthPlan[$j]["NewInsurance"]["insurance_number"]))
+			 {
+			$strxml.='<PatientHealthplans>';
+			$strxml.='<healthplanID>'.$healthPlan[$j]["NewInsurance"]["insurance_number"].'</healthplanID>
+			<healthplanTypeID>Summary</healthplanTypeID>
+			<group>Group</group>';
+			$strxml.='</PatientHealthplans>';
+			}
+
+
+			}*/
+			if(!empty($UIDpatient_details['Patient']['patient_health_plan_id']))
+			{
+				$strxml.='<PatientHealthplans>';
+				$strxml.='<healthplanID>'.$UIDpatient_details['Patient']['patient_health_plan_id'].'</healthplanID>
+						<healthplanTypeID>Summary</healthplanTypeID>
+						<group>Group</group>';
+				$strxml.='</PatientHealthplans>';
+			}
+
+			for($k=0;$k<count($healthPlan);$k++){
+				if(empty($healthPlan[$k]["NewInsurance"]["insurance_number"]))
+				{
+					$strxml.='<PatientFreeformHealthplans>
+							<healthplanName>'.$healthPlan[$k]["NewInsurance"]["tariff_standard_name"].'</healthplanName>
+									</PatientFreeformHealthplans>';
+				}
+
+			}
+
+			if(!empty($UIDpatient_details['Person']['pharmacy_id']))
+			{
+				$strxml.='<PatientPharmacies>
+						<pharmacyIdentifier>'.$UIDpatient_details['Person']['pharmacy_id'].'</pharmacyIdentifier>
+								</PatientPharmacies>';
+			}
+
+
+
+			$strxml.= '</Patient>';
+
+			//find current prescription
+			if($newCropCalled=="")
+			{
+				$allMedications=$this->NewCropPrescription->find('all',array('fields'=>array('id','description','date_of_prescription','rxnorm','archive','route',
+						'frequency','dose','firstdose','prn','stopdose','patient_uniqueid','drug_id','refills','prn','daw','strength','PrescriptionGuid','quantity','day','DosageForm','DosageRouteTypeId','PrescriptionNotes','PharmacistNotes'),'conditions'=>array('patient_id'=>$UIDpatient_details['Person']['id'],'archive'=>'N','OR'=>array(array('drug_id !='=>''),array('drug_id !='=>'Null')))));
+
+				for($i=0;$i<count($allMedications);$i++){
+
+					//$patientPrescribedData=$this->NewCropPrescription->find('first',array('fields'=>array('id','description','drug_name','date_of_prescription','rxnorm','archive','route',
+					//	'frequency','dose','firstdose','prn','stopdose','patient_uniqueid','drug_id'),'conditions'=>array('patient_uniqueid'=>$patientId,'drug_id'=>$presc_data[$i])));
+
+
+					$externalId=date("Ymd").time().$allMedications[$i]["NewCropPrescription"]["drug_id"].$i."_".$id."_".$allMedications[$i]["NewCropPrescription"]["id"];
+					$datepresc=str_replace("T"," ",$allMedications[$i]["NewCropPrescription"]["date_of_prescription"]);
+					$dateprescFinal=explode(" ",$datepresc);
+					$doctorFullName=$LicensedPrescriberName[User][first_name]." ".$LicensedPrescriberName[User][last_name];
+					//$sig=$allMedications[$i]["NewCropPrescription"]["drug_name"]." ".$allMedications[$i]["NewCropPrescription"]["frequency"]." ".$allMedications[$i]["NewCropPrescription"]["route"];
+					$sig=$allMedications[$i]["NewCropPrescription"]["PrescriptionNotes"];
+
+
+
+					if($allMedications[$i]["NewCropPrescription"]["prn"]=='1')
+						$prn="Yes";
+					else
+						$prn="No";
+
+					if($allMedications[$i]["NewCropPrescription"]["daw"]=='1')
+						$daw="DispenseAsWritten";
+					else
+						$daw="SubstitutionAllowed";
+
+					if(empty($allMedications[$i]["NewCropPrescription"]["dose"]))
+						$allMedications[$i]["NewCropPrescription"]["dose"]=0;
+
+					if(empty($allMedications[$i]["NewCropPrescription"]["DosageForm"]))
+						$allMedications[$i]["NewCropPrescription"]["DosageForm"]=0;
+
+					if(empty($allMedications[$i]["NewCropPrescription"]["DosageRouteTypeId"]))
+						$allMedications[$i]["NewCropPrescription"]["DosageRouteTypeId"]=0;
+
+					if(empty($allMedications[$i]["NewCropPrescription"]["frequency"]))
+						$allMedications[$i]["NewCropPrescription"]["frequency"]=0;
+
+					if($allMedications[$i]["NewCropPrescription"]["frequency"]=='20' || $allMedications[$i]["NewCropPrescription"]["frequency"]=='31' || $allMedications[$i]["NewCropPrescription"]["frequency"]=='32')
+						$allMedications[$i]["NewCropPrescription"]["frequency"]=1; //for As disrected
+
+					$prescriptionGuid=$allMedications[$i]["NewCropPrescription"]["PrescriptionGuid"];
+					if(!empty($prescriptionGuid))
+				  $strxml.='<OutsidePrescription ID="'.$allMedications[$i]["NewCropPrescription"]["PrescriptionGuid"].'">';
+					else
+						$strxml.='<OutsidePrescription>';
+
+					$strxml.='<externalId>'.$externalId.'</externalId><date>'.str_replace("-","",$dateprescFinal[0]).'</date><doctorName>'.$doctorFullName.'</doctorName><drug>'.$allMedications[$i]["NewCropPrescription"]["drug_name"].'</drug>';
+
+
+					$strxml.='<dispenseNumber>'.$allMedications[$i]["NewCropPrescription"]["quantity"].'</dispenseNumber>';
+
+					$strxml.='<sig>'.$sig.'</sig><refillCount>'.$allMedications[$i]["NewCropPrescription"]["refills"].'</refillCount><substitution>'.$daw.'</substitution><pharmacistMessage>'.$allMedications[$i]["NewCropPrescription"]["PharmacistNotes"].'</pharmacistMessage><drugIdentifier>'.$allMedications[$i]["NewCropPrescription"]["drug_id"].'</drugIdentifier><drugIdentifierType>FDB</drugIdentifierType><prescriptionType>reconcile</prescriptionType>
+							<codifiedSigType>
+							<ActionType>0</ActionType>
+							<NumberType>'.$allMedications[$i]["NewCropPrescription"]["dose"].'</NumberType>
+									<FormType>'.$allMedications[$i]["NewCropPrescription"]["DosageForm"].'</FormType>
+											<RouteType>'.$allMedications[$i]["NewCropPrescription"]["DosageRouteTypeId"].'</RouteType>
+													<FrequencyType>'.$allMedications[$i]["NewCropPrescription"]["frequency"].'</FrequencyType>
+															</codifiedSigType><prn>'.$prn.'</prn>';
+
+					if(!empty($allMedications[$i]["NewCropPrescription"]["day"]))
+						$strxml.='<daysSupply>'.$allMedications[$i]["NewCropPrescription"]["day"].'</daysSupply>';
+
+					//update is_posted field to yes as medication is posted to newcrop
+					$this->NewCropPrescription->updateAll(array('is_posted'=>"'yes'"),array('id'=>$allMedications[$i]["NewCropPrescription"]["id"]));
+
+					$strxml.='</OutsidePrescription>';
+
+				}
+			}
+
+			$strxml.='</NCScript>';
+
+			//create xml file here
+			$ourFileName = "uploads/patient_xml/".$UIDpatient_details['Person']['first_name']."_".$UIDpatient_details['Person']['last_name']."_".$UIDpatient_details['Patient']['id'].".xml";
+			//	$ourFileHandle = fopen($ourFileName, 'w') or die("can't open file");
+			$ourFileHandle = fopen($ourFileName, 'w')  ;
+			fwrite($ourFileHandle, $strxml);
+			fclose($ourFileHandle);
+
+
+			$this->Session->write('isNewcropCalledOnce','yes');
+
+			return $strxml;
+		}
+
+		else{ //for midlevel subscriber
+
+
+			$strxml='<?xml version="1.0" encoding="utf-8"?>';
+
+			$strxml.='<NCScript xmlns="http://secure.newcropaccounts.com/interfaceV7" xmlns:NCStandard="http://secure.newcropaccounts.com/interfaceV7:NCStandard" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">';
+			//Account Credentials
+			$strxml.='<Credentials>
+					<partnerName>'.Configure::read('partnername').'</partnerName>
+							<name>'.Configure::read('uname').'</name>
+									<password>'.Configure::read('passw').'</password>
+											<productName>DrmHope Softwares</productName>
+											<productVersion>V 1.1</productVersion>
+											</Credentials>';
+
+			//User type
+			$strxml.='<UserRole>
+					<user>MidlevelPrescriber</user>
+					<role>midlevelPrescriber</role>
+					</UserRole>';
+
+			//Newcrop page name
+			$strxml.='<Destination>
+					<requestedPage>compose</requestedPage>
+					</Destination>';
+			//Account id can hospital id and location
+			$strxml.='<Account ID="'.$facility['Facility']['name'].'">
+					<accountName>'.$facility['Facility']['alias'].'</accountName>
+							<siteID>'.$facility['Facility']['id'].'</siteID>
+									<AccountAddress>
+									<address1>'.$facility['Facility']['address1'].'</address1>
+											<address2>'.$facility['Facility']['address2'].'</address2>
+													<city>'.$facility['City']['name'].'</city>
+															<state>'.$facility['State']['state_code'].'</state>
+																	<zip>'.$facility['Facility']['zipcode'].'</zip>
+																			<country>US</country>
+																			</AccountAddress>
+																			<accountPrimaryPhoneNumber>'.$facility['Facility']['phone1'].'</accountPrimaryPhoneNumber>
+																					<accountPrimaryFaxNumber>'.$facility['Facility']['fax'].'</accountPrimaryFaxNumber>
+																							</Account>';
+
+			//Diffrent hospital location
+			$strxml.='<Location ID="'.$hospital_location['0']['Location']['id'].'">
+					<locationName>'.$hospital_location['0']['Location']['name'].'</locationName>
+							<LocationAddress>
+							<address1>'.$LicensedPrescriberName[User][address1].'</address1>
+									<address2>'.$LicensedPrescriberName[User][address2].'</address2>
+											<city>'.$city_location_prescriber['0']['City']['name'].'</city>
+													<state>'.$state_location_prescriber[0][State][state_code].'</state>
+															<zip>'.$LicensedPrescriberName[User][zipcode].'</zip>
+																	<country>US</country>
+																	</LocationAddress>
+																	<primaryPhoneNumber>'.str_replace("-", "", $LicensedPrescriberName['User']['phone1']).'</primaryPhoneNumber>
+																			<primaryFaxNumber>'.str_replace("-", "", $LicensedPrescriberName['User']['fax']).'</primaryFaxNumber>
+																					<pharmacyContactNumber>'.str_replace("-", "", $LicensedPrescriberName['User']['phone1']).'</pharmacyContactNumber>
+																							</Location>';
+
+			//Prescribing doctor information
+			$strxml.='<MidlevelPrescriber ID="'.$_SESSION['userid'].'">
+					<LicensedPrescriberName>
+					<last>'.$_SESSION[last_name].'</last>
+							<first>'.$_SESSION[first_name].'</first>
+
+									</LicensedPrescriberName>';
+			// Staff
+
+
+
+			$strxml.='<dea>'.$LicensedPrescriberName[User][dea].'</dea>';
+			$strxml.='<upin></upin>';
+			$strxml.='<licenseState>'.$state_location_prescriber[0][State][state_code].'</licenseState>';
+			$strxml.='<licenseNumber>'.$LicensedPrescriberName[User][licensure_no].'</licenseNumber>';
+			$strxml.='<npi>'.$LicensedPrescriberName[User][npi].'</npi>';
+			$strxml.='</LicensedPrescriber>';
+			//$strxml.='</LicensedPrescriber>';
+			$strxml.='</MidlevelPrescriber>';
+
+
+			/*$strxml.='<Staff ID="DEMOST1"><StaffName>
+			 <last>Jackson</last><first>Nurse</first>
+			<middle>J</middle><prefix>Mr.</prefix><suffix>Jr</suffix>
+			</StaffName><license>StLic1234</license></Staff>';*/
+
+			//patient information
+			$strxml.='<Patient ID="'.$UIDpatient_details['Person']['id'].'">
+					<PatientName>
+					<last>'.trim($UIDpatient_details['Person']['last_name']).'</last>
+							<first>'.trim($UIDpatient_details['Person']['first_name']).'</first>
+									<middle>'.trim($UIDpatient_details['Person']['middle_name']).'</middle>
+											</PatientName>
+											<medicalRecordNumber>'.$UIDpatient_details['Patient']['id'].'</medicalRecordNumber>
+													<PatientAddress>
+													<address1>'.$UIDpatient_details['Person']['plot_no'].'</address1>
+															<address2>'.$UIDpatient_details['Person']['landmark'].'</address2>
+																	<city>'.$UIDpatient_details['Person']['city'].'</city>
+																			<state>'.$state_location_patient['0']['State']['state_code'].'</state>
+																					<zip>'.$UIDpatient_details['Person']['pin_code'].'</zip>
+																							<country>US</country>
+																							</PatientAddress>
+																							<PatientContact>
+																							<homeTelephone>'.$UIDpatient_details['Person']['person_lindline_no'].'</homeTelephone>
+																									</PatientContact>
+																									<PatientCharacteristics>
+																									<dob>'.$dob.'</dob>
+																											<gender>'.$gendervalue.'</gender>
+																													</PatientCharacteristics>';
+
+			$allAllergy=$this->NewCropAllergies->find('all',array('fields'=>array('id','name','allergies_id','CompositeAllergyID','AllergySeverityName','note','onset_date'),'conditions'=>array('patient_id'=>$UIDpatient_details['Person']['id'],'status'=>'A','CompositeAllergyID !='=>'','is_deleted'=>'0')));
+
+			for($l=0;$l<count($allAllergy);$l++)
+			{
+					
+				$strxml.='<PatientAllergies>
+						<allergyID>'.$allAllergy[$l]["NewCropAllergies"]["CompositeAllergyID"].'</allergyID>
+								<allergyTypeID>FDB</allergyTypeID>';
+					
+				if(!empty($allAllergy[$l]["NewCropAllergies"]["AllergySeverityName"]))
+					$strxml.='<allergySeverityTypeID>'.$allAllergy[$l]["NewCropAllergies"]["AllergySeverityName"].'</allergySeverityTypeID>';
+					
+				if(!empty($allAllergy[$l]["NewCropAllergies"]["note"]))
+					$strxml.='<allergyComment>'.$allAllergy[$l]["NewCropAllergies"]["note"].'</allergyComment>';
+					
+					
+				if(!empty($allAllergy[$l]["NewCropAllergies"]["onset_date"]))
+				{
+
+					$onSetDate=explode(" ",$allAllergy[$l]["NewCropAllergies"]["onset_date"]);
+					$onSetDate=str_replace("-", "", $onSetDate[0]);
+					$strxml.='<onsetDate>'.$onSetDate.'</onsetDate>';
+				}
+					
+				$strxml.='</PatientAllergies>';
+					
+				//update is_posted field to yes as allergy is posted to newcrop
+				$this->NewCropAllergies->updateAll(array('is_posted'=>"'yes'"),array('id'=>$allAllergy[$l]["NewCropAllergies"]["id"]));
+					
+			}
+
+
+			/*for($j=0;$j<count($healthPlan);$j++){
+			 if(!empty($healthPlan[$j]["NewInsurance"]["insurance_number"]))
+			 {
+			$strxml.='<PatientHealthplans>';
+			$strxml.='<healthplanID>'.$healthPlan[$j]["NewInsurance"]["insurance_number"].'</healthplanID>
+			<healthplanTypeID>Summary</healthplanTypeID>
+			<group>Group</group>';
+			$strxml.='</PatientHealthplans>';
+			}
+
+
+			}*/
+
+			if(!empty($UIDpatient_details['Patient']['patient_health_plan_id']))
+			{
+				$strxml.='<PatientHealthplans>';
+				$strxml.='<healthplanID>'.$UIDpatient_details['Patient']['patient_health_plan_id'].'</healthplanID>
+						<healthplanTypeID>Summary</healthplanTypeID>
+						<group>Group</group>';
+				$strxml.='</PatientHealthplans>';
+			}
+
+			for($k=0;$k<count($healthPlan);$k++){
+				if(empty($healthPlan[$k]["NewInsurance"]["insurance_number"]))
+				{
+					$strxml.='<PatientFreeformHealthplans>
+							<healthplanName>'.$healthPlan[$k]["NewInsurance"]["tariff_standard_name"].'</healthplanName>
+									</PatientFreeformHealthplans>';
+				}
+
+			}
+
+
+
+
+			if(!empty($UIDpatient_details['Person']['pharmacy_id']))
+			{
+				$strxml.='<PatientPharmacies>
+						<pharmacyIdentifier>'.$UIDpatient_details['Person']['pharmacy_id'].'</pharmacyIdentifier>
+								</PatientPharmacies>';
+			}
+
+
+			$strxml.= '</Patient>';
+
+			//find current prescription
+			if($newCropCalled=="")
+			{
+
+				$allMedications=$this->NewCropPrescription->find('all',array('fields'=>array('id','description','date_of_prescription','rxnorm','archive','route',
+						'frequency','dose','firstdose','prn','stopdose','patient_uniqueid','drug_id','refills','prn','daw','strength','PrescriptionGuid','quantity','day','DosageForm','DosageRouteTypeId','PrescriptionNotes','PharmacistNotes'),'conditions'=>array('patient_id'=>$UIDpatient_details['Person']['id'],'archive'=>'N','OR'=>array(array('drug_id !='=>''),array('drug_id !='=>'NULL')))));
+
+				for($i=0;$i<count($allMedications);$i++){
+
+					//$patientPrescribedData=$this->NewCropPrescription->find('first',array('fields'=>array('id','description','drug_name','date_of_prescription','rxnorm','archive','route',
+					//	'frequency','dose','firstdose','prn','stopdose','patient_uniqueid','drug_id'),'conditions'=>array('patient_uniqueid'=>$patientId,'drug_id'=>$presc_data[$i])));
+
+
+					$externalId=date("Ymd").time().$allMedications[$i]["NewCropPrescription"]["drug_id"].$i."_".$id."_".$allMedications[$i]["NewCropPrescription"]["id"];
+					$datepresc=str_replace("T"," ",$allMedications[$i]["NewCropPrescription"]["date_of_prescription"]);
+					$dateprescFinal=explode(" ",$datepresc);
+					$doctorFullName=$LicensedPrescriberName[DoctorProfile][first_name]." ".$LicensedPrescriberName[DoctorProfile][last_name];
+					//$sig=$allMedications[$i]["NewCropPrescription"]["drug_name"]." ".$allMedications[$i]["NewCropPrescription"]["frequency"]." ".$allMedications[$i]["NewCropPrescription"]["route"];
+					$sig=$allMedications[$i]["NewCropPrescription"]["PrescriptionNotes"];
+
+					if($allMedications[$i]["NewCropPrescription"]["prn"]=='1')
+						$prn="Yes";
+					else
+						$prn="No";
+
+					if($allMedications[$i]["NewCropPrescription"]["daw"]=='1')
+						$daw="DispenseAsWritten";
+					else
+						$daw="SubstitutionAllowed";
+
+
+					if(empty($allMedications[$i]["NewCropPrescription"]["dose"]))
+						$allMedications[$i]["NewCropPrescription"]["dose"]=0;
+
+					if(empty($allMedications[$i]["NewCropPrescription"]["DosageForm"]))
+						$allMedications[$i]["NewCropPrescription"]["DosageForm"]=0;
+
+					if(empty($allMedications[$i]["NewCropPrescription"]["DosageRouteTypeId"]))
+						$allMedications[$i]["NewCropPrescription"]["DosageRouteTypeId"]=0;
+
+					if(empty($allMedications[$i]["NewCropPrescription"]["frequency"]))
+						$allMedications[$i]["NewCropPrescription"]["frequency"]=0;
+
+					if($allMedications[$i]["NewCropPrescription"]["frequency"]=='20' || $allMedications[$i]["NewCropPrescription"]["frequency"]=='31' || $allMedications[$i]["NewCropPrescription"]["frequency"]=='32')
+						$allMedications[$i]["NewCropPrescription"]["frequency"]=1; //for As disrected
+
+					$prescriptionGuid=$allMedications[$i]["NewCropPrescription"]["PrescriptionGuid"];
+					if(!empty($prescriptionGuid))
+				  $strxml.='<OutsidePrescription ID="'.$allMedications[$i]["NewCropPrescription"]["PrescriptionGuid"].'">';
+					else
+						$strxml.='<OutsidePrescription>';
+
+					$strxml.='<externalId>'.$externalId.'</externalId><date>'.str_replace("-","",$dateprescFinal[0]).'</date><doctorName>'.$doctorFullName.'</doctorName><drug>'.$allMedications[$i]["NewCropPrescription"]["drug_name"].'</drug>';
+
+
+					$strxml.='<dispenseNumber>'.$allMedications[$i]["NewCropPrescription"]["quantity"].'</dispenseNumber>';
+
+					$strxml.='<sig>'.$sig.'</sig><refillCount>'.$allMedications[$i]["NewCropPrescription"]["refills"].'</refillCount><substitution>'.$daw.'</substitution><pharmacistMessage>'.$allMedications[$i]["NewCropPrescription"]["PharmacistNotes"].'</pharmacistMessage><drugIdentifier>'.$allMedications[$i]["NewCropPrescription"]["drug_id"].'</drugIdentifier><drugIdentifierType>FDB</drugIdentifierType><prescriptionType>reconcile</prescriptionType>
+							<codifiedSigType>
+							<ActionType>0</ActionType>
+							<NumberType>'.$allMedications[$i]["NewCropPrescription"]["dose"].'</NumberType>
+									<FormType>'.$allMedications[$i]["NewCropPrescription"]["DosageForm"].'</FormType>
+											<RouteType>'.$allMedications[$i]["NewCropPrescription"]["DosageRouteTypeId"].'</RouteType>
+													<FrequencyType>'.$allMedications[$i]["NewCropPrescription"]["frequency"].'</FrequencyType>
+															</codifiedSigType><prn>'.$prn.'</prn>';
+
+					if(!empty($allMedications[$i]["NewCropPrescription"]["day"]))
+						$strxml.='<daysSupply>'.$allMedications[$i]["NewCropPrescription"]["day"].'</daysSupply>';
+
+					//update is_posted field to yes as medication is posted to newcrop
+					$this->NewCropPrescription->updateAll(array('is_posted'=>"'yes'"),array('id'=>$allMedications[$i]["NewCropPrescription"]["id"]));
+
+					$strxml.='</OutsidePrescription>';
+
+				}
+			}
+
+
+			$strxml.='</NCScript>';
+
+			//create xml file here
+			$ourFileName = "uploads/patient_xml/".$UIDpatient_details['Person']['first_name']."_".$UIDpatient_details['Person']['last_name']."_".$UIDpatient_details['Patient']['id'].".xml";
+			//	$ourFileHandle = fopen($ourFileName, 'w') or die("can't open file");
+			$ourFileHandle = fopen($ourFileName, 'w')  ;
+			fwrite($ourFileHandle, $strxml);
+			fclose($ourFileHandle);
+			$this->Session->write('isNewcropCalledOnce','yes');
+			return $strxml;
+		}
+
+
+
+	}
+	public function dxhistory($id=null){
+
+		$this->uses = array('NoteDiagnosis');
+		$this->layout = false ;
+		$this->patient_info($id);
+		$patientData= $this->patient_details;
+		$icd_imo=$this->NoteDiagnosis->find('all',array('conditions'=>array('NoteDiagnosis.is_deleted'=>0,'NoteDiagnosis.is_reconcile'=>0,
+				'NoteDiagnosis.u_id'=>$patientData['Patient']['patient_id']),'order'=>'NoteDiagnosis.patient_id DESC'));
+		//debug($icd_imo);exit;
+		$this->set('icd_imo',$icd_imo);
+		$this->set('patientId',$id);
+	}
+
+
+	public function edit_diagnosis($id=null,$icd=null)
+	{
+		$this->layout = false ;
+		$this->uses = array('icds','Patient','NoteDiagnosis');
+		$edit_makediagnosis=$this->NoteDiagnosis->find('all',array('conditions'=>array('patient_id'=>$id,'icd_id'=>$icd)));
+		$this->set('edit_makediagnosis',$edit_makediagnosis);
+		//--------------------------------------------aditya snomed code-------------------------------------------------------------
+
+		$edit_makediagnosis_count=$this->NoteDiagnosis->find('count' ,array('conditions'=>array('patient_id'=>$id,'icd_id'=>$icd)));
+
+		$edit_makediagnosis=$this->NoteDiagnosis->find('all',array('conditions'=>array('patient_id'=>$id,'icd_id'=>$icd)));
+		$this->set('edit_makediagnosis',$edit_makediagnosis);
+
+		if($edit_makediagnosis_count > 0){
+
+			$start_dt= $this->request->data[start_dt];
+			$end_dt=  $this->request->data[end_dt];
+			$comment=  $this->request->data[comment];
+			$prev_comment=  $this->request->data[prev_comment];
+			$disease_status=  $this->request->data[disease_status];
+
+			//$this->NoteDiagnosis->updateAll(array('start_dt'=>"'$start_dt'",'end_dt'=>"'$end_dt'",
+			//	'comment'=>"'$comment'",
+			//	'prev_comment'=>"'$prev_comment'",'disease_status'=>"'$disease_status'"),array('patient_id'=>$id,'icd_id'=>$icd));
+
+
+		}
+		else {
+			$start_dt= $this->request->data[start_dt];
+			$end_dt=  $this->request->data[end_dt];
+			$comment=  $this->request->data[comment];
+			$prev_comment=  $this->request->data[prev_comment];
+			$disease_status=  $this->request->data[disease_status];
+			$this->NoteDiagnosis->saveAll(array('start_dt'=>"$start_dt",'end_dt'=>"$end_dt",
+					'comment'=>"$comment",'icd_id'=>"$icd",'disease_status'=>"$disease_status",
+					'prev_comment'=>"'$prev_comment",'patient_id' =>"$id"));
+		}
+		//-------------------------------------------------end-------------------------------------------------------------------------
+		$icd1  = $this->icds->find('all',array('fields'=>array('id','icd_code','description'),'conditions'=>array('id'=>$icd)));
+		$p_name  = $this->Patient->find('all',array('fields'=>array('lookup_name'),'conditions'=>array('id'=>$id)));
+		$icd1[0][icds][p_name] = $p_name[0][Patient][lookup_name];
+		$icd1[0][icds][p_id] = $id;
+		$icd1[0][icds][note_id] = $note_id;
+		$icd1[0][icds][icd_snomed] = $icd;
+		$this->set('icd', $icd1);
+
+		/*if (!empty($this->request->data)) {
+
+		if($this->NoteDiagnosis->insertNoteDiagnosis($this->request->data)){
+		$this->Session->setFlash(__('Patient Diagnosis Added Successfully' ),true,array('class'=>'message'));
+
+		}else{
+		$this->Session->setFlash(__('Please Try Again' ),true,array('class'=>'error'));
+			
+		}
+		}*/
+	}
+
+	//------EOF---Gaurav---------
+	/**
+	 * $perpose print first section page of patient diagnosis form
+	 * @param $patient_id
+	 * @return unknown_type
+	 */
+
+
+	public function edit_diagno($id=null,$icd=null,$note_dig=null)
+	{
+
+		$this->layout=false;
+		$this->uses = array('Patient','NoteDiagnosis');
+
+		if(!empty($this->request->data['NoteDiagnosis'])){
+
+			if($this->request->data['NoteDiagnosis']['start_dt']){
+				$this->request->data['NoteDiagnosis']['start_dt']= $this->DateFormat->formatDate2STD($this->request->data['NoteDiagnosis']['start_dt'],Configure::read('date_format_us'));
+			}
+			if($this->request->data['NoteDiagnosis']['end_dt']){
+				$this->request->data['NoteDiagnosis']['end_dt']=  $this->DateFormat->formatDate2STD($this->request->data['NoteDiagnosis']['end_dt'],Configure::read('date_format_us'));
+			}
+			$this->NoteDiagnosis->save($this->request->data);
+		}
+
+		//$note  = $this->NoteDiagnosis->find('all',array('conditions'=>array('patient_id'=>$id,'snowmedid'=>trim($icd))));
+		$note  = $this->NoteDiagnosis->find('first',array('conditions'=>array('id'=>$note_dig)));
+		$p_name  = $this->Patient->find('first',array('fields'=>array('lookup_name'),'conditions'=>array('id'=>$id)));
+		$this->set(array('patient'=>$p_name));
+
+		if(!empty($note['NoteDiagnosis']['start_dt'])){
+
+			$note['NoteDiagnosis']['start_dt'] = $this->DateFormat->formatDate2Local($note['NoteDiagnosis']['start_dt'],'mm/dd/yyyy',false);
+
+		}
+
+		if(!empty($note['NoteDiagnosis']['end_dt'])){
+			$note['NoteDiagnosis']['end_dt'] = $this->DateFormat->formatDate2Local($note['NoteDiagnosis']['end_dt'],'mm/dd/yyyy',false);
+		}
+
+			
+		$this->data = $note ;
+		/* $icd_val[0][icds][p_name] = $p_name[0][Patient][lookup_name];
+		 $icd_val[0][icds][p_id] =  $id;
+		$icd_val[0][icds][start_dt] = $this->DateFormat->formatDate2Local($note[0][NoteDiagnosis][start_dt],Configure::read('date_format_us'),false);
+		$icd_val[0][icds][end_dt] = $this->DateFormat->formatDate2Local($note[0][NoteDiagnosis][end_dt],Configure::read('date_format_us'),false);
+		$icd_val[0][icds][comment] = $note[0][NoteDiagnosis][comment];
+		$icd_val[0][icds][prev_comment] = $note[0][NoteDiagnosis][prev_comment];
+		$icd_val[0][icds][disease_status] = $note[0][NoteDiagnosis][disease_status];
+		$icd_val[0][icds][id] = $note[0][NoteDiagnosis][id];
+		$icd_val[0][icds][diagnoses_name] = $note[0][NoteDiagnosis][diagnoses_name];
+		$icd_val[0][icds][snowmedid] = $note[0][NoteDiagnosis][snowmedid];
+		$icd_val[0][icds][icd_id] = $note[0][NoteDiagnosis][icd_id]; */
+
+		///$this->set('icd', $icd_val);
+
+	}
+
+	public function allallergies($patient_id=null,$id=null,$action=null,$patientUid=null){
+		$this->uses = array('Language','NewCropAllergies','Patient','Note','icds','DrugAllergy','Diagnosis');
+		$this->layout ="advance_ajax" ;
+		$this->set('patient_id',$patient_id);
+		if($this->request['isAjax']){
+			$this->NewCropAllergies->insertRecord($patient_id,$this->request->data,$action);
+			$status='success';
+			$this->set('status',$status);
+			exit;
+		}
+		if (!empty($this->request->data)){
+			$this->request->data['NewCropAllergies']['location_id']=$this->Session->read('locationid');
+			$this->request->data["NewCropAllergies"]['onset_date']=$this->DateFormat->formatDate2STD($this->request->data["NewCropAllergies"]['onset_date'],Configure::read('date_format'));
+			$isAllergyExist=$this->NewCropAllergies->find('first',array('fields'=>'NewCropAllergies.id','conditions'=>array('NewCropAllergies.patient_uniqueid'=>$this->request->data["NewCropAllergies"]['patient_uniqueid'],'NewCropAllergies.name'=>$this->request->data['NewCropAllergies']['name'])));
+			if($isAllergyExist['NewCropAllergies']['id'] == '' || !empty($this->request->data['NewCropAllergies']['id'])){
+				if ($this->NewCropAllergies->save($this->request->data)){
+					if(!empty($this->request->data['NewCropAllergies']['id'])){
+						$this->Session->setFlash(__('Allergy updated successfully'),'default',array('class'=>'message'));
+						$status='success';
+						$this->set('status',$status);
+					}
+					else {
+						$this->Session->setFlash(__('Allergy saved successfully'),true);
+						$status='success';
+						$this->set('status',$status);
+
+					}
+					//$this->redirect(array('action'=>'allallergies',$patient_id));
+				} else {
+					$this->Session->setFlash('Unable to add your Allergy.');
+				}
+			}else{
+				$this->Session->setFlash(__('Allergy already exist'),'default',array('class'=>'error'));
+				$this->redirect(array('action'=>'allallergies',$patient_id));
+			}
+		}
+		else if(!empty($id) && ($id != 0)){
+			$var=$this->NewCropAllergies->find('first',array('fields'=>array('id','name','status','onset_date','reaction','AllergySeverityName'),
+					'conditions'=>array('NewCropAllergies.id'=>$id)));
+			$this->set(compact('var'));
+			$var['NewCropAllergies']['onset_date'] = $this->DateFormat->formatDate2Local($var['NewCropAllergies']['onset_date'],Configure::read('date_format_us'),false);
+			$this->request->data=$var;
+			if ($this->request->is('post') || $this->request->is('put')) {
+				$this->NewCropAllergies->id = $id;
+			}
+		}
+		//$this->patient_info($patient_id);
+		//$patientUID = $this->Patient->find('first',array('fields'=>array('patient_id'),'conditions'=>array('Patient.id'=> $patient_id)));
+		if(isset($patientUid) && !empty($patientUid)){
+			$patientIdArray = $this->Patient->find('list',array('fields'=>array('id'),'conditions'=>array('Patient.patient_id'=> $patientUid)));
+			$previousEnc = true;
+		}else{
+			$patientIdArray = $patient_id;
+			$previousEnc = false;
+		}
+		$allergies_data=$this->NewCropAllergies->find('all',array('conditions'=>array('NewCropAllergies.patient_uniqueid'=>$patientIdArray,'NewCropAllergies.is_reconcile'=>0,'NewCropAllergies.location_id'=>$this->Session->read('locationid'))
+				,'order' => array('NewCropAllergies.patient_id DESC')
+		));
+		$this->set('allergies_data',$allergies_data);
+		$this->set(array('patientId'=>$patient_id,'previousEnc'=>$previousEnc));
+	}
+
+	public function temp_chart($id=null) {
+
+		//debug($patient_id)
+		$this->layout=false;
+		$this->set('title_for_layout', __('Temperature Chart', true));
+		$this->uses = array('BmiResult');
+		$this->BmiResult->bindModel( array(
+				'belongsTo' => array(
+						'Patient'=>array('conditions'=>array('BmiResult.patient_id=Patient.id'),'foreignKey'=>false)
+				)
+		));
+		$patientPersonId = $this->Patient->find('first',array('fields'=>array('Patient.person_id'),
+				'conditions'=>array('Patient.id'=>$id)));
+		$patientIDs=$this->Patient->find('list',array('fields'=>array('Patient.id'),'conditions'=>array('Patient.person_id'=>$patientPersonId['Patient']['person_id'])));
+		$temp_datas = $this->BmiResult->find('all',array('fields'=>array('BmiResult.id,BmiResult.temperature,BmiResult.temperature1,BmiResult.temperature2,BmiResult.myoption,BmiResult.myoption1,BmiResult.myoption2,BmiResult.equal_value,BmiResult.equal_value1,BmiResult.equal_value2,BmiResult.temperature_date,BmiResult.temperature_date1,BmiResult.temperature_date2,BmiResult.patient_id','Patient.lookup_name'),
+				'conditions'=>array('BmiResult.patient_id'=>$patientIDs),'order'=>array('BmiResult.temperature_date ASC')));
+		debug($temp_datas);
+		foreach($temp_datas as $data){
+			$date=explode(' ',$data['BmiResult']['temperature_date']);
+			if($data['BmiResult']['myoption']=='F'){
+				$split=explode(' ',$data['BmiResult']['equal_value']);
+				$temp[$data['BmiResult']['temperature_date']]=$split[0];
+			}else if($data['BmiResult']['myoption']=='C'){
+				$temp[$data['BmiResult']['temperature_date']]= $data['BmiResult']['temperature'];
+			}
+
+			$date=explode(' ',$data['BmiResult']['temperature_date1']);
+			if($data['BmiResult']['myoption1']=='F'){
+				$split=explode(' ',$data['BmiResult']['equal_value1']);
+				$temp[$data['BmiResult']['temperature_date1']]=$split[0];
+			}else if($data['BmiResult']['myoption1']=='C'){
+				$temp[$data['BmiResult']['temperature_date1']]= $data['BmiResult']['temperature1'];
+			}
+
+			$date=explode(' ',$data['BmiResult']['temperature_date2']);
+			if($data['BmiResult']['myoption2']=='F'){
+				$split=explode(' ',$data['BmiResult']['equal_value2']);
+				$temp[$data['BmiResult']['temperature_date2']]=$split[0];
+			}else if($data['BmiResult']['myoption2']=='C'){
+				$temp[$data['BmiResult']['temperature_date2']]= $data['BmiResult']['temperature2'];
+			}
+		}
+		$patientLookUp=$temp_datas[0]['Patient']['lookup_name'];
+		
+		/*foreach($temp_datas as $key => $value){
+			//split date edited by pankaj w
+		$dateOnly = explode(" ",$value['Note']['note_date']);
+		if(!empty($value['Note']['temp'])){
+		$data[$dateOnly[0]] = $value ;
+		}
+		}*/
+		//debug($temp_datas);
+		$this->set('temp_datas',$temp);
+		$this->set('patient',$patientLookUp);
+
+	}
+
+	public function pr_chart($id=null) {
+		$this->layout=false;
+		$this->set('title_for_layout', __('P.R Chart', true));
+		$this->uses = array('BmiResult');
+		$this->BmiResult->bindModel( array(
+				'belongsTo' => array(
+						'Patient'=>array('conditions'=>array('BmiResult.patient_id=Patient.id'),'foreignKey'=>false),
+						'BmiBpResult'=>array('conditions'=>array('BmiResult.id=BmiBpResult.bmi_result_id'),'foreignKey'=>false),
+				)
+		));
+		$patientPersonId = $this->Patient->find('first',array('fields'=>array('Patient.person_id'),
+				'conditions'=>array('Patient.id'=>$id)));
+		$patientIDs=$this->Patient->find('list',array('fields'=>array('Patient.id'),'conditions'=>array('Patient.person_id'=>$patientPersonId['Patient']['person_id'])));
+		$temp_datas = $this->BmiResult->find('all',array('fields'=>array('BmiResult.id,BmiBpResult.pulse_text,BmiBpResult.pulse_text1,BmiBpResult.pulse_text2,BmiResult.heart_rate_date,BmiResult.heart_rate_date1,BmiResult.heart_rate_date2,BmiResult.patient_id','Patient.lookup_name'),
+				'conditions'=>array('BmiResult.patient_id'=>$patientIDs,'BmiBpResult.pulse_text NOT'=>NULL),'order'=>array('BmiResult.heart_rate_date ASC')));
+		//debug($temp_datas);exit;
+		foreach($temp_datas as $data){
+			$temp[$data['BmiResult']['heart_rate_date']]=$data['BmiBpResult']['pulse_text'];
+			$temp[$data['BmiResult']['heart_rate_date1']]=$data['BmiBpResult']['pulse_text1'];
+			$temp[$data['BmiResult']['heart_rate_date2']]=$data['BmiBpResult']['pulse_text2'];
+
+		}
+		$patientLookUp=$temp_datas[0]['Patient']['lookup_name'];
+		$this->set('temp_datas',$temp);
+		$this->set('patient',$patientLookUp);
+	}
+
+	public function rr_chart($id=null) {
+		$this->layout=false;
+		$this->set('title_for_layout', __('R.R Chart', true));
+		$this->uses = array('BmiResult');
+		$this->BmiResult->bindModel( array(
+				'belongsTo' => array(
+						'Patient'=>array('conditions'=>array('BmiResult.patient_id=Patient.id'),'foreignKey'=>false),
+						'BmiBpResult'=>array('conditions'=>array('BmiResult.id=BmiBpResult.bmi_result_id'),'foreignKey'=>false),
+				)
+		));
+		$patientPersonId = $this->Patient->find('first',array('fields'=>array('Patient.person_id'),
+				'conditions'=>array('Patient.id'=>$id)));
+		$patientIDs=$this->Patient->find('list',array('fields'=>array('Patient.id'),'conditions'=>array('Patient.person_id'=>$patientPersonId['Patient']['person_id'])));
+		$temp_datas = $this->BmiResult->find('all',array('fields'=>array('BmiResult.id,BmiResult.respiration,BmiResult.rr_date,BmiResult.patient_id','Patient.lookup_name'),
+				'conditions'=>array('BmiResult.patient_id'=>$patientIDs,'BmiResult.respiration NOT'=>NULL),'order'=>array('BmiResult.rr_date ASC')));
+		foreach($temp_datas as $data){
+			$temp[$data['BmiResult']['rr_date']]=$data['BmiResult']['respiration'];
+
+		}
+		$patientLookUp=$temp_datas[0]['Patient']['lookup_name'];
+		$this->set('temp_datas',$temp);
+		$this->set('patient',$patientLookUp);
+
+	}
+
+	public function bp_chart($id=null) {
+		$this->layout=false;
+		$this->set('title_for_layout', __('B.P Chart', true));
+		$this->uses = array('BmiResult');
+
+		$this->BmiResult->bindModel( array(
+				'belongsTo' => array(
+						'Patient'=>array('conditions'=>array('BmiResult.patient_id=Patient.id'),'foreignKey'=>false),
+						'BmiBpResult'=>array('conditions'=>array('BmiResult.id=BmiBpResult.bmi_result_id'),'foreignKey'=>false),
+				)
+		));
+		$patientPersonId = $this->Patient->find('first',array('fields'=>array('Patient.person_id'),
+				'conditions'=>array('Patient.id'=>$id)));
+		$patientIDs=$this->Patient->find('list',array('fields'=>array('Patient.id'),'conditions'=>array('Patient.person_id'=>$patientPersonId['Patient']['person_id'])));
+		$temp_datas = $this->BmiResult->find('all',array('fields'=>array('BmiResult.id,BmiBpResult.systolic,BmiBpResult.systolic1,BmiBpResult.systolic2,BmiBpResult.diastolic,BmiBpResult.diastolic1,BmiBpResult.diastolic2,BmiResult.bp_date,BmiResult.bp_date1,BmiResult.bp_date2,BmiResult.patient_id','Patient.lookup_name'),
+				'conditions'=>array('BmiResult.patient_id'=>$patientIDs,'BmiBpResult.systolic NOT'=>NULL,'BmiBpResult.diastolic NOT'=>NULL),'order'=>array('BmiResult.bp_date ASC')));
+		//debug($temp_datas);exit;
+		foreach($temp_datas as $data){
+			$temp[$data['BmiResult']['bp_date']]['systolic']=$data['BmiBpResult']['systolic'];
+			$temp[$data['BmiResult']['bp_date']]['diastolic']=$data['BmiBpResult']['diastolic'];
+
+			$temp[$data['BmiResult']['bp_date1']]['systolic']=$data['BmiBpResult']['systolic1'];
+			$temp[$data['BmiResult']['bp_date1']]['diastolic']=$data['BmiBpResult']['diastolic1'];
+
+			$temp[$data['BmiResult']['bp_date2']]['systolic']=$data['BmiBpResult']['systolic2'];
+			$temp[$data['BmiResult']['bp_date2']]['diastolic']=$data['BmiBpResult']['diastolic2'];
+
+		}
+		$patientLookUp=$temp_datas[0]['Patient']['lookup_name'];
+		$this->set('temp_datas',$temp);
+		$this->set('patient',$patientLookUp);
+	}
+
+	public function spo2_chart($id=null) {
+			
+		$this->layout=false;
+		$this->set('title_for_layout', __('SpO2 Chart', true));
+		$this->uses = array('BmiResult');
+		$this->BmiResult->bindModel( array(
+				'belongsTo' => array(
+						'Patient'=>array('conditions'=>array('BmiResult.patient_id=Patient.id'),'foreignKey'=>false),
+						'BmiBpResult'=>array('conditions'=>array('BmiResult.id=BmiBpResult.bmi_result_id'),'foreignKey'=>false),
+				)
+		));
+		$patientPersonId = $this->Patient->find('first',array('fields'=>array('Patient.person_id'),
+				'conditions'=>array('Patient.id'=>$id)));
+		$patientIDs=$this->Patient->find('list',array('fields'=>array('Patient.id'),'conditions'=>array('Patient.person_id'=>$patientPersonId['Patient']['person_id'])));
+		$temp_datas = $this->BmiResult->find('all',array('fields'=>array('BmiResult.id,BmiResult.spo,BmiResult.spo_date,BmiResult.patient_id','Patient.lookup_name'),
+				'conditions'=>array('BmiResult.patient_id'=>$patientIDs,'BmiResult.spo NOT'=>NULL,'BmiResult.spo NOT'=>''),'order'=>array('BmiResult.spo_date ASC')));
+		foreach($temp_datas as $data){
+			$temp[$data['BmiResult']['spo_date']]=$data['BmiResult']['spo'];
+
+		}
+		$patientLookUp=$temp_datas[0]['Patient']['lookup_name'];
+		$this->set('temp_datas',$temp);
+		$this->set('patient',$patientLookUp);
+	}
+
+	public function hgb_chart($id=null,$patienUid) {
+		$this->layout=false;
+		$this->uses=array('Patient','LaboratoryResult','LaboratoryHl7Result','LaboratoryTestOrder');
+		$this->Patient->unBindModel(array(
+				'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+
+		$patientIds = $this->Patient->find('list',array('fields'=>array('id','id'),
+				'conditions'=>array('Patient.patient_id'=>$patienUid)));
+		$patientLookUp = $this->Patient->find('all',array('fields'=>array('lookup_name'),
+				'conditions'=>array('Patient.patient_id'=>$patienUid)));
+			
+		$labResult=$this->LaboratoryResult->find('list',array('fields'=>array('id','id'),'conditions'=>array('LaboratoryResult.patient_id'=>$patientIds)));
+			
+		$labHl= $this->LaboratoryHl7Result->find('all',array('fields'=>array('result','uom','range','abnormal_flag','status','date_time_of_observation'),'conditions'=>array(
+				'LaboratoryHl7Result.laboratory_result_id'=>$labResult,'LaboratoryHl7Result.observations'=>'718-7')));
+		$this->set('labResults',$labHl);
+		$this->set('patients',$patientIds);
+
+		/* $patientIds = $this->Patient->find('list',array('fields'=>array('id','id'),
+		 'conditions'=>array('Patient.patient_id'=>$patienUid)));
+			
+		$labResult=$this->LaboratoryResult->find('list',array('fields'=>array('id','id'),'conditions'=>array('LaboratoryResult.patient_id'=>$patientIds)));
+			
+		$labHl= $this->LaboratoryHl7Result->find('all',array('fields'=>array('result','uom','range','abnormal_flag','status','date_time_of_observation'),'conditions'=>array(
+				'LaboratoryHl7Result.laboratory_result_id'=>$labResult,'LaboratoryHl7Result.observations'=>'718-7')));
+		$this->set('labResults',$labHl);
+		$this->set('patients',$patientIds); */
+
+		$this->set('patient',$patientLookUp);
+
+	}
+
+	public function cbc_chart($id=null,$patienUid) {
+		$this->layout=false;
+		$this->uses=array('Patient','LaboratoryResult','LaboratoryHl7Result','LaboratoryTestOrder');
+		$this->Patient->unBindModel(array(
+				'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+		$patientIds = $this->Patient->find('list',array('fields'=>array('id','id'),
+				'conditions'=>array('Patient.patient_id'=>$patienUid)));
+		$patientLookUp = $this->Patient->find('all',array('fields'=>array('lookup_name','admission_type'),
+				'conditions'=>array('Patient.patient_id'=>$patienUid)));
+		$labResult=$this->LaboratoryResult->find('list',array('fields'=>array('id','id'),'conditions'=>array('LaboratoryResult.patient_id'=>$patientIds)));
+		// observation code for haemoglobin=718-7, cbc=57782-5, hematocrit=20570-8, leukocytes=26464-8, platelets=26515-7,erythocyte=26453-1
+		$observationCodeArray = array('718-7', '20570-8', '26464-8', '26515-7','26453-1');
+		$labHl= $this->LaboratoryHl7Result->find('all',array('fields'=>array('observations','result','uom','range','abnormal_flag','status','date_time_of_observation'),
+				'conditions'=>array('LaboratoryHl7Result.laboratory_result_id'=>$labResult,'LaboratoryHl7Result.observations'=>$observationCodeArray),'order' => array('LaboratoryHl7Result.date_time_of_observation ASC')));
+		$labDate= $this->LaboratoryHl7Result->find('all',array('fields'=>array('max(date_time_of_observation) as max','min(date_time_of_observation) as min'),
+				'conditions'=>array('LaboratoryHl7Result.laboratory_result_id'=>$labResult,'LaboratoryHl7Result.observations'=>$observationCodeArray)));
+		//CBC date for opd patient
+		$admType=$this->Patient->read('admission_type', $id);
+
+		if($admType['Patient']['admission_type']=='OPD')
+		{
+			$labOPD= $this->LaboratoryHl7Result->find('all',array('fields'=>array('observations','result','uom','range','abnormal_flag','status','date_time_of_observation'),
+					'conditions'=>array('LaboratoryHl7Result.laboratory_result_id'=>$labResult,'LaboratoryHl7Result.observations'=>'26464-8'),'order' => array('LaboratoryHl7Result.date_time_of_observation ASC')));
+			//debug($labOPD);
+			$this->set('labOPD',$labOPD);
+		}
+		//debug($labHl);
+		/* foreach($labHl as $lab)
+		 {
+		$var=date('Y-m-d',strtotime($lab['LaboratoryHl7Result']['date_time_of_observation']));
+
+		$labRes[$var][$lab['LaboratoryHl7Result']['observations']]=$lab['LaboratoryHl7Result']['result'];
+		} */
+		//debug($labRes);//exit;
+		$this->set('labDate',$labDate);
+		$this->set('labResults',$labHl);
+		$this->set('patients',$patientIds);
+		$this->set('patient',$patientLookUp);
+
+	}
+
+	public function glucose_chart($id=null,$patienUid) {
+		$this->layout=false;
+		$this->uses=array('Patient','LaboratoryResult','LaboratoryHl7Result','LaboratoryTestOrder');
+		$this->Patient->unBindModel(array(
+				'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+
+		$patientIds = $this->Patient->find('list',array('fields'=>array('id','id'),
+				'conditions'=>array('Patient.patient_id'=>$patienUid)));
+		$patientLookUp = $this->Patient->find('all',array('fields'=>array('lookup_name'),
+				'conditions'=>array('Patient.patient_id'=>$patienUid)));
+		$this->LaboratoryResult->bindModel( array(
+				'belongsTo' => array(
+						'Laboratory'=>array('foreignKey'=>'laboratory_id'),
+				)));
+		$labResult=$this->LaboratoryResult->find('list',array('fields'=>array('id','id'),'conditions'=>array('LaboratoryResult.patient_id'=>$patientIds,'Laboratory.name LIKE'=>"%".Configure::read('testGroup_glucose')."%"),'recursive'=>1));
+			
+			
+		$labHl= $this->LaboratoryHl7Result->find('all',array('fields'=>array('result','uom','range','abnormal_flag','status','date_time_of_observation'),'conditions'=>array(
+				'LaboratoryHl7Result.laboratory_result_id'=>$labResult),'order' => array('LaboratoryHl7Result.date_time_of_observation ASC')));
+			
+		$this->set('labResults',$labHl);
+		$this->set('patients',$patientIds);
+			
+
+		/* $patientIds = $this->Patient->find('list',array('fields'=>array('id','id'),
+		 'conditions'=>array('Patient.patient_id'=>$patienUid)));
+			
+		$labResult=$this->LaboratoryResult->find('list',array('fields'=>array('id','id'),'conditions'=>array('LaboratoryResult.patient_id'=>$patientIds)));
+			
+			
+		$labHl= $this->LaboratoryHl7Result->find('all',array('fields'=>array('result','uom','range','abnormal_flag','status','date_time_of_observation'),'conditions'=>array(
+				'LaboratoryHl7Result.laboratory_result_id'=>$labResult,'LaboratoryHl7Result.observations'=>'2345-7')));
+			
+		$this->set('labResults',$labHl);
+		$this->set('patients',$patientIds);
+		*/
+		//debug($patientLookUp);
+		$this->set('patient',$patientLookUp);
+			
+	}
+
+	public function lft_chart($id=null,$patienUid) {
+		//echo"<pre>";print_r($id);exit;
+		//debug($patient_id)
+		$this->layout=false;
+		$this->set('title_for_layout', __('P.R Chart', true));
+		$this->uses = array('Patient','Diagnosis','LaboratoryHl7Result','LaboratoryResult','Person');
+
+		$this->LaboratoryResult->bindModel( array(
+				'hasMany' => array(
+						'LaboratoryHl7Result'=>array('foreignKey'=>'laboratory_result_id',
+								'conditions'=>array(array('LaboratoryHl7Result.observations'=>'1975-2') || array('LaboratoryHl7Result.observations'=>'1968-7')))
+
+				)
+		));
+		$patientIds = $this->Patient->find('all',array('fields'=>array('id'),'conditions'=>array('Patient.patient_id'=>$patienUid)));
+		$patIds = array();
+		foreach ($patientIds as $ids){
+			array_push($patIds, $ids['Patient']['id']);
+		}
+		$labResults = $this->LaboratoryResult->find('all',array('conditions'=>array("LaboratoryResult.patient_id" => $patIds)));
+		$this->LaboratoryResult->bindModel( array(
+				'belongsTo' => array(
+						'Patient'=>array('conditions'=>array('LaboratoryResult.patient_id=Patient.id'),'foreignKey'=>false)
+				)
+		));
+		$patients = $this->LaboratoryResult->find('all',array('fields'=>array('Patient.lookup_name'),'conditions'=>array('LaboratoryResult.patient_id'=>$id)));
+		//debug($this->LaboratoryResult->getDataSource()->getLog(false, false));
+		//echo '<pre>';print_r($labResults);exit;
+		$this->set('labResults',$labResults);
+		$this->set('patients',$patients);
+
+	}
+
+
+	public function rxhistory($patientId=null,$patientUid=null,$appId=null){
+		$this->uses = array('NewCropPrescription','Patient','VerifyMedicationOrder','User');
+		$this->layout = 'advance' ;
+		$this->set('appId',$appId);
+		//$this->patient_info($patientId);
+		//$patientData = $this->patient_details;
+		$patientIdArray = $this->Patient->find('list',array('fields'=>array('id'),
+				'conditions'=>array('Patient.patient_id'=>$patientUid)));
+		/*$this->paginate = array(
+		 'limit' => Configure::read('number_of_rows'),
+				'order' => array('NewCropPrescription.id' => 'desc'),
+				'fields'=> array('id','description','date_of_prescription','rxnorm','archive','route',
+						'frequency','dose','firstdose','prn','stopdose'),
+
+		);*/
+		$this->NewCropPrescription->bindModel(array('belongsTo' => array(
+				'User' =>array('foreignKey'=>false, 'conditions' => array('NewCropPrescription.created_by=User.id')),
+		)),false);
+		$allMedications=$this->NewCropPrescription->find('all',
+				array('fields'=>array('id','description','date_of_prescription','rxnorm','archive','route',
+						'frequency','dose','firstdose','prn','stopdose','patient_uniqueid','drug_id','drug_name','is_med_administered','is_a_herbal_therapy',
+						'is_a_supplement','had_difficulty','side_effects','took_medication','taking_medication','modified','created','refusetotakeimmunization','created_by',
+						'User.id','User.first_name','User.last_name'),
+						'conditions'=>array('patient_uniqueid'=>$patientIdArray,'archive'=>'N','is_assessment'=>'0')));// OR in assessment By Aditya
+
+		$allPastMedications=$this->NewCropPrescription->find('all',array('fields'=>array('id','description','date_of_prescription','rxnorm','archive','route',
+				'frequency','dose','firstdose','prn','stopdose','patient_uniqueid','drug_id','drug_name','is_med_administered','is_assessment','last_dose','modified'),'conditions'=>array('patient_uniqueid'=>$patientIdArray,'archive'=>'Y')
+				,'group'=>array('NewCropPrescription.drug_id')));
+			
+		$alltookkMedications=$this->NewCropPrescription->find('first',array('fields'=>array('id','took_medication'),'conditions'=>array('patient_uniqueid'=>$patientId)));
+		$allHealthMedications=$this->NewCropPrescription->find('first',array('fields'=>array('id','health_literacy'),'conditions'=>array('patient_uniqueid'=>$patientId)));
+		$this->set('allHealthMedications',$allHealthMedications);
+		$this->set('alltookkMedications',$alltookkMedications);
+		$this->set('allPastMedications',$allPastMedications);
+		$this->set('patientId',$patientId);
+		$this->set('patientUid',$patientUid);
+		$this->set('allMedications',$allMedications);
+		foreach($allMedications as $medStatus){
+			$checkStatus[$medStatus['NewCropPrescription']['id']] = array(
+					'had_difficulty'=>array('name'=>'Had difficulty in taking Medication','icon'=>$medStatus['NewCropPrescription']['had_difficulty']
+							,'className'=>($medStatus['NewCropPrescription']['had_difficulty'])? 'green' : 'black'),
+					/*'is_a_herbal_therapy'=>array('name'=>'Is a Herbal Therapy','icon'=>$medStatus['NewCropPrescription']['is_a_herbal_therapy']
+					 ,'className'=>($medStatus['NewCropPrescription']['is_a_herbal_therapy'])? 'green' : 'black'),
+			'is_a_supplement'=>array('name'=>'Is a Supplement','icon'=>$medStatus['NewCropPrescription']['is_a_supplement']
+					,'className'=>($medStatus['NewCropPrescription']['is_a_supplement'])? 'green' : 'black'),*/
+					'side_effects'=>array('name'=>'Had Side Effects','icon'=>$medStatus['NewCropPrescription']['side_effects']
+							,'className'=>($medStatus['NewCropPrescription']['side_effects'])? 'green' : 'black'),
+					'taking_medication'=>array('name'=>'Reported Interaction on Taking Medication',
+							'icon'=>$medStatus['NewCropPrescription']['taking_medication']
+							,'className'=>($medStatus['NewCropPrescription']['taking_medication'])? 'green' : 'black'));
+		}
+		$getVerifyMedicationOrder=$this->VerifyMedicationOrder->find('list',array('fields'=>array('id','newcrop_id'),'conditions'=>array('patient_id'=>$patientId)));
+		$roleMedical=$this->Session->read('role');
+		$this->set('roleMedical',$roleMedical);
+		$this->set('getVerifyMedicationOrderId',$getVerifyMedicationOrder);
+		$this->set('checkStatus',json_encode($checkStatus));
+	}
+	public function updateMedicationRgtClk(){
+		$this->uses=array('NewCropPrescription');
+		$this->request->data['NewCropPrescription']['id']=$this->request->data['id'];
+		$this->request->data['NewCropPrescription'][$this->request->data['field']]= $this->request->data['value'];
+		if($this->request->data['field']=='is_a_herbal_therapy'){
+			$this->request->data['NewCropPrescription']['is_a_herbal_therapy_date_time']= date("Y-m-d H:i:s");
+		}
+		if($this->request->data['field']=='is_a_supplement'){
+			$this->request->data['NewCropPrescription']['is_a_supplement_date_time']= date("Y-m-d H:i:s");
+		}
+		if($this->request->data['field']=='had_difficulty'){
+			$this->request->data['NewCropPrescription']['had_difficulty_date_time']= date("Y-m-d H:i:s");
+		}
+		if($this->request->data['field']=='side_effects'){
+			$this->request->data['NewCropPrescription']['side_effects_date_time']= date("Y-m-d H:i:s");
+		}
+		if($this->request->data['field']=='taking_medication'){
+			$this->request->data['NewCropPrescription']['taking_medication_date_time']= date("Y-m-d H:i:s");
+		}
+		//	debug($this->request->data['NewCropPrescription']);
+		$this->NewCropPrescription->save($this->request->data['NewCropPrescription']);
+		exit;
+	}
+
+	public function updateTookMedMedicationCheck(){
+		$this->uses=array('NewCropPrescription');
+		$this->request->data['NewCropPrescription']['patient_uniqueid']=$this->request->data['id'];
+		$took_medication=$this->request->data['value'];
+		$this->NewCropPrescription->updateAll( array('NewCropPrescription.took_medication'=>"'".$took_medication."'"),
+				array('NewCropPrescription.patient_uniqueid'=>$this->request->data['NewCropPrescription']['patient_uniqueid']));
+		exit;
+	}
+	public function updateTookHealthLiteracyCheck(){
+		$this->uses=array('NewCropPrescription');
+		$this->request->data['NewCropPrescription']['patient_uniqueid']=$this->request->data['id'];
+		$health_literacy=$this->request->data['value'];
+		$this->NewCropPrescription->updateAll( array('NewCropPrescription.health_literacy'=>"'".$health_literacy."'"),
+				array('NewCropPrescription.patient_uniqueid'=>$this->request->data['NewCropPrescription']['patient_uniqueid']));
+		exit;
+	}
+
+
+	//checkbox action for medication--------------
+	public function save_checkinforx($patientid=null,$checkrx=null,$patient_uid=null){
+		$session = new cakeSession();
+		$patient_id=$this->Session->read('patientId');
+
+		$this->uses = array('NewCropPrescription','Patient');
+
+		if($checkrx=='1'){
+
+
+			$ChecktTest= array();
+			$ChecktTest['NewCropPrescription']['description'] = 'No active medication';
+			$ChecktTest['NewCropPrescription']['uncheck'] = $checkrx;
+			$ChecktTest['NewCropPrescription']['location_id'] = $this->Session->read('locationid');
+			$ChecktTest['NewCropPrescription']['date_of_prescription'] = date("Y-m-d H:i:s");
+			$ChecktTest['NewCropPrescription']['drm_date'] = date("Y-m-d");
+			$ChecktTest['NewCropPrescription']['patient_uniqueid'] = $patientid;
+			$ChecktTest['NewCropPrescription']['patient_id'] = $patient_uid;
+			if(!empty($ChecktTest['NewCropPrescription']['description'])){
+				$this->NewCropPrescription->save($ChecktTest);
+				exit;
+			}
+		}
+
+
+		if($checkrx=='0'){
+			$this->NewCropPrescription->deleteAll(array('NewCropPrescription.patient_uniqueid' => $patientid,'NewCropPrescription.description'=> 'No active medication'));
+			exit;
+		}
+	}
+
+
+	//checkbox action for allergies--------------
+	public function save_checkinfoallergy($patientid=null,$checkall=null,$patient_uid=null){
+		$session = new cakeSession();
+		$patient_id=$this->Session->read('patientId');
+
+		$this->uses = array('NewCropAllergies','Patient');
+
+		if($checkall=='1'){
+
+			$ChecktAllergy= array();
+			$ChecktAllergy['NewCropAllergies']['name'] = 'No active allergies';
+			$ChecktAllergy['NewCropAllergies']['allergycheck'] = $checkall;
+			$ChecktAllergy['NewCropAllergies']['location_id'] = $this->Session->read('locationid');
+			$ChecktAllergy['NewCropAllergies']['patient_uniqueid'] = $patientid;
+			$ChecktAllergy['NewCropAllergies']['patient_id'] = $patient_uid;
+
+			$this->NewCropAllergies->save($ChecktAllergy);
+
+			exit;
+		}
+
+
+		if($checkall=='0'){
+			$this->NewCropAllergies->deleteAll(array('NewCropAllergies.patient_uniqueid' => $patientid,'NewCropAllergies.name'=> 'No active allergies'));
+
+			exit;
+		}
+	}
+
+
+	/**
+	 * Update medication Administer status
+	 * @author Gaurav Chauriya
+	 * @param int $patient_id
+	 * @param int $newCropId
+	 */
+	public function updateIsMedAdministered($patient_id=null,$newCropId = null){
+		$this->uses=array('NewCropPrescription');
+		$this->NewCropPrescription->updateAll( array('NewCropPrescription.is_med_administered'=>"'".$this->request->data[status]."'"),
+				array('NewCropPrescription.id'=>$newCropId));
+		exit;
+	}
+	public function refuseTakeImmunization($patient_id=null,$newCropId = null){
+		$this->uses=array('NewCropPrescription');
+		$this->NewCropPrescription->updateAll( array('NewCropPrescription.refusetotakeimmunization'=>"'".$this->request->data[refusetotakeimmunization]."'"),
+				array('NewCropPrescription.id'=>$newCropId));
+		exit;
+	}
+
+	public function get_medication_record($id=null,$patient_uniqueid=null){
+
+		//find facility id
+		$this->loadModel("Facility");
+		$this->Facility->unBindModel(array(
+				'hasOne'=>array('FacilityDatabaseMapping','FacilityUserMapping')
+		));
+		$facility = $this->Facility->find('first', array('fields'=> array('Facility.id','Facility.name'),'conditions'=>array('Facility.is_deleted' => 0, 'Facility.is_active' => 1,'Facility.id' => $this->Session->read("facilityid"))));
+
+		$curlData.='<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+				<soap:Body>';
+
+		$curlData.='<GetPatientFullMedicationHistory6 xmlns="https://secure.newcropaccounts.com/V7/webservices">';
+		$curlData.= '<credentials>
+				<PartnerName>DrMHope</PartnerName>
+				<Name>'.Configure::read('uname').'</Name>
+						<Password>'.Configure::read('passw').'</Password>
+								</credentials>';
+		$curlData.=' <accountRequest>
+				<AccountId>'.$facility[Facility][name].'</AccountId>
+						<SiteId>'.$facility[Facility][id].'</SiteId>
+								</accountRequest>';
+		$curlData.=' <patientRequest>
+				<PatientId>'.$id.'</PatientId>
+						</patientRequest>';
+		$curlData.='<prescriptionHistoryRequest>
+				<StartHistory>2004-01-01T00:00:00.000</StartHistory>
+				<EndHistory>2012-01-01T00:00:00.000</EndHistory>
+				<PrescriptionStatus>C</PrescriptionStatus>
+				<PrescriptionSubStatus>%</PrescriptionSubStatus>
+				<PrescriptionArchiveStatus>%</PrescriptionArchiveStatus>
+				</prescriptionHistoryRequest>';
+		$curlData.=' <patientInformationRequester>
+				<UserType>S</UserType>
+				<UserId>'.$id.'</UserId>
+						</patientInformationRequester>';
+		$curlData.=' <patientIdType>string</patientIdType>
+				<includeSchema>Y</includeSchema>
+				</GetPatientFullMedicationHistory6>
+				</soap:Body>
+				</soap:Envelope>';
+		$url=Configure::read('SOAPUrl');
+		$curl = curl_init();
+		//echo $curlData;
+		curl_setopt ($curl, CURLOPT_URL, $url);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt($curl,CURLOPT_TIMEOUT,120);
+		//curl_setopt($curl,CURLOPT_ENCODING,'gzip');
+
+		curl_setopt($curl,CURLOPT_HTTPHEADER,array (
+		'SOAPAction:"https://secure.newcropaccounts.com/V7/webservices/GetPatientFullMedicationHistory6"',
+		'Content-Type: text/xml; charset=utf-8',
+		));
+
+		curl_setopt ($curl, CURLOPT_POST, 1);
+		curl_setopt ($curl, CURLOPT_POSTFIELDS, $curlData);
+
+		$result = curl_exec($curl);
+		//echo $result;
+		curl_close ($curl);
+		$xml =simplexml_load_string($result);
+
+		if($result!="")
+		{
+
+			$xml->registerXPathNamespace("soap", "http://schemas.xmlsoap.org/soap/envelope/");
+			$finalxml=$xml->xpath('//soap:Body');
+			$finalxml=$finalxml[0];
+
+			$staus= $finalxml->GetPatientFullMedicationHistory6Response->GetPatientFullMedicationHistory6Result->Status;
+			$response= $finalxml->GetPatientFullMedicationHistory6Response->GetPatientFullMedicationHistory6Result->XmlResponse;
+			$rowcount= $finalxml->GetPatientFullMedicationHistory6Response->GetPatientFullMedicationHistory6Result->RowCount;
+			//for getting patient
+			$get_id=$this->Patient->find('all',array('fields'=>array('patient_id'),'conditions'=>array('Patient.id'=>$id)));
+
+			$xmlString= base64_decode($response);
+
+			$xmldata = simplexml_load_string($xmlString);
+
+
+			//echo "<pre>";print_r($xmldata); exit;
+			$xmlArray= array();
+
+			$i=0;
+			foreach($xmldata as $xmlDataKey => $xmlDataValue ){
+					
+					
+				$xmlDataValue =  (array) $xmlDataValue;
+					
+				$xmlArray[$i]['description']=$xmlDataValue['DrugInfo'];
+				$xmlArray[$i]['drug_id']=$xmlDataValue['DrugID'];
+				$xmlArray[$i]['date_of_prescription']=$xmlDataValue['PrescriptionDate'];
+				$xmlArray[$i]['drm_date']=date('Y-m-d');
+				$xmlArray[$i]['route']=$xmlDataValue['Route'];
+				$xmlArray[$i]['rxnorm']=$xmlDataValue['rxcui'];
+				$xmlArray[$i]['archive']=$xmlDataValue['Archive'];
+				$xmlArray[$i]['frequency']=$xmlDataValue['DosageFrequencyDescription'];
+				$xmlArray[$i]['dose']=$xmlDataValue['DosageNumberDescription'];
+				$xmlArray[$i]['dose_unit']=$xmlDataValue['DosageForm'];
+				$xmlArray[$i]['drug_name']=$xmlDataValue['DrugName'];
+				$xmlArray[$i]['refills']=$xmlDataValue['Refills'];
+				$xmlArray[$i]['quantity']=$xmlDataValue['Dispense'];
+				$xmlArray[$i]['day']=$xmlDataValue['DaysSupply'];
+				$xmlArray[$i]['strength']=$xmlDataValue['StrengthUOM'];
+				$xmlArray[$i]['DosageForm']=$xmlDataValue['DosageForm'];
+				$xmlArray[$i]['PrintLeaflet']=$xmlDataValue['PrintLeaflet'];
+				$xmlArray[$i]['PharmacyType']=$xmlDataValue['PharmacyType'];
+				$xmlArray[$i]['PharmacyDetailType']=$xmlDataValue['PharmacyDetailType'];
+				$xmlArray[$i]['FinalDestinationType']=$xmlDataValue['FinalDestinationType'];
+				$xmlArray[$i]['FinalStatusType']=$xmlDataValue['FinalStatusType'];
+				$xmlArray[$i]['DeaGenericNamedCode']=$xmlDataValue['DeaGenericNamedCode'];
+				$xmlArray[$i]['DeaClassCode']=$xmlDataValue['DeaClassCode'];
+
+				$xmlArray[$i]['PharmacyNCPDP']=$xmlDataValue['PharmacyNCPDP'];
+				$xmlArray[$i]['PharmacyFullInfo']=$xmlDataValue['PharmacyFullInfo'];
+				$xmlArray[$i]['DeaLegendDescription']=$xmlDataValue['DeaLegendDescription'];
+
+				$xmlArray[$i]['dose']=$xmlDataValue['DosageNumberTypeID'];
+				$xmlArray[$i]['DosageForm']=$xmlDataValue['DosageFormTypeId'];
+				$xmlArray[$i]['frequency']=$xmlDataValue['DosageFrequencyTypeID'];
+				$xmlArray[$i]['DosageRouteTypeId']=$xmlDataValue['DosageRouteTypeId'];
+
+				$xmlArray[$i]['PrescriptionNotes']=$xmlDataValue['PrescriptionNotes'];
+				$xmlArray[$i]['PharmacistNotes']=$xmlDataValue['PharmacistNotes'];
+
+				if($xmlDataValue['TakeAsNeeded']=='N')
+					$pnr='0';
+				else
+					$pnr='1';
+				if($xmlDataValue['DispenseAsWritten']=='N')
+					$daw='0';
+				else
+					$daw='1';
+				$xmlArray[$i]['prn']=$pnr;
+				$xmlArray[$i]['daw']=$xmlDataValue['DispenseAsWritten'];
+				$xmlArray[$i]['PrescriptionGuid']=$xmlDataValue['PrescriptionGuid'];
+				$i++;
+			}
+
+
+			return $xmlArray;
+
+
+		}
+	}
+
+	public function get_patient_medication_record($id=null,$patient_uniqueid=null){
+
+		//find facility id
+		$this->loadModel("Facility");
+		$this->Facility->unBindModel(array(
+				'hasOne'=>array('FacilityDatabaseMapping','FacilityUserMapping')
+		));
+		$facility = $this->Facility->find('first', array('fields'=> array('Facility.id','Facility.name'),'conditions'=>array('Facility.is_deleted' => 0, 'Facility.is_active' => 1,'Facility.id' => $this->Session->read("facilityid"))));
+
+		$curlData.='<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+				<soap:Body>';
+
+		$curlData.='<GetPatientFullMedicationHistory6 xmlns="https://secure.newcropaccounts.com/V7/webservices">';
+		$curlData.= '<credentials>
+				<partnerName>'.Configure::read('partnername').'</partnerName>
+						<name>'.Configure::read('uname').'</name>
+								<password>'.Configure::read('passw').'</password>
+										</credentials>';
+		$curlData.=' <accountRequest>
+				<AccountId>'.$facility[Facility][name].'</AccountId>
+						<SiteId>'.$facility[Facility][id].'</SiteId>
+								</accountRequest>';
+		$curlData.=' <patientRequest>
+				<PatientId>'.$id.'_RP</PatientId>
+						</patientRequest>';
+		$curlData.=' <prescriptionHistoryRequest>
+				<StartHistory>2004-01-01T00:00:00.000</StartHistory>
+				<EndHistory>2012-01-01T00:00:00.000</EndHistory>
+				<PrescriptionStatus>C</PrescriptionStatus>
+				<PrescriptionSubStatus>%</PrescriptionSubStatus>
+				<PrescriptionArchiveStatus>%</PrescriptionArchiveStatus>
+				</prescriptionHistoryRequest>';
+		$curlData.=' <patientInformationRequester>
+				<UserType>S</UserType>
+				<UserId>'.$id.'</UserId>
+						</patientInformationRequester>';
+		$curlData.=' <patientIdType>string</patientIdType>
+				<includeSchema>Y</includeSchema>
+				</GetPatientFullMedicationHistory6>
+				</soap:Body>
+				</soap:Envelope>';
+		$url='http://preproduction.newcropaccounts.com//v7/WebServices/Update1.asmx';
+		$curl = curl_init();
+		//echo $curlData;
+		curl_setopt ($curl, CURLOPT_URL, $url);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt($curl,CURLOPT_TIMEOUT,120);
+		//curl_setopt($curl,CURLOPT_ENCODING,'gzip');
+
+		curl_setopt($curl,CURLOPT_HTTPHEADER,array (
+		'SOAPAction:"https://secure.newcropaccounts.com/V7/webservices/GetPatientFullMedicationHistory6"',
+		'Content-Type: text/xml; charset=utf-8',
+		));
+
+		curl_setopt ($curl, CURLOPT_POST, 1);
+		curl_setopt ($curl, CURLOPT_POSTFIELDS, $curlData);
+
+		$result = curl_exec($curl);
+		curl_close ($curl);
+		$xml =simplexml_load_string($result);
+
+		if($result!="")
+		{
+
+			$xml->registerXPathNamespace("soap", "http://schemas.xmlsoap.org/soap/envelope/");
+			$finalxml=$xml->xpath('//soap:Body');
+			$finalxml=$finalxml[0];
+			//echo"<pre>";print_r($finalxml);exit;
+			$staus= $finalxml->GetPatientFullMedicationHistory6Response->GetPatientFullMedicationHistory6Result->Status;
+			$response= $finalxml->GetPatientFullMedicationHistory6Response->GetPatientFullMedicationHistory6Result->XmlResponse;
+			$rowcount= $finalxml->GetPatientFullMedicationHistory6Response->GetPatientFullMedicationHistory6Result->RowCount;
+
+			//for getting patient
+			$get_id=$this->Patient->find('all',array('fields'=>array('patient_id'),'conditions'=>array('Patient.id'=>$id)));
+
+
+			$xmlString= base64_decode($response);
+
+			$xmldata = simplexml_load_string($xmlString);
+
+
+			if($rowcount>1){
+				for($i=0;$i<$rowcount;$i++){
+					$newcrop_DrugInfo= $xmldata->Table[$i]->DrugInfo;
+					$newcrop_DrugID= $xmldata->Table[$i]->DrugID;
+					$newcrop_PrescriptionDate= $xmldata->Table[$i]->PrescriptionDate;
+					$newcrop_ExternalPatientID= $xmldata->Table[$i]->ExternalPatientID;
+					$newcrop_Route= $xmldata->Table[$i]->Route;
+					$newcrop_rxcui= $xmldata->Table[$i]->rxcui;
+					$newcrop_Archive= $xmldata->Table[$i]->Archive;
+					$newcrop_DosageFrequencyDescription= $xmldata->Table[$i]->DosageFrequencyDescription;
+					$newcrop_DosageNumberDescription= $xmldata->Table[$i]->DosageNumberDescription;
+					$newcrop_Refills= $xmldata->Table[$i]->Refills;
+					if( !empty($xmldata->Table[$i]->TakeAsNeeded)){
+						$newcrop_TakeAsNeeded='1';
+					}
+					else{
+						$newcrop_TakeAsNeeded='0';
+					}
+					if( !empty($xmldata->Table[$i]->DispenseAsWritten)){
+						$newcrop_DispenseAsWritten='1';
+					}
+					else{
+						$newcrop_DispenseAsWritten='0';
+					}
+					$sample = $newcrop_DrugInfo .">>>>".$newcrop_DrugID.">>>>".$newcrop_PrescriptionDate.">>>>".
+							$newcrop_ExternalPatientID .">>>>".$newcrop_Route .">>>>".$newcrop_rxcui .">>>>".
+							$newcrop_DosageFrequencyDescription .">>>>".$newcrop_DosageNumberDescription.
+							">>>>".$newcrop_Archive.">>>>".$newcrop_Refills.">>>>".$newcrop_DispenseAsWritten.">>>>".$newcrop_TakeAsNeeded.",
+									".$sample;
+
+
+				}
+
+
+				return $sample;
+
+
+			}
+			else{
+				$newcrop_DrugInfo= $xmldata->Table->DrugInfo;
+				$newcrop_DrugID= $xmldata->Table->DrugID;
+				$newcrop_PrescriptionDate= $xmldata->Table->PrescriptionDate;
+				$newcrop_ExternalPatientID= $xmldata->Table->ExternalPatientID;
+				$newcrop_Route= $xmldata->Table->Route;
+				$newcrop_rxcui= $xmldata->Table->rxcui;
+				$newcrop_Archive= $xmldata->Table->Archive;
+				$newcrop_DosageFrequencyDescription= $xmldata->Table->DosageFrequencyDescription;
+				$newcrop_DosageNumberDescription= $xmldata->Table->DosageNumberDescription;
+				$newcrop_Refills= $xmldata->Table->Refills;
+				if( !empty($xmldata->Table->TakeAsNeeded)){
+					$newcrop_TakeAsNeeded='1';
+				}
+				else{
+					$newcrop_TakeAsNeeded='0';
+				}
+				if( !empty($xmldata->Table->DispenseAsWritten)){
+					$newcrop_DispenseAsWritten='1';
+				}
+				else{
+					$newcrop_DispenseAsWritten='0';
+				}
+
+				$sample = $newcrop_DrugInfo .">>>>".$newcrop_DrugID.">>>>".$newcrop_PrescriptionDate.">>>>".$newcrop_ExternalPatientID
+				.">>>>".$newcrop_Route .">>>>".$newcrop_rxcui .">>>>".$newcrop_DosageFrequencyDescription
+				.">>>>".$newcrop_DosageNumberDescription.">>>>".$newcrop_Archive.$newcrop_Refills.">>>>".$newcrop_DispenseAsWritten.">>>>".$newcrop_TakeAsNeeded.",".$sample;
+
+
+				return $sample;
+			}
+		}
+
+
+
+
+	}
+	public function PatientAllergies($id=null,$patient_uniqueid=null){
+
+		//find facility id
+		$this->loadModel("Facility");
+		$this->Facility->unBindModel(array(
+				'hasOne'=>array('FacilityDatabaseMapping','FacilityUserMapping')
+		));
+		$facility = $this->Facility->find('first', array('fields'=> array('Facility.id','Facility.name'),'conditions'=>array('Facility.is_deleted' => 0, 'Facility.is_active' => 1,'Facility.id' => $this->Session->read("facilityid"))));
+
+		$curlData.='<?xml version="1.0" encoding="utf-8"?>';
+		$curlData.='<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+				<soap:Body>';
+		$curlData.='<GetPatientAllergyHistoryV3 xmlns="https://secure.newcropaccounts.com/V7/webservices">';
+		$curlData.='<credentials>
+				<PartnerName>DrMHope</PartnerName>
+				<Name>'.Configure::read('uname').'</Name>
+						<Password>'.Configure::read('passw').'</Password>
+								</credentials>';
+		$curlData.='<accountRequest>
+				<AccountId>'.$facility[Facility][name].'</AccountId>
+						<SiteId>'.$facility[Facility][id].'</SiteId>
+								</accountRequest>';
+		$curlData.='<patientRequest>
+				<PatientId>'.$id.'</PatientId>
+						</patientRequest>';
+		$curlData.='<patientInformationRequester>
+				<UserType>S</UserType>
+				<UserId>'.$id.'</UserId>
+						</patientInformationRequester>';
+		$curlData.=' </GetPatientAllergyHistoryV3>
+				</soap:Body>
+				</soap:Envelope>';
+		$url=Configure::read('SOAPUrl');
+		$curl = curl_init();
+
+		curl_setopt ($curl, CURLOPT_URL, $url);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt($curl,CURLOPT_TIMEOUT,120);
+		//curl_setopt($curl,CURLOPT_ENCODING,'gzip');
+
+		curl_setopt($curl,CURLOPT_HTTPHEADER,array (
+		'SOAPAction:"https://secure.newcropaccounts.com/V7/webservices/GetPatientAllergyHistoryV3"',
+		'Content-Type: text/xml; charset=utf-8',
+		));
+
+		curl_setopt ($curl, CURLOPT_POST, 1);
+		curl_setopt ($curl, CURLOPT_POSTFIELDS, $curlData);
+
+		$result = curl_exec($curl);
+
+		curl_close ($curl);
+		if($result!="")
+		{
+			$xml =simplexml_load_string($result);
+			$xml->registerXPathNamespace("soap", "http://schemas.xmlsoap.org/soap/envelope/");
+			$finalxml=$xml->xpath('//soap:Body');
+			//print_r($finalxml[0]);
+
+			//$finalxml=(array)$finalxml[0];
+			//echo  echo $xmldata->ICD9_DEFINITIONS_IMO->RECORD->DEFINITION_TEXT;
+			$finalxml=$finalxml[0];
+			//	print_r($finalxml);
+			//echo $finalxml["GetPatientFullMedicationHistory6Response"]
+			$staus= $finalxml->GetPatientAllergyHistoryV3Response->GetPatientAllergyHistoryV3Result->Status;
+			$response= $finalxml->GetPatientAllergyHistoryV3Response->GetPatientAllergyHistoryV3Result->XmlResponse;
+			$rowcount= $finalxml->GetPatientAllergyHistoryV3Response->GetPatientAllergyHistoryV3Result->RowCount;
+			$xmlString= base64_decode($response);
+
+			$xmldata = simplexml_load_string($xmlString);
+
+
+			if($rowcount>1){
+				for($i=0;$i<$rowcount;$i++){
+					$newcrop_CompositeAllergyID= $xmldata->Table[$i]->CompositeAllergyID;
+					$newcrop_AllergySourceID= $xmldata->Table[$i]->AllergySourceID;
+					$newcrop_AllergyId= $xmldata->Table[$i]->AllergyId;
+					$newcrop_AllergyConceptId= $xmldata->Table[$i]->AllergyConceptId;
+					$newcrop_ConceptType= $xmldata->Table[$i]->ConceptType;
+					$newcrop_AllergyName= $xmldata->Table[$i]->AllergyName;
+					$newcrop_AllergyStatus= $xmldata->Table[$i]->Status;
+					$newcrop_AllergySeverityTypeId= $xmldata->Table[$i]->AllergySeverityTypeId;
+					$newcrop_AllergySeverityName= $xmldata->Table[$i]->AllergySeverityName;
+					$newcrop_OnsetDate= $xmldata->Table[$i]->OnsetDateCCYYMMDD;
+					$newcrop_AllergyReaction= $xmldata->Table[$i]->AllergyNotes;
+
+					$newcrop_ConceptID= $xmldata->Table[$i]->ConceptID;
+					$newcrop_ConceptTypeId= $xmldata->Table[$i]->ConceptTypeId;
+					$newcrop_rxcui= $xmldata->Table[$i]->rxcui;
+
+
+
+					$collectedAllergies= $newcrop_CompositeAllergyID.">>>>".$newcrop_AllergySourceID.">>>>".$newcrop_AllergyId.">>>>".$newcrop_AllergyConceptId.">>>>".
+							$newcrop_ConceptType.">>>>".$newcrop_AllergyName.">>>>".$newcrop_AllergyStatus.">>>>".$newcrop_AllergySeverityTypeId.">>>>".
+							$newcrop_AllergySeverityName.">>>>".$newcrop_AllergyReaction.">>>>".$newcrop_ConceptID.">>>>".$newcrop_ConceptTypeId.">>>>".
+							$newcrop_rxcui.">>>>".$newcrop_OnsetDate.">>>>".$patient_uniqueid."~".$collectedAllergies;
+
+				}
+				return $collectedAllergies;
+
+			}
+			else{
+				$newcrop_CompositeAllergyID= $xmldata->Table->CompositeAllergyID;
+				$newcrop_AllergySourceID= $xmldata->Table->AllergySourceID;
+				$newcrop_AllergyId= $xmldata->Table->AllergyId;
+					
+				$newcrop_AllergyConceptId= $xmldata->Table[$i]->AllergyConceptId;
+				$newcrop_ConceptType= $xmldata->Table->ConceptType;
+				$newcrop_AllergyName= $xmldata->Table->AllergyName;
+				$newcrop_AllergyStatus= $xmldata->Table->Status;
+				$newcrop_AllergySeverityTypeId= $xmldata->Table->AllergySeverityTypeId;
+				$newcrop_AllergySeverityName= $xmldata->Table->AllergySeverityName;
+				$newcrop_AllergyReaction= $xmldata->Table->AllergyNotes;
+				$newcrop_OnsetDate= $xmldata->Table->OnsetDateCCYYMMDD;
+				$newcrop_ConceptID= $xmldata->Table->ConceptID;
+				$newcrop_ConceptTypeId= $xmldata->Table->ConceptTypeId;
+				$newcrop_rxcui= $xmldata->Table->rxcui;;
+				if($newcrop_AllergyName!=""){
+					//	echo "<pre>"; print_r($newcrop_AllergyName);exit;
+
+					$collectedAllergies= $newcrop_CompositeAllergyID.">>>>".$newcrop_AllergySourceID.">>>>".$newcrop_AllergyId.">>>>".$newcrop_AllergyConceptId.">>>>".
+							$newcrop_ConceptType.">>>>".$newcrop_AllergyName.">>>>".$newcrop_AllergyStatus.">>>>".$newcrop_AllergySeverityTypeId.">>>>".
+							$newcrop_AllergySeverityName.">>>>".$newcrop_AllergyReaction.">>>>".$newcrop_ConceptID.">>>>".$newcrop_ConceptTypeId.">>>>".
+							$newcrop_rxcui.">>>>".$newcrop_OnsetDate.">>>>".$patient_uniqueid."~".$collectedAllergies;
+					return $collectedAllergies;
+
+				}
+
+				else{
+					return $collectedAllergies="";
+				}
+				//$collectedAllergies = $newcrop_AllergyId .">>>>".$newcrop_AllergyName."~".$collectedAllergies;
+
+			}
+
+		}
+
+		//------------eof--gaurav
+
+		/*
+		 * function to pick up patient after
+		*
+		* */
+		function patient_search(){
+			$this->layout =false ;
+			$this->set('title_for_layout', __('-Search patient', true));
+			$this->set('data','');
+			$this->paginate = array(
+					'limit' => Configure::read('number_of_rows'),
+					'order' => array(
+							'Patient.id' => 'asc'
+					)
+			);
+			if(!empty($this->request->data)){
+				$search_ele = $this->request->data['Patient'] ;
+				$search_key = array('is_deleted'=>0,'location_id'=>$this->Session->read('locationid'));
+				if(!empty($search_ele['full_name'])){
+					$search_key['Patient.full_name like '] = "%".$search_ele['full_name']."%" ;
+				}if(!empty($search_ele['admission_id'])){
+					$search_key['Patient.admission_id like '] = "%".$search_ele['admission_id'] ;
+				}if(!empty($search_ele['patient_id'])){
+					$search_key['Patient.patient_id like '] = "%".$search_ele['patient_id'] ;
+				}
+				$data = $this->paginate('Patient',$search_key);
+				$this->set('data', $data);
+			}else{
+				$data = $this->paginate('Patient',array(array('is_deleted'=>0,'location_id'=>$this->Session->read('locationid'))));
+				$this->set('data', $data);
+
+			}
+		}
+	}
+
+	public function ReportedPatientAllergies($id=null){
+
+
+		$curlData.='<?xml version="1.0" encoding="utf-8"?>';
+		$curlData.='<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+				<soap:Body>';
+		$curlData.='<GetPatientAllergyHistoryV3 xmlns="https://secure.newcropaccounts.com/V7/webservices">';
+		$curlData.='<credentials>
+				<partnerName>'.Configure::read('partnername').'</partnerName>
+						<name>'.Configure::read('uname').'</name>
+								<password>'.Configure::read('passw').'</password>
+										<Password>demo</Password>
+										</credentials>';
+		$curlData.='<accountRequest>
+				<AccountId>'.$facility[Facility][name].'</AccountId>
+						<SiteId>'.$facility[Facility][id].'</SiteId>
+								</accountRequest>';
+		$curlData.='<patientRequest>
+				<PatientId>'.$id.'_RP</PatientId>
+						</patientRequest>';
+		$curlData.='<patientInformationRequester>
+				<UserType>S</UserType>
+				<UserId>'.$id.'</UserId>
+						</patientInformationRequester>';
+		$curlData.=' </GetPatientAllergyHistoryV3>
+				</soap:Body>
+				</soap:Envelope>';
+		$url='http://secure.newcropaccounts.com//v7/WebServices/Update1.asmx';
+		$curl = curl_init();
+
+		curl_setopt ($curl, CURLOPT_URL, $url);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt($curl,CURLOPT_TIMEOUT,120);
+		//curl_setopt($curl,CURLOPT_ENCODING,'gzip');
+
+		curl_setopt($curl,CURLOPT_HTTPHEADER,array (
+		'SOAPAction:"https://secure.newcropaccounts.com/V7/webservices/GetPatientAllergyHistoryV3"',
+		'Content-Type: text/xml; charset=utf-8',
+		));
+
+		curl_setopt ($curl, CURLOPT_POST, 1);
+		curl_setopt ($curl, CURLOPT_POSTFIELDS, $curlData);
+
+		$result = curl_exec($curl);
+
+		curl_close ($curl);
+		if($result!="")
+		{
+			$xml =simplexml_load_string($result);
+			$xml->registerXPathNamespace("soap", "http://schemas.xmlsoap.org/soap/envelope/");
+			$finalxml=$xml->xpath('//soap:Body');
+			//print_r($finalxml[0]);
+
+			//$finalxml=(array)$finalxml[0];
+			//echo  echo $xmldata->ICD9_DEFINITIONS_IMO->RECORD->DEFINITION_TEXT;
+			$finalxml=$finalxml[0];
+			//	print_r($finalxml);
+			//echo $finalxml["GetPatientFullMedicationHistory6Response"]
+			$staus= $finalxml->GetPatientAllergyHistoryV3Response->GetPatientAllergyHistoryV3Result->Status;
+			$response= $finalxml->GetPatientAllergyHistoryV3Response->GetPatientAllergyHistoryV3Result->XmlResponse;
+			$rowcount= $finalxml->GetPatientAllergyHistoryV3Response->GetPatientAllergyHistoryV3Result->RowCount;
+			$xmlString= base64_decode($response);
+
+			$xmldata = simplexml_load_string($xmlString);
+
+
+			if($rowcount>1){
+				for($i=0;$i<$rowcount;$i++){
+
+					$newcrop_CompositeAllergyID= $xmldata->Table[$i]->CompositeAllergyID;
+					$newcrop_AllergySourceID= $xmldata->Table[$i]->AllergySourceID;
+					$newcrop_AllergyId= $xmldata->Table[$i]->AllergyId;
+					$newcrop_AllergyConceptId= $xmldata->Table[$i]->AllergyConceptId;
+					$newcrop_ConceptType= $xmldata->Table[$i]->ConceptType;
+					$newcrop_AllergyName= $xmldata->Table[$i]->AllergyName;
+					$newcrop_AllergyStatus= $xmldata->Table[$i]->Status;
+					$newcrop_AllergySeverityTypeId= $xmldata->Table[$i]->AllergySeverityTypeId;
+					$newcrop_AllergySeverityName= $xmldata->Table[$i]->AllergySeverityName;
+					$newcrop_AllergyReaction= $xmldata->Table[$i]->AllergyNotes;
+					$newcrop_ConceptID= $xmldata->Table[$i]->ConceptID;
+					$newcrop_ConceptTypeId= $xmldata->Table[$i]->ConceptTypeId;
+					$newcrop_rxcui= $xmldata->Table[$i]->rxcui;
+
+					$collectedAllergies= $newcrop_CompositeAllergyID.">>>>".$newcrop_AllergySourceID.">>>>".$newcrop_AllergyId.">>>>".$newcrop_AllergyConceptId.">>>>".
+							$newcrop_ConceptType.">>>>".$newcrop_AllergyName.">>>>".$newcrop_AllergyStatus.">>>>".$newcrop_AllergySeverityTypeId.">>>>".
+							$newcrop_AllergySeverityName.">>>>".$newcrop_AllergyReaction.">>>>".$newcrop_ConceptID.">>>>".$newcrop_ConceptTypeId.">>>>".
+							$newcrop_rxcui.">>>>"."~".$collectedAllergies;
+
+				}
+
+
+				return $collectedAllergies;
+
+			}
+			else{
+				$newcrop_CompositeAllergyID= $xmldata->Table->CompositeAllergyID;
+				$newcrop_AllergySourceID= $xmldata->Table->AllergySourceID;
+				$newcrop_AllergyId= $xmldata->Table->AllergyId;
+					
+				$newcrop_AllergyConceptId= $xmldata->Table[$i]->AllergyConceptId;
+				$newcrop_ConceptType= $xmldata->Table->ConceptType;
+				$newcrop_AllergyName= $xmldata->Table->AllergyName;
+				$newcrop_AllergyStatus= $xmldata->Table->Status;
+				$newcrop_AllergySeverityTypeId= $xmldata->Table->AllergySeverityTypeId;
+				$newcrop_AllergySeverityName= $xmldata->Table->AllergySeverityName;
+				$newcrop_AllergyReaction= $xmldata->Table->AllergyNotes;
+				$newcrop_ConceptID= $xmldata->Table->ConceptID;
+				$newcrop_ConceptTypeId= $xmldata->Table->ConceptTypeId;
+				$newcrop_rxcui= $xmldata->Table->rxcui;;
+				if($newcrop_AllergyName!=""){
+					//	echo "<pre>"; print_r($newcrop_AllergyName);exit;
+
+					$collectedAllergies= $newcrop_CompositeAllergyID.">>>>".$newcrop_AllergySourceID.">>>>".$newcrop_AllergyId.">>>>".$newcrop_AllergyConceptId.">>>>".
+							$newcrop_ConceptType.">>>>".$newcrop_AllergyName.">>>>".$newcrop_AllergyStatus.">>>>".$newcrop_AllergySeverityTypeId.">>>>".
+							$newcrop_AllergySeverityName.">>>>".$newcrop_AllergyReaction.">>>>".$newcrop_ConceptID.">>>>".$newcrop_ConceptTypeId.">>>>".
+							$newcrop_rxcui.">>>>"."~".$collectedAllergies;
+					return $collectedAllergies;
+
+				}
+
+				else{
+					return $collectedAllergies="";
+				}
+				//$collectedAllergies = $newcrop_AllergyId .">>>>".$newcrop_AllergyName."~".$collectedAllergies;
+
+			}
+
+		}
+
+		//------------eof--gaurav
+
+		/*
+		 * function to pick up patient after
+		*
+		* */
+
+	}
+
+	public function wrist_band($id=null){
+		//no need of layout
+		$this->uses = array('User');
+		$this->layout  = false ;
+		$this->set('title_for_layout', __('-Print wrist band', true));
+		if(!empty($id)){
+
+			$patient_details  = $this->Patient->getPatientDetailsByID($id);
+
+			$formatted_address = $this->setAddressFormat($patient_details['Patient']);
+			$this->set('address',$formatted_address);
+			$this->set('patient',$patient_details);
+			$docArr = $this->User->getDoctorByID($patient_details['Patient']['doctor_id']);
+			$this->set('doctor',$docArr[0]['fullname']);
+			$this->set('id',$id);
+
+		}else{
+			$this->redirect(array("controller" => "patients", "action" => "index"));
+		}
+	}
+
+	//function to print QR card
+	public function qr_card($id=null){
+		//no need of layout
+		$this->layout  = false ;
+		$this->set('title_for_layout', __('-Print QR Card', true));
+		if(!empty($id)){
+			$this->uses = array('Person','Facility','User','Consultant','DoctorProfile');
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'Initial' =>array(
+									'foreignKey'=>'initial_id'
+							)
+					)),true);
+
+			$patient_details  = $this->Patient->getPatientDetailsByID($id);
+
+			$docName='';
+			if($patient_details['Patient']['known_fam_physician']==Configure ::read('referralforregistrar')){
+				$docDetails = $this->DoctorProfile->getDoctorByID($patient_details['Patient']['registrar_id']);
+				$docName = $docDetails['DoctorProfile']['doctor_name'];
+			}else if(!empty($patient_details['Patient']['known_fam_physician'])){
+				$docDetails = $this->Consultant->getConsultantByID($patient_details['Patient']['consultant_id']);
+				$docName = $docDetails['Consultant']['full_name'];
+			}
+
+			$this->Person->bindModel(array(
+					'belongsTo' => array(
+							'Initial' =>array(
+									'foreignKey'=>'initial_id'
+							)
+					)),true);
+			$UIDpatient_details  = $this->Person->getUIDPatientDetailsByPatientIDQR($id);
+
+			$formatted_address = $this->setAddressFormat($UIDpatient_details['Person']);
+			$this->loadModel('Corporate');
+			$this->loadModel('InsuranceCompany');
+			//corporate name
+			if($patient_details['Patient']['credit_type_id'] == 1){
+				$corporateEmp = $this->Corporate->getCorporateByID($patient_details['Patient']['corporate_id']);
+			}else if($patient_details['Patient']['credit_type_id'] == 2){
+				$corporateEmp = $this->InsuranceCompany->getInsuranceCompanyByID($patient_details['Patient']['insurance_company_id']);
+			}else{
+				$corporateEmp ='Private';
+			}
+			//corporate name
+			$varArray = array('title'=>$UIDpatient_details['Initial']['name'],
+					'hospital'=>$this->Facility->read('name',$this->Session->read('facilityid')),
+					'address'=>$formatted_address,
+					'patient'=>$patient_details,
+					'allergies'=>$UIDpatient_details['Person']['allergies'],
+					'blood_group'=>$UIDpatient_details['Person']['blood_group'],
+					'relatives_name'=>$patient_details['Patient']['relative_name'],
+					'relatives_phone_no'=>$patient_details['Patient']['mobile_phone'],
+					'doctor_name'=>$docName,
+					'doctor_phone'=>$patient_details['Patient']['family_phy_con_no'],
+					'instructions'=>$patient_details['Patient']['instructions'],
+					'id'=>$id,
+					'company'=>$corporateEmp,
+					'photo'=>$UIDpatient_details['Person']['photo'],
+					'phone'=>$UIDpatient_details['Person']['mobile']
+			);
+
+			$this->set($varArray);
+
+		}else{
+			$this->redirect(array("controller" => "patients", "action" => "index"));
+		}
+	}
+
+	//function to display medication QrCode
+	public function qr_medication($id=null){
+			
+		//no need of layout
+		$this->layout  = false ;
+		$this->set('title_for_layout', __('-Print Medication QR Card', true));
+		if(!empty($id)){
+			$this->uses = array('Person','Facility','User','Consultant','DoctorProfile','NewCropPrescription');
+			$this->Patient->updateAll(array('newmedicationqr_flag'=>0),array('id'=>$id));
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'Initial' =>array(
+									'foreignKey'=>'initial_id'
+							)
+					)),true);
+
+			$patient_details  = $this->Patient->getPatientDetailsByID($id);
+			$this->Person->bindModel(array(
+					'belongsTo' => array(
+							'Initial' =>array(
+									'foreignKey'=>'initial_id'
+							)
+					)),true);
+			$UIDpatient_details  = $this->Person->getUIDPatientDetailsByPatientIDQR($id);
+
+			$prescription_data=$this->NewCropPrescription->query("SELECT `NewCropPrescription`.`id`,`NewCropPrescription`.`description` FROM
+					`new_crop_prescription` AS `NewCropPrescription`
+					INNER JOIN(SELECT MAX(date_of_prescription) as dateofpr from new_crop_prescription WHERE `patient_uniqueid` = $id
+					AND ( `new_crop_prescription`.`is_discharge_medication` IN (0,2) AND `new_crop_prescription`.`archive` IN ('N')  OR `new_crop_prescription`.`is_ccda` IN (1))
+					group by description) newcrp1 on NewCropPrescription.date_of_prescription=newcrp1.dateofpr
+					WHERE `patient_uniqueid` = $id AND NewCropPrescription.`archive` IN ('N') AND NewCropPrescription.`is_reconcile` IN ('0') group by `NewCropPrescription`.`description`");
+
+	 	foreach($prescription_data as $medication){
+	 		$description .= $medication['NewCropPrescription']['description'].",";
+	 	}
+	 	//corporate name
+	 	$varArray = array('title'=>$UIDpatient_details['Initial']['name'],
+	 			'hospital'=>$this->Facility->read('name',$this->Session->read('facilityid')),
+	 			'patient'=>$patient_details,
+	 			'blood_group'=>$UIDpatient_details['Person']['blood_group'],
+	 			'id'=>$id,
+	 			'patient_uid'=>$UIDpatient_details['Person']['patient_uid'],
+	 			'medication'=>substr($description,0,-1)
+	 	);
+
+	 	$this->set($varArray);
+
+		}else{
+			$this->redirect(array("controller" => "patients", "action" => "index"));
+		}
+	}
+
+
+	/**
+	 * Called after inserting patient data
+	 *
+	 * @param id:latest patient table ID
+	 * @param patient_info(array): patient details as posted from patinet registration form
+	 * @return patient ID
+	 **/
+	public function autoGeneratedAdmissionID($id=null,$patient_info = array()){
+		$this->loadModel('Location');
+		if( strtolower( $this->Session->read('website.instance') ) == 'hope' ){
+			$count = $this->Patient->find('count',array('conditions'=>array('Patient.create_time like'=> "%".date("Y-m-d")."%",
+					/*'Patient.location_id'=>$this->Session->read('locationid')*/)));// ---- for same location initial name it creates duplicate uID---gaurav @pankaj
+			$count++ ; //count currrent entry also
+			if($count==0){
+				$count = "001" ;
+			}else if($count < 10 ){
+				$count = "00$count"  ;
+			}else if($count >= 10 && $count <100){
+				$count = "0$count"  ;
+			}
+			$month_array = array('A','B','C','D','E','F','G','H','I','J','K','L');
+			//creating patient ID
+			$unique_id   = ucfirst(substr($patient_info['Patient']['admission_type'],0,1));
+			$unique_id  .= ucfirst(substr($hospital,0,1)); //first letter of the hospital name
+			$unique_id  .= strtoupper(substr($this->Session->read('location'),0,1));//first 2 letter of d location
+			$unique_id  .= date('y'); //year
+			$unique_id  .= $month_array[date('n')-1];//first letter of month
+			$unique_id  .= date('d');//day
+			$unique_id .= $count;
+		}else{
+			//Changes in Admission id - Pooja Gupta eg(for-Globus Clinic -> GC/O-1092)format of admission id ( first 2 letters of location/admission type-count of patient)
+			$count = $this->Patient->find('count');
+			$count++;
+			if($count==0){
+				$count = "001" ;
+			}else if($count < 10 ){
+				$count = "00$count"  ;
+			}else if($count >= 10 && $count <100){
+				$count = "0$count"  ;
+			}
+			if($patient_info['Patient']['location_id'] != ''){
+				$locationData = $this->Location->getLocationDetails($patient_info['Patient']['location_id']);
+				$location = $locationData['Location']['name'];
+			}else{
+				$location = $this->Session->read('location');
+			}
+			$splitLoaction=explode(' ',$location);
+			if(!empty($splitLoaction['1'])){
+				$loc1=strtoupper(substr($splitLoaction['0'],0,1));
+				$loc2=strtoupper(substr($splitLoaction['1'],0,1));
+				$loc=$loc1.$loc2;
+			}else $loc=strtoupper(substr($location,0,2));
+
+			$unique_id  .= strtoupper($loc);
+			$unique_id  .= '/';
+			$unique_id  .= ucfirst(substr($patient_info['Patient']['admission_type'],0,1));
+			$unique_id  .= '-';
+			$unique_id  .= $count;
+		}
+		return strtoupper($unique_id) ;
+	}
+
+
+
+	public function qrFormat($patient_details=array(),$admission_id){
+
+
+		$qr_format  = $patient_details['lookup_name']." ;"  ;
+		$qr_format .= (!empty($patient_details['admission_id']))?" Registration ID:".$patient_details['admission_id']." ;":" Patient ID:".$admission_id." ;" ;
+		//retrive blood group
+		$this->loadModel('Person');
+		$personData =$this->Person->find('first',array('conditions'=>array('patient_uid'=>$patient_details['patient_id'])));
+
+		if(!empty($personData['Person']['blood_group'])){
+			$bg = $personData['Person']['blood_group'];
+		}
+		if(isset($personData['Person']['allergies'])){
+			$ec = $personData['Person']['allergies'];
+		}
+		if(isset($personData['Person']['email'])){
+			$e =$personData['Person']['email'];
+		}
+		if(isset($personData['Person']['mobile'])){
+			$mp =$personData['Person']['mobile'];
+		}
+
+		if(isset($patient_details['relative_name'])){
+			$relativeName =  $patient_details['relative_name'];
+		}
+
+		if(isset($patient_details['mobile_phone'])){
+			$mobileno =  $patient_details['mobile_phone'];
+		}
+
+		if(isset($patient_details['family_phy_con_no'])){
+			$doctorPhone =  $patient_details['family_phy_con_no'];
+		}
+
+		if(isset($patient_details['instructions'])){
+			$instructionsArray = array('Diabetic'=>'Diabetic- If found Unconscious give sugar/sweet/chocolate.','Epileptic'=>'Epileptic- In case of attack/fit turn patient to one side & refrain from feeding.','High Blood Pressure'=>'High Blood Pressure- If found unconscious or paralyzed, turn patient to one side & refrain from feeding.','Low Blood Pressure'=>'Low Blood Pressure- In case of vertigo keep head in low position & take plenty of fluids.','Cardiac Problem'=>'Cardiac Problem- In case of symtoms like chest pain or sweating administer Tablet Disprin & sublingual Tablet Sorbitrate.','Asthma'=>'Asthma- In case of acute attack administer 2 puffs of Scroflo inhaler & shift to hospital.');
+			$instructions =  $instructionsArray[$patient_details['instructions']];
+		}
+
+		$docName='';
+
+		if($patient_details['known_fam_physician']==Configure ::read('referralforregistrar')){
+			$docDetails = $this->DoctorProfile->getDoctorByID($patient_details['registrar_id']);
+			$docName = $docDetails['DoctorProfile']['doctor_name'];
+		}else if(!empty($patient_details['known_fam_physician'])){
+			$docDetails = $this->Consultant->getConsultantByID($patient_details['consultant_id']);
+			$docName = $docDetails['Consultant']['full_name'];
+		}
+
+		$qr_format .= " Age/Sex: ".$patient_details['age']."/".ucfirst($patient_details['sex']);
+
+
+		$qr_format .= ($bg)?" Blood Group: ".$bg." ;" :'';
+		$qr_format .= ($ec)?" Allergies: ".$ec." ;":'' ;
+		$qr_format .= ($e)?" Email: ".$e." ;":'' ;
+		$qr_format .= ($mp)?" Mobile no: ".$mp." ;":'' ;
+
+		if($patient_details['case_summery_link'] != ''){
+			$qr_format .= " Case Summary Link: ".$patient_details['case_summery_link']." ;" ;
+		}
+		if($patient_details['patient_file'] != ''){
+			$qr_format .= " Patient File: ".$patient_details['patient_file']." ;" ;
+		}
+
+		$qr_format .= ($relativeName)?" Relative's Name: ".$relativeName." ;":'' ;
+		$qr_format .= ($mobileno)?" Relative's Phone: ".$mobileno." ;":'' ;
+		$qr_format .= ($docName)?" Family Physician : ".$docName." ;":'' ;
+		$qr_format .= ($doctorPhone)?" Family Physician Phone: ".$doctorPhone." ;":'' ;
+		//corporate name
+		$this->loadModel('Corporate');
+		$this->loadModel('InsuranceCompany');
+		if($patient_details['Patient']['credit_type_id'] == 1){
+			$corporateEmp = $this->Corporate->getCorporateByID($patient_details['Patient']['corporate_id']);
+		}else if($patient_details['Patient']['credit_type_id'] == 2){
+			$corporateEmp = $this->InsuranceCompany->getInsuranceCompanyByID($patient_details['Patient']['insurance_company_id']);
+		}else{
+			$corporateEmp ='Private';
+		}
+		$qr_format .= ($corporateEmp)?" Category: ".$corporateEmp." ;":'' ;
+		//corporate name
+		$qr_format .= ($instructions)?" Instructions: ".$instructions." ;":'' ;
+
+		return $qr_format ;
+	}
+
+	public function UIDQRFormat($patient_details=array(),$admission_id){
+
+
+		$qr_format  = $patient_details['lookup_name']." ;"  ;
+		$qr_format .= (!empty($patient_details['admission_id']))?" Registration ID:".$patient_details['admission_id']." ;":" Patient ID:".$admission_id." ;" ;
+		//retrive blood group
+		$this->loadModel('Person');
+		$personData =$this->Person->find('first',array('conditions'=>array('patient_uid'=>$patient_details['patient_id'])));
+
+		if(!empty($personData['Person']['blood_group'])){
+			$bg = $personData['Person']['blood_group'];
+		}
+		if(isset($personData['Person']['allergies'])){
+			$ec = $personData['Person']['allergies'];
+		}
+		if(isset($personData['Person']['email'])){
+			$e =$personData['Person']['email'];
+		}
+		if(isset($personData['Person']['mobile'])){
+			$mp =$personData['Person']['mobile'];
+		}
+		if(isset($personData['Person']['relative_name'])){
+			$relativeName =  $personData['Person']['relative_name'];
+		}
+		if(isset($personData['Person']['relative_phone'])){
+			$mobileno =  $personData['Person']['relative_phone'];
+		}
+		if(isset($personData['Person']['family_phy_con_no'])){
+			$doctorPhone =  $personData['Person']['family_phy_con_no'];
+		}
+
+		if(isset($patient_details['instructions'])){
+			$instructionsArray = array('Diabetic'=>'Diabetic- If found Unconscious give sugar/sweet/chocolate.','Epileptic'=>'Epileptic- In case of attack/fit turn patient to one side & refrain from feeding.','High Blood Pressure'=>'High Blood Pressure- If found unconscious or paralyzed, turn patient to one side & refrain from feeding.','Low Blood Pressure'=>'Low Blood Pressure- In case of vertigo keep head in low position & take plenty of fluids.','Cardiac Problem'=>'Cardiac Problem- In case of symtoms like chest pain or sweating administer Tablet Disprin & sublingual Tablet Sorbitrate.','Asthma'=>'Asthma- In case of acute attack administer 2 puffs of Scroflo inhaler & shift to hospital.');
+			$instructions =  $instructionsArray[$patient_details['instructions']];
+		}
+
+		$docName='';
+
+		if($personData['Person']['known_fam_physician']==Configure ::read('referralforregistrar')){
+			$docDetails = $this->DoctorProfile->getDoctorByID($personData['Person']['registrar_id']);
+			$docName = $docDetails['DoctorProfile']['doctor_name'];
+		}else if(!empty($personData['Person']['known_fam_physician'])){
+			$docDetails = $this->Consultant->getConsultantByID($personData['Person']['consultant_id']);
+			$docName = $docDetails['Consultant']['full_name'];
+		}
+
+		$qr_format .= " Age/Sex: ".$patient_details['age']."/".ucfirst($patient_details['sex']);
+
+		$qr_format .= ($bg)?" Blood Group: ".$bg." ;" :'';
+		$qr_format .= ($ec)?" Allergies: ".$ec." ;":'' ;
+		$qr_format .= ($e)?" Email: ".$e." ;":'' ;
+		$qr_format .= ($mp)?" Mobile no: ".$mp." ;":'' ;
+
+
+		$qr_format .= ($relativeName)?" Relative's Name: ".$relativeName." ;":'' ;
+		$qr_format .= ($mobileno)?" Relative's Phone: ".$mobileno." ;":'' ;
+		$qr_format .= ($docName)?" Family Physician : ".$docName." ;":'' ;
+		$qr_format .= ($doctorPhone)?" Family Physician Phone: ".$doctorPhone." ;":'' ;
+		//corporate name
+		$this->loadModel('Corporate');
+		$this->loadModel('InsuranceCompany');
+		if($patient_details['Patient']['credit_type_id'] == 1){
+			$corporateEmp = $this->Corporate->getCorporateByID($patient_details['Patient']['corporate_id']);
+		}else if($patient_details['Patient']['credit_type_id'] == 2){
+			$corporateEmp = $this->InsuranceCompany->getInsuranceCompanyByID($patient_details['Patient']['insurance_company_id']);
+		}else{
+			$corporateEmp ='Private';
+		}
+		$qr_format .= ($corporateEmp)?" Category: ".$corporateEmp." ;":'' ;
+		//corporate name
+		$qr_format .= ($instructions)?" Instructions: ".$instructions." ;":'' ;
+
+		return $qr_format ;
+	}
+
+	//converting dates to db format in post data of patient add form
+	public function convertingDatetoSTD($data=array()){
+		if(!empty($data['review_on'])){
+			$last_split_date_time = $data['review_on'];
+			$this->request->data["Patient"]['review_on'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['doc_ini_assess_on'])){
+			$last_split_date_time = $data['doc_ini_assess_on'];
+			$this->request->data["Patient"]['doc_ini_assess_on'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['form_received_on'])){
+			$last_split_date_time =  $data['form_received_on'];
+
+
+			$this->request->data["Patient"]['form_received_on'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+
+
+		}
+		if(!empty($data['form_completed_on'])){
+			$last_split_date_time =  $data['form_completed_on'];
+
+			$this->request->data["Patient"]['form_completed_on'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+
+		}
+		if(!empty($data['nurse_assess_on'])){
+			$last_split_date_time =  $data['nurse_assess_on'];
+			$this->request->data["Patient"]['nurse_assess_on'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['nutritional_assess_on'])){
+			$last_split_date_time =  $data['nutritional_assess_on'];
+			$this->request->data["Patient"]['nutritional_assess_on'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['doc_ini_assess_end_on'])){
+			$last_split_date_time =  $data['doc_ini_assess_end_on'];
+			$this->request->data["Patient"]['doc_ini_assess_end_on'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['nurse_assess_end_on'])){
+			$last_split_date_time =  $data['nurse_assess_end_on'];
+			$this->request->data["Patient"]['nurse_assess_end_on'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['nutritional_assess_end_on'])){
+			$last_split_date_time =  $data['nutritional_assess_end_on'];
+			$this->request->data["Patient"]['nutritional_assess_end_on'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['discharge_intimation_on'])){
+			$last_split_date_time =  $data['discharge_intimation_on'];
+			$this->request->data["Patient"]['discharge_intimation_on'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['final_intimation_on'])){
+			$last_split_date_time =  $data['final_intimation_on'];
+			$this->request->data["Patient"]['final_intimation_on'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['discharge_date'])){
+
+			$this->request->data["Patient"]['discharge_date'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['dateofadmission'])){
+			$last_split_date_time =  $data['dateofadmission'];
+			$this->request->data["Patient"]['dateofadmission'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['date_of_referral'])){
+			$last_split_date_time =  $data['date_of_referral'];
+			$this->request->data["Patient"]['date_of_referral'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+
+		}
+		if(!empty($data['occurrence_date'])){
+			$last_split_date_time =  $data['occurrence_date'];
+			$this->request->data["Patient"]['occurrence_date'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+
+		}
+		if(!empty($data['death_reason_date'])){
+			$last_split_date_time =  $data['death_reason_date'];
+			$this->request->data["Patient"]['death_reason_date'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['death_recorded_date'])){
+			$last_split_date_time =  $data['death_recorded_date'];
+			$this->request->data["Patient"]['death_recorded_date'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['demographic_date'])){
+			$last_split_date_time =  $data['demographic_date'];
+			$this->request->data["Patient"]['demographic_date'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+		if(!empty($data['expected_date_del'])){
+			$last_split_date_time =  $data['expected_date_del'];
+			$this->request->data["Patient"]['expected_date_del'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+		}
+			
+	}
+
+	function convertingDatetoLocal($data =array()){
+		if(!empty($data['review_on'])){
+			$data['review_on'] = $this->DateFormat->formatDate2Local($data['review_on'],Configure::read('date_format'),true);
+			$this->request->data["Patient"]['review_on'] =  $data['review_on']  ;
+		}
+		if(!empty($data['doc_ini_assess_on'])){
+			$data['doc_ini_assess_on'] = $this->DateFormat->formatDate2Local($data['doc_ini_assess_on'],Configure::read('date_format'),true);
+			$this->request->data["Patient"]['doc_ini_assess_on'] =  $data['doc_ini_assess_on']  ;
+		}
+		if(!empty($data['nurse_assess_on'])){
+			$data['nurse_assess_on'] = $this->DateFormat->formatDate2Local($data['nurse_assess_on'],Configure::read('date_format'),true);
+			$this->request->data["Patient"]['nurse_assess_on'] =  $data['nurse_assess_on']  ;
+		}
+		if(!empty($data['form_received_on'])){
+			$data['form_received_on'] = $this->DateFormat->formatDate2Local($data['form_received_on'],Configure::read('date_format'),true);
+			$this->request->data["Patient"]['form_received_on'] =  $data['form_received_on']  ;
+		}
+		if(!empty($data['form_completed_on'])){
+			$data['form_completed_on'] = $this->DateFormat->formatDate2Local($data['form_completed_on'],Configure::read('date_format'),true);
+			$this->request->data["Patient"]['form_completed_on'] =  $data['form_completed_on']  ;
+		}
+		if(!empty($data['nutritional_assess_on'])){
+			$data['nutritional_assess_on'] = $this->DateFormat->formatDate2Local($data['nutritional_assess_on'],Configure::read('date_format'),true);
+			$this->request->data["Patient"]['nutritional_assess_on'] =  $data['nutritional_assess_on']  ;
+		}
+		if(!empty($data['discharge_intimation_on'])){
+			$data['discharge_intimation_on'] = $this->DateFormat->formatDate2Local($data['discharge_intimation_on'],Configure::read('date_format'),true);
+			$this->request->data["Patient"]['discharge_intimation_on'] =  $data['discharge_intimation_on']  ;
+		}
+		if(!empty($data['doc_ini_assess_end_on'])){
+			$data['doc_ini_assess_end_on'] = $this->DateFormat->formatDate2Local($data['doc_ini_assess_end_on'],Configure::read('date_format'),true);
+			$this->request->data["Patient"]['doc_ini_assess_end_on'] =  $data['doc_ini_assess_end_on']  ;
+		}
+		if(!empty($data['nurse_assess_end_on'])){
+			$data['nurse_assess_end_on'] = $this->DateFormat->formatDate2Local($data['nurse_assess_end_on'],Configure::read('date_format'),true);
+			$this->request->data["Patient"]['nurse_assess_end_on'] =  $data['nurse_assess_end_on']  ;
+		}
+		if(!empty($data['nutritional_assess_end_on'])){
+			$data['nutritional_assess_end_on'] = $this->DateFormat->formatDate2Local($data['nutritional_assess_end_on'],Configure::read('date_format'),true);
+			$this->request->data["Patient"]['nutritional_assess_end_on'] =  $data['nutritional_assess_end_on']  ;
+		}
+		if(!empty($data['discharge_intimation_on'])){
+			$data['discharge_intimation_on'] = $this->DateFormat->formatDate2Local($data['discharge_intimation_on'],Configure::read('date_format'),true);
+			$this->request->data["Patient"]['discharge_intimation_on'] =  $data['discharge_intimation_on']  ;
+		}
+		if(!empty($data['final_intimation_on'])){
+			$data['final_intimation_on'] = $this->DateFormat->formatDate2Local($data['final_intimation_on'],Configure::read('date_format'),true);
+			$this->request->data["Patient"]['final_intimation_on'] =  $data['final_intimation_on']  ;
+		}
+		if(!empty($data['discharge_date'])){
+			$data['discharge_date'] = $this->DateFormat->formatDate2Local($data['discharge_date'],Configure::read('date_format'));
+			$this->request->data["Patient"]['discharge_date'] =  $data['discharge_date']  ;
+		}
+		if(!empty($data['dateofadmission'])){
+			$data['dateofadmission'] = $this->DateFormat->formatDate2Local($data['dateofadmission'],Configure::read('date_format'));
+			$this->request->data["Patient"]['dateofadmission'] =  $data['dateofadmission']  ;
+		}
+		if(!empty($data['date_of_referral'])){
+			$data['date_of_referral'] = $this->DateFormat->formatDate2Local($data['date_of_referral'],Configure::read('date_format'));
+			$this->request->data["Patient"]['date_of_referral'] =  $data['date_of_referral']  ;
+		}
+		if(!empty($data['death_reason_date'])){
+			$data['death_reason_date'] = $this->DateFormat->formatDate2Local($data['death_reason_date'],Configure::read('date_format'),true);
+			$this->request->data["Patient"]['death_reason_date'] =  $data['death_reason_date']  ;
+		}
+		if(!empty($data['death_recorded_date'])){
+			$data['death_recorded_date'] = $this->DateFormat->formatDate2Local($data['death_recorded_date'],Configure::read('date_format'));
+			$this->request->data["Patient"]['death_recorded_date'] =  $data['death_recorded_date']  ;
+		}
+		if(!empty($data['demographic_date'])){
+			$data['demographic_date'] = $this->DateFormat->formatDate2Local($data['demographic_date'],Configure::read('date_format'));
+			$this->request->data["Patient"]['demographic_date'] =  $data['demographic_date']  ;
+		}
+		if(!empty($data['expected_date_del'])){
+			$data['expected_date_del'] = $this->DateFormat->formatDate2Local($data['expected_date_del'],Configure::read('date_format'));
+			$this->request->data["Patient"]['expected_date_del'] =  $data['expected_date_del']  ;
+		}
+		$finalArr['Patient'] = $data ;
+		return $finalArr  ;
+	}
+
+
+	public function qrcode(){
+		//$this->layout = false ;
+		//App::import("Vendor","qrcode/qrlib.php");
+		//App::import('Vendor', 'qrcode', array('file' => 'qrcode/qrlib.php'));
+		// QRcode::png('Pawan Meshram', 'uploads/qrcodes/test.png', 'L', 4, 2);
+	}
+
+	function common(){
+		#echo '&&&';exit;
+	}
+
+	/**
+	 * get doctor listing with category type by xmlhttprequest
+	 *
+	 */
+	public function getDoctorsList() {
+		$this->uses = array('Consultant', 'DoctorProfile');
+		/*$this->Consultant->virtualFields = array(
+				'full_name' => 'CONCAT(Initial.name, " ", Consultant.first_name, " ", Consultant.last_name)'
+		);*/
+		//if($this->params['isAjax']) {
+			// 4 id for registrar only //
+			$doctorlist=array();
+			$mergeArray=array();
+			if($this->params->query['familyknowndoctor'] == 4) {
+				$doctorlist=$this->DoctorProfile->getRegistrar();				
+				$mergeArray = array('None'=>'None')+$doctorlist;
+				$this->set('doctorlist',$mergeArray);
+				$this->layout = 'ajax';
+				$this->render('/Patients/ajaxgetregistrar');
+			} elseif(!empty($this->params->query['familyknowndoctor'])) {
+				$doctorRefId = $this->Patient->find('first', array('fields' => array('Patient.consultant_id'),'conditions' => array('Patient.id' => $this->params->query['patient_id'])));
+				$this->set('consultantId',$doctorRefId);
+				if($this->params->query['familyknowndoctor']==7){
+					$CampDate= $this->Consultant->find('list', array('fields'=> array('id', 'camp_date'),'conditions' => array('Consultant.is_deleted' => 0, 'Consultant.refferer_doctor_id' => $this->params->query['familyknowndoctor'], 'Consultant.location_id' => $this->Session->read('locationid')),'order'=>array('Consultant.id')));
+					foreach($CampDate as $key => $val){
+						$doctorlist[$key] = $this->DateFormat->formatDate2Local($val,Configure::read('date_format'),false);
+					}
+				}else{
+					$doctorlist= $this->Consultant->find('list', array('fields'=> array('id', 'full_name'),'conditions' => array('Consultant.is_deleted' => 0, 'Consultant.refferer_doctor_id' => $this->params->query['familyknowndoctor'], 'Consultant.location_id' => $this->Session->read('locationid')),'order'=>array('Consultant.full_name')));
+				}
+				$mergeArray = array('None'=>'None')+$doctorlist;
+				$this->set('doctorlist',$mergeArray);	
+				$this->layout = 'ajax';
+				$this->render('/Patients/ajaxgetdoctors');
+			} else {
+				// this is for blank ctp //
+				$this->layout = 'ajax';
+				$this->render('/Patients/ajaxgetcashtype');
+			}
+		//}
+	}
+
+
+	/**
+	 * get payment type by xmlhttprequest
+	 *
+	 */
+	public function generateReport(){
+
+		$this->uses = array('Person','Patient');
+		$this->Person->bindModel(array('belongsTo'=>array('Patient'=>array('foreignKey'=>false,'conditions'=>array("Person.patient_uid=Patient.patient_id")))));
+
+		if(!empty($this->params->query)){
+			$search_ele = $this->params->query  ;//make it get
+
+			$search_key['Patient.is_deleted'] = 0;
+			$search_key['Patient.location_id'] = $this->Session->read('locationid');
+			if(!empty($search_ele['lookup_name'])){
+				$search_key['Patient.lookup_name like '] = "%".$search_ele['lookup_name']."%" ;
+			}if(!empty($search_ele['patient_id'])){
+				$search_key['Patient.patient_id like '] = "%".$search_ele['patient_id'] ;
+			}if(!empty($search_ele['admission_id'])){
+				$search_key['Patient.admission_id like '] = "%".$search_ele['admission_id'] ;
+			}
+			$pdfData  = $this->Person->find('all',array('fields'=>array('Person.age,Person.sex,Patient.lookup_name,Patient.admission_id,
+					Patient.patient_id,Patient.admission_type'),'conditions'=>$search_key));
+
+			$this->set('pdfData',$pdfData);
+
+		}else{
+			$this->Person->bindModel(array('belongsTo'=>array('Patient'=>array('foreignKey'=>false,'conditions'=>array("Person.patient_uid=Patient.patient_id")))));
+			$pdfData  = $this->Person->find('all',array('fields'=>array('Person.age,Person.sex,Patient.lookup_name,Patient.admission_id,
+					Patient.patient_id,Patient.admission_type'),'conditions'=>array('Patient.create_time like'=> "%".date("Y-m-d")."%",'Patient.is_deleted'=>0,'Patient.location_id'=>$this->Session->read('locationid'))));
+			$this->set('pdfData',$pdfData);
+		}
+
+	}
+
+	/**
+	 * get payment type by xmlhttprequest
+	 *
+	 */
+	public function printReport(){
+		$this->layout = false;
+		$this->uses = array('Person','Patient');
+		$this->Person->bindModel(array('belongsTo'=>array('Patient'=>array('foreignKey'=>false,'conditions'=>array("Person.patient_uid=Patient.patient_id")))));
+
+		if(!empty($this->params->query)){
+			$search_ele = $this->params->query  ;//make it get
+
+			$search_key['Patient.is_deleted'] = 0;
+			if(!empty($search_ele['lookup_name'])){
+				$search_key['Patient.lookup_name like '] = "%".$search_ele['lookup_name']."%" ;
+			}if(!empty($search_ele['patient_id'])){
+				$search_key['Patient.patient_id like '] = "%".$search_ele['patient_id'] ;
+			}if(!empty($search_ele['admission_id'])){
+				$search_key['Patient.admission_id like '] = "%".$search_ele['admission_id'] ;
+			}
+			$pdfData  = $this->Person->find('all',array('fields'=>array('Person.age,Person.sex,Patient.lookup_name,Patient.admission_id,
+					Patient.patient_id,Patient.admission_type'),'conditions'=>$search_key));
+
+			$this->set('pdfData',$pdfData);
+
+		}else{
+			$this->Person->bindModel(array('belongsTo'=>array('Patient'=>array('foreignKey'=>false,'conditions'=>array("Person.patient_uid=Patient.patient_id")))));
+			$pdfData  = $this->Person->find('all',array('fields'=>array('Person.age,Person.sex,Patient.lookup_name,Patient.admission_id,
+					Patient.patient_id,Patient.admission_type'),'conditions'=>array('Patient.create_time like'=> "%".date("Y-m-d")."%")));
+			$this->set('pdfData',$pdfData);
+		}
+		#pr($pdfData);exit;
+	}
+
+	public function sticker($id=null){
+		//no need of layout
+		$this->layout  = false ;
+		if(!empty($id)){
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'Initial' =>array(
+									'foreign_key'=>'initial_id'
+							)
+					)));
+			$this->uses=array('Facility');
+			$facility_details = $this->Facility->read('name',$this->Session->read('facilityid'));
+			$patient_details  = $this->Patient->getPatientDetailsByID($id);
+			$formatted_address = $this->setAddressFormat($patient_details['Patient']);
+			$this->set('address',$formatted_address);
+			$this->set('facilityDetails',$facility_details);
+			$this->set('patient',$patient_details);
+			$this->set('id',$id);
+
+		}else{
+			$this->redirect(array("controller" => "patients", "action" => "index"));
+		}
+	}
+
+	/**
+	 *  conver html file to ms word file for printing
+	 *
+	 */
+	public function qr_sticker_print($id=null){
+		$this->layout  = false ;
+		if(!empty($id)){
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'Initial' =>array(
+									'foreign_key'=>'initial_id'
+							)
+					)));
+			$this->uses=array('Facility');
+			$facility_details = $this->Facility->read('name',$this->Session->read('facilityid'));
+			$patient_details  = $this->Patient->getPatientDetailsByID($id);
+			$formatted_address = $this->setAddressFormat($patient_details['Patient']);
+			$this->set('address',$formatted_address);
+			$this->set('facilityDetails',$facility_details);
+			$this->set('patient',$patient_details);
+			$this->set('id',$id);
+
+		}else{
+			$this->redirect(array("controller" => "patients", "action" => "index"));
+		}
+	}
+
+	public function getCorporateLocationList() {
+		$this->loadModel('CorporateLocation');
+		$this->loadModel('InsuranceType');
+		if($this->params['isAjax']) {
+			$paycatid = $this->params->query['paymentCategoryId'];
+			if($paycatid == "2") {
+				$this->set('insurancetypelist', $this->InsuranceType->find('all', array('fields'=> array('id', 'name'),'conditions' => array('InsuranceType.is_deleted' => 0, 'InsuranceType.credit_type_id' => $paycatid),'order'=>array('name'))));
+				$this->render('ajaxgetinsurancetypes');
+			}else if($paycatid == "1") {
+				$this->set('corporatelocationlist', $this->CorporateLocation->find('all', array('fields'=> array('id', 'name'),'conditions' => array('CorporateLocation.is_deleted' => 0, 'CorporateLocation.credit_type_id' => $paycatid,
+						'CorporateLocation.location_id'=>$this->Session->read('locationid')),'order'=>array('name'))));
+				$this->render('ajaxgetcorporatelocations');
+			}
+
+			$this->layout = 'ajax';
+		}
+	}
+
+	/**
+	 * get insurance type by xmlhttprequest
+	 *
+	 */
+	public function getInsuranceTypeList() {
+		$this->loadModel('InsuranceType');
+		if($this->params['isAjax']) {
+			$this->set('insurancetypelist', $this->InsuranceType->find('all', array('fields'=> array('id', 'name'),'conditions' => array('InsuranceType.is_deleted' => 0,
+					'InsuranceType.credit_type_id' => $this->params->query['paymentCategoryId']),'order'=>array('name'))));
+			$this->layout = 'ajax';
+			$this->render('ajaxgetinsurancetypes');
+		}
+	}
+
+
+	/**
+	 * get insurance company by xmlhttprequest
+	 *
+	 */
+	public function getInsuranceCompanyList() {
+		$this->loadModel('InsuranceCompany');
+		if($this->params['isAjax']) {
+			$this->set('insurancecompanylist', $this->InsuranceCompany->find('all', array('fields'=> array('id', 'name'),'conditions' => array('InsuranceCompany.is_deleted' => 0,
+					'InsuranceCompany.insurance_type_id' => $this->params->query['insurancetypeid'],'InsuranceCompany.location_id'=>$this->Session->read('locationid')),'order'=>array('name'))));
+			$this->layout = 'ajax';
+			$this->render('ajaxgetinsurancecompanies');
+		}
+	}
+
+	/**
+	 * get corporate by xmlhttprequest
+	 *
+	 */
+	public function getCorporateList() {
+		$this->loadModel('Corporate');
+		if($this->params['isAjax']) {
+			$this->set('corporatelist', $this->Corporate->find('all', array('fields'=> array('id', 'name'),
+					'conditions' => array('Corporate.is_deleted' => 0,'Corporate.location_id'=>$this->Session->read('locationid'),'Corporate.corporate_location_id' => $this->params->query['ajaxcorporatelocationid']),'order'=>array('name'))));
+			$this->layout = 'ajax';
+			$this->render('ajaxgetcorporate');
+		}
+	}
+
+	/**
+	 * get corporate by xmlhttprequest
+	 *
+	 */
+	public function getCorporateSublocList() {
+		$this->uses = array('CorporateSublocation','TariffStandard');
+		$tariffID=$this->params->query['tariffId'];
+		$privateID=$this->TariffStandard->getPrivateTariffID();
+		if($this->params['isAjax']) {
+			
+			if($this->Session->read('website.instance')=='hope'){
+				if($tariffID!=$privateID){
+					$this->set('corporatesulloclist', $this->CorporateSublocation->find('all', array('fields'=> array('id', 'name'),
+							'conditions' => array('CorporateSublocation.is_deleted' => 0,'CorporateSublocation.tariff_standard_id' => $this->params->query['tariffId']),'order'=>array('name'))));
+					//BOF-Mahalaxmi For finding WCL ID 					
+		$this->set('wclCghsTariffID',$this->TariffStandard->getTariffStandardIDAll(array(Configure::read('WCL'),Configure::read('CGHS'))));//retrive WCL,CGHS ID	
+
+		//EOF-Mahalaxmi For finding WCL ID 
+					$this->layout = 'ajax';
+					$this->render('ajaxgetcorporatesubloc');
+					
+				}else{
+					$this->layout = 'ajax';
+					$this->autoRender= false;
+				}
+			}else{
+				$this->set('corporatesulloclist', $this->CorporateSublocation->find('all', array('fields'=> array('id', 'name'),
+						'conditions' => array('CorporateSublocation.is_deleted' => 0,'CorporateSublocation.corporate_id' => $this->params->query['ajaxcorporateid']),'order'=>array('name'))));
+				$this->layout = 'ajax';
+				$this->render('ajaxgetcorporatesubloc');
+			}
+			
+			
+		}
+	}
+
+	/**
+	 * get payment type by xmlhttprequest
+	 *
+	 */
+	public function getPaymentType() {
+		$this->loadModel('CorporateLocation');
+		$this->loadModel('InsuranceType');
+		$this->loadModel('CorporateSublocation');
+		$this->loadModel('InsuranceCompany');
+		if($this->params['isAjax']) {
+			$paytype = $this->params->query['paymentType'];
+			$tariffType = $this->params->query['tariffId'];
+			$paytypeAry = Configure :: read('SponsorValue');
+			if($paytype == "card") {
+				$this->render('ajaxgetcredittype');
+			}else if($paytype == "Corporate") {
+				
+				// following code commented because we directely select corporate sublocation-Atul
+				/*$this->set('corporatelocationlist', $this->CorporateLocation->find('all', array('fields'=> array('id', 'name'),'conditions' => array('CorporateLocation.is_deleted' => 0, 'CorporateLocation.credit_type_id' => $paytypeAry[$paytype],
+						'CorporateLocation.location_id'=>$this->Session->read('locationid')),'order' => array('TRIM(CorporateLocation.name)'))));
+				$this->render('ajaxgetcorporatelocations');*/
+				
+				$this->set('corporatesulloclist', $this->CorporateSublocation->find('all', array('fields'=> array('id', 'name'),
+					'conditions' => array('CorporateSublocation.is_deleted' => 0,'CorporateSublocation.tariff_standard_id' => $tariffType),'order'=>array('name'))));
+				$this->render('ajaxgetcorporatesubloc');
+			}else if($paytype == "2") {
+				$this->set('insurancecompanylist', $this->InsuranceCompany->find('all', array('fields'=> array('id', 'name'),'conditions' => array('InsuranceCompany.is_deleted' => 0,
+						'InsuranceCompany.insurance_type_id' => 2,'InsuranceCompany.location_id'=>$this->Session->read('locationid')),'order' => array('TRIM(InsuranceCompany.name)'))));
+				$this->render('ajaxgetinsurancecompanies');
+			}else{
+				$this->render('ajaxgetcashtype');
+			}
+			$this->layout = 'ajax';
+		}
+	}
+
+	public function ajaxinsurancedetails($id){
+		$this->layout = 'ajax' ;
+		$this->uses = array('Person','DoctorProfile','Consultant','CorporateLocation','Corporate', 'CorporateSublocation', 'InsuranceType', 'InsuranceCompany','CreditType');
+
+		$data =$this->Person->find('first',array('conditions'=>array('Person.id'=>$id)));
+		//$data['Person']['uiddate'] = $this->DateFormat->formatDate2Local($data['Person']['uiddate'],Configure::read('date_format'),true);
+		//split exe emp id to number and suffix
+		if(strpos($data["Person"]['non_executive_emp_id_no'],'SELF')){
+			$subCount  =  4 ;
+		}else{
+			$subCount  =  3 ;
+		}
+		$data["Person"]['suffix']  = substr($data["Person"]['non_executive_emp_id_no'],-$subCount);
+		$data["Person"]['non_executive_emp_id_no']  = substr($data["Person"]['non_executive_emp_id_no'],0,strlen($data["Person"]['non_executive_emp_id_no'])-$subCount) ;
+		$this->data = $data;
+		$this->request->data['Patient'] = $data['Person'];
+
+		// this code is used for ajax drop down payment category //
+		$this->set('credittypes',$this->CreditType->find('list',array('fields' => array('CreditType.id','CreditType.name'), 'conditions'=> array('CreditType.is_deleted' => 0))));
+		$this->set('corporatelocations',$this->CorporateLocation->find('list',array('fields' => array('CorporateLocation.id','CorporateLocation.name'), 'conditions'=> array('CorporateLocation.credit_type_id' => 1,'CorporateLocation.is_deleted' => 0,'CorporateLocation.location_id'=>$this->Session->read('locationid')))));
+
+		$this->set('corporates',$this->Corporate->find('list',array('fields' => array('Corporate.id','Corporate.name'), 'conditions'=> array('Corporate.is_deleted' => 0,'Corporate.corporate_location_id' => $this->data['Person']['corporate_location_id'],'Corporate.location_id'=>$this->Session->read('locationid')))));
+
+		$this->set('corporatesublocations',$this->CorporateSublocation->find('list',array('fields' => array('CorporateSublocation.id','CorporateSublocation.name'), 'conditions'=> array('CorporateSublocation.is_deleted' => 0,'CorporateSublocation.corporate_id' => $this->data['Person']['corporate_id']))));
+
+		// for insurance drop down //
+		$this->set('insurancetypes',$this->InsuranceType->find('list',array('fields' => array('InsuranceType.id','InsuranceType.name'), 'conditions'=> array('InsuranceType.is_deleted' => 0))));
+
+		$this->set('insurancecompanies',$this->InsuranceCompany->find('list',array('fields' => array('InsuranceCompany.id','InsuranceCompany.name'), 'conditions'=> array('InsuranceCompany.is_deleted' => 0,'InsuranceCompany.insurance_type_id' => $this->data['Person']['insurance_type_id'],'InsuranceCompany.location_id'=>$this->Session->read('locationid')))));
+		// end //
+	}
+
+	//BOF pankaj
+	//function to return  doctors dept id only in quickreg
+	function getDocDept($doctors_id){
+		$this->layout = false ;
+		$this->autoRender  =false ;
+		$this->uses = array('DoctorProfile');
+
+		/*	$this->DoctorProfile->bindModel(array(
+		 'hasOne'=>array('Department'=>array('foreignKey'=>false,
+		 		'conditions'=>array('Department.id = DoctorProfile.department_id')))));*/
+		$result = $this->DoctorProfile->find('first',array('fields'=>array('DoctorProfile.department_id','Department.name'),'conditions'=>array('DoctorProfile.user_id'=>$doctors_id)));
+		return json_encode($result);
+
+	}
+
+	//BOF pankaj
+	//function to return  doctors dept id
+	function getDoctorsDept($doctors_id){
+		$this->layout = false ;
+		$this->autoRender  =false ;
+		$this->uses = array('DoctorProfile');
+		$result = $this->DoctorProfile->find('first',array('fields'=>array('department_id'),'conditions'=>array('DoctorProfile.user_id'=>$doctors_id,'DoctorProfile.location_id'=>$this->Session->read('locationid'))));
+		return $result['DoctorProfile']['department_id'];
+			
+	}
+	//EOF pankaj
+
+	/*function getDoctorsDeptName($doctors_id){
+		$this->layout = false ;
+	$this->autoRender  =false ;
+	$this->uses = array('DoctorProfile');
+	$result = $this->DoctorProfile->find('first',array('fields'=>array('department_id'),'conditions'=>array('DoctorProfile.user_id'=>$doctors_id)));
+	return $result['DoctorProfile']['department_id'];
+
+	}*/
+
+	function getDoctorsName($doctors_id){
+		$this->layout = false ;
+		$this->autoRender  =false ;
+		$this->uses = array('DoctorProfile');
+		$result = $this->DoctorProfile->find('first',array('fields'=>array('doctor_name'),'conditions'=>array('DoctorProfile.user_id'=>$doctors_id)));
+		return $result['DoctorProfile']['doctor_name'];
+
+	}
+
+	function getVisitstype($apptId){
+		$this->layout = false ;
+		$this->autoRender  =false ;
+		$this->uses = array('Appointment');
+		$result = $this->Appointment->find('first',array('fields'=>array('visit_type'),'conditions'=>array('Appointment.id'=>$apptId)));
+		return $result['Appointment']['visit_type'];
+
+	}
+
+	function getNoteDetail($id){
+
+		$this->layout = false ;
+		$this->autoRender  =false ;
+		$this->uses = array('Note');
+		$result = $this->Note->find('all',array('conditions'=>array('Note.id'=>$id)));
+		//print_r($result);exit;
+		return json_encode($result);
+		$this->set('result',$result);
+
+
+	}
+	//EOF pankaj
+
+
+	/* this methid fetch the details of all patient */
+	public function get_patient_prescription($type=null){
+		$this->loadModel('Configuration');
+		//$this->layout ='advance_ajax'  ;
+		$this->Patient->bindModel(array(
+				'belongsTo' => array(
+
+						'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+						'PatientInitial' =>array('foreignKey' => false,'conditions'=>array('PatientInitial.id =Person.initial_id' )),
+						'Note' =>array('foreignKey' => false,'conditions'=>array('Note.patient_id =Patient.id' )),
+						'NewCropPrescription' =>array('foreignKey' => false,'conditions'=>array('NewCropPrescription.patient_uniqueid = Patient.id')),
+				)),false);
+
+		if(count($this->params->query)>0){
+			$condition['Patient.lookup_name like'] ="%".$this->params->query['lookup_name']."%";
+			$condition['Patient.admission_id like'] = "%".$this->params->query['admission_id']."%";
+
+		}
+
+		/************************ location id is removed for Kanpur instance - Mrunal **************************/
+		$condition['NewCropPrescription.date_of_prescription like'] = date("Y-m-d")."%";
+		$condition['Patient.is_discharge'] = '0';
+		$condition['Patient.is_deleted'] = '0';
+		$condition['NewCropPrescription.for_normal_med'] = '0';
+		$condition['NewCropPrescription.is_deleted'] = '0';
+
+		$website_service_type = $this->Configuration->find('first',array('conditions'=>array('Configuration.name'=>'website')));
+		$websiteConfig=unserialize($website_service_type['Configuration']['value']);
+
+		if($websiteConfig['instance']=='kanpur'){
+			if($this->Session->read('locationid') == 1 || $this->Session->read('locationid') == 25){
+				$condition['Patient.location_id'] = array('1','25');
+			}else if($this->Session->read('locationid') == 22 || $this->Session->read('locationid') == 26){
+				$condition['Patient.location_id'] = array('22','26');
+			}/*else{
+			$condition['Patient.admission_type'] = "IPD";
+			$condition['Patient.admission_type'] = "OPD";
+			}*/
+		}else{
+			$condition['Patient.location_id'] = $this->Session->read('locationid');
+			/*$condition['Patient.admission_type'] = "IPD";
+				$condition['Patient.admission_type'] = "OPD";*/
+		}
+		$condition['NewCropPrescription.by_nurse']='';
+		$this->set('website_service_type',$website_service_type);
+		$this->paginate = array(
+				'limit' => 10,
+				'order' => array('NewCropPrescription.date_of_prescription' => 'asc'),
+				'fields'=> array('Patient.admission_id,PatientInitial.name,Patient.lookup_name,Patient.id','Note.id','NewCropPrescription.date_of_prescription'),
+				'conditions'=>array($condition),
+				'group'=>('Patient.id')
+		);
+			
+		$data = $this->paginate('Patient');
+
+		$total =array();
+		$credit_amount = 0;
+		$cash_amount = 0;
+		foreach($data as $datum){
+			if(count($datum['PharmacySalesBill'])>0){
+				foreach($datum['PharmacySalesBill'] as $value){
+					if($value['payment_mode'] == "credit")
+						$credit_amount += (double)$value['total'];
+					else
+						$cash_amount += (double)$value['total'];
+					if($credit_amount>$cash_amount)
+						$total[$datum['Patient']['id']]['id'] = $credit_amount-$cash_amount;
+					else
+						$total[$datum['Patient']['id']]['id'] = 0;;
+				}
+			}else{
+				$total[$datum['Patient']['id']]['id'] ="0";
+			}
+		}
+		//debug($data);
+		$this->set('total',$total);//debug($data);exit;
+		$this->set('datapost',$data);
+
+	}
+
+	/* this methid fetch the details of all patient */
+	public function get_patient_prescription_details($patientId=null,$noteId=null){
+
+		$this->layout = "advance_ajax" ;
+		$this->loadModel("NewCropPrescription");
+		$this->loadModel("Preferencecard");
+		$this->loadModel("OptAppointment");
+		$this->loadModel('PharmacyItem');
+		$this->loadModel('User');
+		//$this->loadModel('Note');
+
+		$this->Patient->unBindModel(array(
+				'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+		$this->Patient->bindModel(array(
+				'hasOne' => array(
+						'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+						//'PatientInitial' =>array('foreignKey' => false,'conditions'=>array('PatientInitial.id =Person.initial_id' )),
+						'Preferencecard' =>array('foreignKey' =>false, 'conditions'=>array('Preferencecard.patient_id = Patient.id')),
+						'User' => array('foreignKey' =>false, 'conditions'=>array('User.id = Patient.doctor_id')),
+				)),false);
+		$patient = $this->Patient->find("first",array('fields'=>array('Patient.id','Patient.lookup_name','Patient.admission_id','Patient.doctor_id','User.username','Patient.admission_type'/*,'PatientInitial.name'*/),
+				'conditions'=>array('Patient.id'=>$patientId,'Patient.is_deleted'=>'0')));
+
+
+
+		$this->NewCropPrescription->bindModel(array(
+				'hasOne' => array(
+						'PharmacyItem' =>array('foreignKey'=>false,'conditions'=>array('NewCropPrescription.drug_id = PharmacyItem.id')),
+
+				),
+		));
+		//BOF OT medication
+		$this->OptAppointment->bindModel(array(
+				'belongsTo' => array('Preferencecard' =>array('foreignKey' => 'preferencecard_id'))
+		));
+
+		$otReq = $this->OptAppointment->find('all',array('conditions'=>array('OptAppointment.patient_id'=>$patientId),
+				'fields'=>array('OptAppointment.preferencecard_id','Preferencecard.medications','Preferencecard.quantity')));
+
+
+			
+		$drugId = array() ;
+		$drugQty = array();
+		foreach($otReq as $key => $value){
+
+			$medication  = unserialize($value['Preferencecard']['medications'] );
+
+			$quantity  = unserialize($value['Preferencecard']['quantity']) ;
+			if(!empty($medication[0]))
+				$drugId = array_merge($drugId,$medication[0]);
+
+			if(!empty($quantity[0]))
+				$drugQty = array_merge($drugQty,$quantity[0]);
+
+		}
+			
+		$preferenceRequisition= $this->PharmacyItem->find('all',array('conditions'=>array('PharmacyItem.id'=>$drugId),
+				'fields'=>array('PharmacyItem.id','PharmacyItem.drug_id','PharmacyItem.item_code','PharmacyItem.pack','PharmacyItem.name'),
+				'group'=>array('PharmacyItem.id')));
+
+
+		$this->set('preferenceRequisition',$preferenceRequisition);
+
+		//EOF OT medication
+			
+		//BOF medication
+
+
+		$this->NewCropPrescription->bindModel(array(
+				'hasOne' => array(
+						'PharmacyItem' =>array('foreignKey'=>false,'conditions'=>array('NewCropPrescription.drug_id = PharmacyItem.id')),
+				),
+		));
+
+
+		$this->paginate = array(
+				'limit' => Configure::read('number_of_rows'),
+				//'order' => array('NewCropPrescription.create_time' => 'desc'),
+				'fields'=> array('NewCropPrescription.id','NewCropPrescription.quantity','NewCropPrescription.dose','NewCropPrescription.drug_id',
+						'NewCropPrescription.frequency','PharmacyItem.id','PharmacyItem.drug_id','PharmacyItem.item_code','PharmacyItem.pack','PharmacyItem.name',
+				),
+				'conditions'=>array('NewCropPrescription.patient_uniqueid'=>$patientId,'NewCropPrescription.by_nurse'=>null,'NewCropPrescription.for_normal_med'=>'0','NewCropPrescription.is_deleted' => '0'));
+
+		$datapost = $this->paginate('NewCropPrescription');
+
+		//EOF medication
+		/** for note template_full_text **/
+
+		$this->set('noteId',$noteId);
+		//pr($viewdata);
+		/** **/
+
+		$this->set(compact(array('datapost','patient','drugQty')));
+		//$this->set('preferenceRequisition',$preferenceRequisition);
+
+	}
+
+
+	function ajaxdoctorlisting($type=null){
+		$this->layout = false ;
+		$this->loadModel("Consultant");
+		$this->Consultant->virtualFields = array(
+				'full_name' => 'CONCAT(Initial.name, " ",Consultant.first_name, " ", Consultant.last_name)'
+		);
+		if($type){
+			$doctorlist=$this->Consultant->find('list',array('fields' => array('Consultant.id','Consultant.full_name'), 'conditions'=> array('Consultant.refferer_doctor_id' => $type,'Consultant.location_id'=>$this->Session->read('locationid')), 'recursive' => 1));
+			echo json_encode($doctorlist);
+		}
+		exit;
+	}
+
+	function print_token($id=null){
+		//no need of layout
+		$this->layout  = false ;
+		$this->set('title_for_layout', __('-Print Token No.', true));
+		if(!empty($id)){
+			$this->uses = array('Person','Facility','User','Consultant','DoctorProfile','Appointment');
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'Initial' =>array(
+									'foreignKey'=>'initial_id'
+							)
+					)),true);
+
+			$patient_details  = $this->Patient->getPatientDetailsByID($id);
+			$tokenResult= $this->Appointment->find('first',array('fields'=>array('app_token'),'conditions'=>array('Appointment.patient_id'=>$id)));
+			$docName='';
+			//$docDetails = $this->Consultant->getConsultantByID($patient_details['Patient']['consultant_id']);
+			//$docName = $docDetails['Consultant']['full_name'];
+
+			$this->Person->bindModel(array(
+					'belongsTo' => array(
+							'Initial' =>array(
+									'foreignKey'=>'initial_id'
+							)
+					)),true);
+			$UIDpatient_details  = $this->Person->getUIDPatientDetailsByPatientIDQR($id);
+			#pr($UIDpatient_details);exit;
+			$formatted_address = $this->setAddressFormat($UIDpatient_details['Person']);
+			$this->set(array('title'=>$UIDpatient_details['Initial']['name'],'hospital'=>$this->Facility->read('name',$this->Session->read('facilityid')),
+					'address'=>$formatted_address,'patient'=>$patient_details,'blood_group'=>$UIDpatient_details['Person']['blood_group'],
+					'doctor_name'=>$docName,'id'=>$id,'token'=>$tokenResult['Appointment']['app_token'],
+					'age'=>$UIDpatient_details['Person']['age'],'sex'=>$UIDpatient_details['Person']['sex']));
+
+		}else{
+			$this->redirect(array("controller" => "patients", "action" => "index"));
+		}
+	}
+
+	//BOF OPD billing
+	function receipts(){
+		$this->set('data','');
+		$this->paginate = array(
+				'limit' => Configure::read('number_of_rows'),
+				'order' => array(
+						'Patient.id' => 'asc'
+				)
+		);
+		$role = $this->Session->read('role');
+		$search_key['Patient.admission_type'] = "OPD";
+
+		//EOF patient search as per category
+		$search_key['Patient.is_deleted'] = 0;
+		//$search_key['Patient.is_discharge'] = 0;//display only non-discharge patient
+		if($role == 'admin'){
+			#$search_key['Location.facility_id']=$this->Session->read('facilityid');
+			$this->Patient->bindModel(array(
+			'belongsTo' => array(
+			'User' =>array('foreignKey' => false,'conditions'=>array('User.id=Patient.doctor_id' )),
+			'Location' =>array('foreignKey' => 'location_id'),
+			'Initial' =>array('foreignKey' => false,'conditions'=>array('User.initial_id=Initial.id' )),
+			'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+			'PatientInitial' =>array('foreignKey' => false,'conditions'=>array('PatientInitial.id =Person.initial_id' )),
+			)),false);
+		}else{
+			$search_key['Patient.location_id']=$this->Session->read('locationid');
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'User' =>array('foreignKey' => false,'conditions'=>array('User.id=Patient.doctor_id' )),
+							'Initial' =>array('foreignKey' => false,'conditions'=>array('User.initial_id=Initial.id' )),
+							'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+							'PatientInitial' =>array('foreignKey' => false,'conditions'=>array('PatientInitial.id =Person.initial_id' )),
+					)),false);
+		}
+
+		// If patient is OPD
+		if(!empty($this->params->query)){
+			$search_ele = $this->params->query  ;//make it get
+			if(!empty($search_ele['lookup_name'])){
+				$search_key['Patient.lookup_name like '] = "%".trim($search_ele['lookup_name'])."%" ;
+			}if(!empty($search_ele['patient_id'])){
+				$search_key['Patient.patient_id like '] = "%".trim($search_ele['patient_id']) ;
+			}if(!empty($search_ele['admission_id'])){
+				$search_key['Patient.admission_id like '] = "%".trim($search_ele['admission_id']) ;
+			}
+			// Condition is here
+			$conditions = $search_key;
+		}else{
+			// For IPD patient
+			// Condition is here
+			$conditions = array($search_key,'Patient.is_discharge'=>0,'Patient.admission_type'=>'IPD');
+		}
+		// Paginate Data here
+		$this->paginate = array(
+				'limit' => Configure::read('number_of_rows'),
+				'order' => array('Patient.id' => 'desc'),
+				'fields'=> array('CONCAT(PatientInitial.name," ",Patient.lookup_name) as lookup_name,Patient.fee_status,Patient.is_discharge,Patient.form_received_on,
+						Patient.id,Patient.sex,Patient.patient_id,Patient.admission_id,Patient.mobile_phone,Patient.landline_phone,CONCAT(Initial.name," ",User.first_name," ",User.last_name) as name, Patient.create_time'),
+				'conditions'=>$conditions
+		);
+
+		$this->set('data',$this->paginate('Patient'));
+
+	}
+
+	//list of OPD patient
+	function payment(){
+		if(!empty($this->params->query)){
+			$this->receipts();
+		}
+	}
+
+	function opd_payment($patient_id=null){
+
+		if(!empty($this->request->data)){
+			//save data
+			$this->request->data['Patient']['fee_status'] = 'paid';
+			$this->request->data['Patient']['fee_paid_on'] = date("Y-m-d H:i:s");
+			$result = $this->Patient->save($this->request->data['Patient']);
+			$this->uses = array('Billing');
+			if($result){
+				//BOF advance payment
+				$billing['patient_id'] = $this->request->data['Patient']['id'] ;
+				$billing['amount'] = $this->request->data['Patient']['cost'] ;
+				$billing['reason_of_payment']= 'Advance';
+				$billing['mode_of_payment']= 'Cash';
+				$billing['date'] = date('Y-m-d H:i:s');
+				$billing['location_id'] = $this->Session->read('locationid');
+				$billing['created_by'] = $this->Session->read('userid');
+				$billing['create_time'] = date('Y-m-d H:i:s');
+
+				$this->Billing->save($billing);
+				//EOF advance payment
+				$this->Session->setFlash(__('Payment done successfully'),'default',array('class'=>'message'));
+				$this->redirect(array('action'=>'payment','?'=>array('payment'=>'done','id'=>$patient_id)));
+			}else{
+				$this->Session->setFlash(__('Please try again'),'default',array('class'=>'error'));
+				$this->redirect($this->referer());
+			}
+		}
+		if(!empty($patient_id)){
+			$this->uses = array('TariffAmount');
+			$this->patient_info($patient_id);
+			$this->Patient->unBindModel(array(
+					'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+			$this->Patient->bindModel(array(
+					'belongsTo' => array(
+							'TariffAmount' =>array('foreignKey'=>false,'type'=>'left','conditions'=>array('Patient.tariff_standard_id=TariffAmount.tariff_standard_id',
+									'TariffAmount.tariff_list_id=1','TariffAmount.location_id='.$this->Session->read('locationid'))),
+							'TariffList'=>array('foreignKey'=>'treatment_type','type'=>'left')
+
+					)));
+			$result = $this->Patient->find('first',array('fields'=>array('Patient.id','Patient.remark','Patient.fee_status','Patient.tariff_standard_id',
+					'Patient.treatment_type','TariffAmount.nabh_charges','TariffAmount.non_nabh_charges','TariffList.name'),
+					'conditions'=>array('Patient.id'=>$patient_id,'Patient.treatment_type !='=>0))) ;
+
+			//retrive op check up cost
+			$consultationCharge = $this->TariffAmount->find('first',array('fields'=>array('TariffAmount.nabh_charges','TariffAmount.non_nabh_charges'),
+					'conditions'=>array('TariffAmount.tariff_list_id'=>$result['Patient']['treatment_type'],
+							'TariffAmount.tariff_standard_id'=>$result['Patient']['tariff_standard_id'],'TariffAmount.location_id'=>$this->Session->read('locationid'))));
+			//EOF op check up cost
+
+			$this->set(array('data'=>$result,'patient_id'=>$patient_id,'consultationCharge'=>$consultationCharge));
+
+		}else{
+			$this->Session->setFlash(__('Please try again'),'default',array('class'=>'error'));
+			$this->redirect($this->referer());
+		}
+	}
+
+	function opd_payment_receipt_print($patient_id=null){
+		$this->layout = false ;
+		$this->uses  = array('Appointment','TariffAmount');
+		$this->Patient->unBindModel(array(
+				'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+		$this->Patient->bindModel(array(
+				'belongsTo' => array(
+						'TariffAmount' =>array('foreignKey'=>false,'type'=>'INNER','conditions'=>array('Patient.tariff_standard_id=TariffAmount.tariff_standard_id','TariffAmount.tariff_list_id=1','TariffAmount.location_id='.$this->Session->read('locationid'))),
+						'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+						'PatientInitial' =>array('foreignKey' => false,'conditions'=>array('PatientInitial.id =Person.initial_id' )),
+
+				)));
+		$result = $this->Patient->find('first',array('fields'=>array('Patient.id','Patient.age','Patient.sex','CONCAT(PatientInitial.name," ",Patient.lookup_name) as lookup_name','Patient.admission_id','Patient.remark','Patient.treatment_type','Patient.tariff_standard_id','TariffAmount.nabh_charges','TariffAmount.non_nabh_charges','Patient.fee_paid_on'),'conditions'=>array('Patient.id'=>$patient_id))) ;
+		//retrive op check up cost
+		$consultationCharge = $this->TariffAmount->find('first',array('fields'=>array('TariffAmount.nabh_charges','TariffAmount.non_nabh_charges'),'conditions'=>array('TariffAmount.tariff_list_id'=>$result['Patient']['treatment_type'],
+				'TariffAmount.tariff_standard_id'=>$result['Patient']['tariff_standard_id'],'TariffAmount.location_id'=>$this->Session->read('locationid'))));
+		//EOF op check up cost
+		$tokenResult= $this->Appointment->find('first',array('fields'=>array('app_token'),'conditions'=>array('Appointment.patient_id'=>$patient_id)));
+		$this->set(array('data'=>$result,'patient_id'=>$patient_id,'token'=>$tokenResult,'consultationCharge'=>$consultationCharge));
+	}
+	//EOF OPD Billing
+
+	/*
+	 *
+	* dischargeby consultant or doctor
+	*
+	*/
+	public function dischargeby_consultant($patientid = null) {
+		$this->uses = array('DischargebyConsultant', 'FinalBilling');
+		$this->layout = false ;
+		if($this->request->is('post') || $this->request->is('put')) {
+			if($this->request->data['DischargebyConsultant']['id']) {
+				$this->DischargebyConsultant->id = $this->request->data['DischargebyConsultant']['id'];
+				$this->request->data['DischargebyConsultant']['modified_by'] = $this->Session->read('userid');
+				$this->request->data['DischargebyConsultant']['modify_time'] = date('Y-m-d H:i:s');
+			} else {
+				$this->request->data['DischargebyConsultant']['created_by'] = $this->Session->read('userid');
+				$this->request->data['DischargebyConsultant']['create_time'] = date('Y-m-d H:i:s');
+			}
+			$this->request->data["DischargebyConsultant"]['location_id'] = $this->Session->read('locationid');
+			$discharge_date_time =  $this->request->data['DischargebyConsultant']['discharge_date'];
+			$this->request->data["DischargebyConsultant"]['discharge_date'] = $this->DateFormat->formatDate2STD($discharge_date_time,Configure::read('date_format')) ;
+
+			$this->DischargebyConsultant->save($this->request->data);
+			$this->Session->setFlash(__('Discharge Date & Time have been Saved.'),'default',array('class'=>'message'));
+			echo "<script> parent.location.reload();parent.$.fancybox.close();</script>" ;
+		}
+		// check for existing record //
+		$countPatient = $this->DischargebyConsultant->find('first', array('conditions' => array('DischargebyConsultant.patient_id' => $patientid)));
+		$getPatient = $this->DischargebyConsultant->find('first', array('conditions' => array('DischargebyConsultant.patient_id' => $patientid)));
+		if($countPatient > 0) {
+			$this->request->data = $getPatient;
+		} else {
+			$this->request->data['DischargebyConsultant']['patient_id'] = $patientid;
+		}
+	}
+
+	//function to print OPD patient details
+	function opd_patient_detail_print($patient_id=null){
+		$this->layout = false;
+		$this->patient_info($patient_id);
+		$this->uses=array('Diagnosis','Note','Appointment','Person','Patient');
+		$UIDpatient_details  = $this->Person->getUIDPatientDetailsByPatientID($patient_id);		// Patients Details
+		$consultatnt_id = unserialize($UIDpatient_details['Patient']['consultant_id']);		
+		$patient_uid = $UIDpatient_details['Person']['patient_uid'];
+		$admission_type = $UIDpatient_details['Patient']['admission_type'];
+		$admission_Id = $UIDpatient_details['Patient']['admission_id_qrcode'];
+		$lookup_name = $UIDpatient_details['Patient']['patient_name_qrcode']; 
+		$formatted_address   = $this->Patient->setAddressFormat($UIDpatient_details['Person']); // Formatted address for patient
+		
+                      
+
+    	$patientInfo = $this->Patient->find('all', array(
+                            'conditions' => array('Patient.id' => $patient_id), // Patient table ke liye condition
+                            'fields' => array('Patient.id', 'Patient.patient_id', 'Person.*'), // Patient aur Person table ke fields
+                            'joins' => array(
+                                array(
+                                    'table' => 'persons',             // Person table ka naam
+                                    'alias' => 'Person',              // Alias for Person model
+                                    'type' => 'INNER',                // INNER JOIN
+                                    'conditions' => array(
+                                        'Patient.patient_id = Person.patient_uid' // Join condition
+                                    )
+                                )
+                            )
+                        ));
+                        $this->set(compact('patientInfo'));
+
+		
+		$consultanName = $this->Consultant->find('all',array(
+				'conditions'=>array('Consultant.id'=>$consultatnt_id),
+				'fields'=>array('Consultant.first_name','Consultant.last_name','Consultant.mobile')));
+		
+		$this->set(compact('formatted_address'));
+		$this->set(compact('patient_uid','consultanName','admission_type','admission_Id','lookup_name'));
+
+		$diagnosis = $this->Diagnosis->find('first',array(
+				'conditions'=>array('patient_id'=>$patient_id),'fields'=>array('final_diagnosis','complaints','family_tit_bit')));
+		$this->set('diagnosisData',$diagnosis);
+
+		$Note = $this->Note->find('first',array(
+				'conditions'=>array('patient_id'=>$patient_id),'fields'=>array('object','subject','ros')));
+		$this->set('Notedata',$Note);
+
+		$appointments = $this->Appointment->find('all',array('fields'=>array('Appointment.id','Appointment.doctor_id'),
+			'conditions'=>array('Appointment.patient_id'=>$patient_id,'Appointment.is_deleted'=>'0')));
+
+		foreach($appointments as $appointmentsKey=>$appointmentsValue){
+				$doctorIDArr[]=$appointmentsValue['Appointment']['doctor_id'];
+			}
+       
+		$allDoctorList=$this->User->getAllDoctorList();
+		$doctorIDArrName=array();
+		foreach($doctorIDArr as $doctorIDArrKey=>$doctorIDArrValue){
+			if(!empty($doctorIDArrValue)){
+				if(!in_array($allDoctorList[$doctorIDArrValue], $doctorIDArrName)){
+					$doctorIDArrName[]=$allDoctorList[$doctorIDArrValue];
+				}
+			}
+		} 
+		$doctorIDArrName=implode(' , ',$doctorIDArrName);
+		$this->set('doctorIDArrName',$doctorIDArrName);
+	}
+
+	/**
+	 * ot post operative checklist
+	 *
+	 */
+	public function ot_post_operative_checklist() {
+		$this->uses =array('Consultant','User','Patient');
+
+		$this->set('registrar',$this->User->getDoctorsByLocation($this->Session->read('locationid')));
+		$this->set('consultant',$this->Consultant->getRegistrar());
+
+	}
+
+	/**
+	 * ot post operative checklist
+	 *
+	 */
+	public function save_ot_post_operative_checklist() {
+		$this->uses =array('ConsultantBilling','Consultant',"Note",'User','Consultant','SuggestedDrug','Patient');
+		//  $this->layout = 'ajax';
+		if (!empty($this->request->data['Note'])) {
+			$getPatientId = $this->Patient->find('first', array('conditions' => array('Patient.patient_id' => $this->request->data['patient_uid']), 'fields' => array('Patient.id')));
+			$this->request->data['Note']['patient_id'] = $getPatientId['Patient']['id'];
+			//converting date to standard format
+			if(!empty($this->request->data["Note"]['note_date'])){
+				$last_split_date_time =  $this->request->data['Note']['note_date'];
+				$this->request->data["Note"]['note_date'] = $this->DateFormat->formatDate2STD($last_split_date_time,Configure::read('date_format'));
+			}
+
+			if($this->Note->insertNote($this->request->data)){
+
+				if($this->request->data['Note']['to_be_billed'] ==1){
+					$consultantdata =array();
+					$consultantCharges = $this->Consultant->getChargesByID($this->request->data['Note']['sb_consultant']);
+					$consultantdata['ConsultantBilling']['patient_id'] = $this->request->data['Note']['patient_id'];
+					$consultantdata['ConsultantBilling']['category_id'] = 0;
+					$consultantdata['ConsultantBilling']['consultant_id'] = $this->request->data['Note']['sb_consultant'];
+					$consultantdata['ConsultantBilling']['charges_type'] = 'Consultant';
+					$consultantdata['ConsultantBilling']['amount'] = $consultantCharges['Consultant']['charges'];
+					$consultantdata['ConsultantBilling']['created_by']= $this->Session->read('userid');
+					$consultantdata['ConsultantBilling']['create_time']= date("Y-m-d H:i:s");
+					$consultantdata['ConsultantBilling']['date']= date("Y-m-d");
+
+					$this->ConsultantBilling->save($consultantdata['ConsultantBilling']);
+				}
+
+				$this->Session->setFlash(__('Patient Note Added Successfully' ),true,array('class'=>'message'));
+				$this->redirect("/patients/ot_post_operative_checklist/");
+			}else{
+				$this->Session->setFlash(__('Please Try Again' ),true,array('class'=>'error'));
+				//$this->redirect("/patients/patient_notes/".$this->request->data['patientid']);
+			}
+		}else{
+			$this->set('patientid',$patient_id);
+
+			if(!empty($notes_id)){
+				$data  =$this->Note->read(null, $notes_id);
+
+				//converting date to local format
+				if(!empty($data['Note']['note_date'])){
+					$data['Note']['note_date'] = $this->DateFormat->formatDate2Local($data['Note']['note_date'],Configure::read('date_format'),true);
+				}
+
+				$this->data = $data ;
+
+			}
+		}
+		if(!empty($notes_id)){
+			$notesRec = $this->Note->read(null,$notes_id);
+
+
+			//converting date to local format
+			if(!empty($notesRec['Note']['note_date'])){
+				$notesRec['Note']['note_date'] = $this->DateFormat->formatDate2Local($notesRec['Note']['note_date'],Configure::read('date_format'),true);
+			}
+
+
+
+			$suggestedDrugRec = $this->SuggestedDrug->find('all',array('fields'=>array('SuggestedDrug.route,SuggestedDrug.dose,SuggestedDrug.quantity,SuggestedDrug.frequency,
+					SuggestedDrug.first,SuggestedDrug.second,SuggestedDrug.third,SuggestedDrug.forth,PharmacyItem.name'),'conditions'=>array('note_id'=>$notes_id)));
+			$this->set('icd_ids',array());
+			$count = count($suggestedDrugRec);
+
+			if($count){
+				for($i=0;$i<$count;){
+					$notesRec['drug'][$i]  = $suggestedDrugRec[$i]['PharmacyItem']['name'];
+					$notesRec['route'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['route'];
+					$notesRec['dose'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['dose'];
+					$notesRec['frequency'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['frequency'];
+					$notesRec['quantity'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['quantity'];
+					$notesRec['first'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['first'];
+					$notesRec['second'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['second'];
+					$notesRec['third'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['third'];
+					$notesRec['forth'][$i]  = $suggestedDrugRec[$i]['SuggestedDrug']['forth'];
+
+					$i++;
+				}
+			}
+			$this->data = $notesRec ;
+		}
+
+
+
+	}
+
+	function opd_done($patient_id, $type=NULL){
+
+		$this->loadModel('FinalBilling');
+		$this->loadModel('Patient');
+		//	$this->Patient->unBindModel(array('hasMany'=>array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+		//	$p_uid = $this->Patient->find('first',array('fields'=>array('patient_id'),'conditions'=>array('Patient.id'=>$patient_id)));
+
+		if($patient_id){
+			$this->Patient->id = $patient_id ;
+			$result = $this->Patient->save(array('id'=>$patient_id,'is_discharge'=>1,'discharge_date'=>date('Y-m-d H:i:s')));
+			if($result){
+				//check final Billing
+				$finalBillingData = $this->FinalBilling->find('first',array('conditions'=>array('patient_id'=>$patient_id),'fields'=>array('id')));
+				//insert into finalBilling
+				if($finalBillingData){
+					$this->FinalBilling->id = $finalBillingData['FinalBilling']['id'];
+				}
+				$finalBilling['patient_id'] = $patient_id;
+				$finalBilling['location_id'] = $this->Session->read('locationid');
+				$finalBilling['discharge_date'] = date('Y-m-d H:i:s');
+				$finalBilling['date'] = date('Y-m-d');
+				$this->FinalBilling->save($finalBilling);
+				$this->Session->setFlash(__('OP Process Completed'),'default',array('class'=>'message'));
+				if($type=='ipd'){
+					return;
+				}else{
+					//if the patient is converting from ipd to opd do not redirect to ammpointment dashboard
+					$this->redirect(array("controller" => "appointments", "action" => "appointments_management"));
+				}
+			}else{
+				$this->Session->setFlash(__('Please try again'),'default',array('class'=>'error'));
+			}
+			$this->redirect($this->referer());
+		}else{
+			$this->Session->setFlash(__('Please try again'),'default',array('class'=>'error'));
+			$this->redirect($this->referer());
+		}
+
+	}
+
+	function patient_referral($patient_id=null,$referral_id=null){
+		$this->uses  =array('Location','PatientReferral','Patient','TransmittedCcda','User','NoteDiagnosis');
+		///$this->Patient->find('all',array());
+		//aditya (List of out box)
+		$session     	= new cakeSession();
+		$userid 	 	= $session->read('userid') ;
+		$locationId  	= $session->read('locationid') ;
+		$this->TransmittedCcda->bindModel(array('belongsTo'=>array(
+				'Patient'=>array('foreignKey'=>'patient_id'),
+				'User'=>array('foreignKey'=>'created_by'),
+				'NoteDiagnosis'=>array('foreignKey'=>false,'conditions'=>array('Patient.id=NoteDiagnosis.patient_id')),
+				'Person'=>array('foreignKey'=>false,'conditions'=>array('Person.id=Patient.person_id')),
+		)));
+
+		$dataTransmittedCcda=$this->TransmittedCcda->find('all',array('fields'=>array('NoteDiagnosis.diagnoses_name','User.email','User.alias','TransmittedCcda.*','Patient.lookup_name','Patient.admission_id','Person.age','Person.dob','Person.sex'),
+				'conditions'=>array('Patient.id'=>$patient_id,'TransmittedCcda.location_id'=>$locationId)));
+		$this->set('dataTransmittedCcda',$dataTransmittedCcda);
+		//EOF
+		if(!empty($this->request->data['PatientReferral'])){
+			if(!empty($this->request->data['PatientReferral']['date_of_issue'])){
+				$splitFrom =  $this->request->data['PatientReferral']['date_of_issue'] ;
+				$this->request->data['PatientReferral']['date_of_issue'] = $this->DateFormat->formatDate2STD($splitFrom,Configure::read('date_format'));
+			}
+			$this->PatientReferral->insertPatientReferral($this->request->data['PatientReferral']);
+			$errors = $this->Patient->invalidFields();
+			if(!empty($errors)) {
+				$this->set("errors", $errors);
+			}else {
+				$this->Session->setFlash(__('Record added successfully'),'default',array('class'=>'message'));
+				$this->redirect(array('action'=>'patient_referral',$this->request->data['PatientReferral']['patient_id']));
+			}
+		}
+
+		$this->print_patient_info($patient_id);
+		$locInfo = $this->Location->getLocationDetails($this->Session->read('locationid'));
+		//retrive doctor's details
+		$doctorDetails = $this->Patient->doctors_details($patient_id);
+		$this->set(array('location'=>$locInfo,'doctor_details'=>$doctorDetails));
+		if($referral_id){
+			$this->data = $this->PatientReferral->find('first',array('conditions'=>array('id'=>$referral_id)));
+			$this->set('referral_id',$referral_id);
+		}else{
+			$this->paginate = array(
+					'limit' => Configure::read('number_of_rows'),
+					'order' => array('PatientReferral.id' => 'asc'),
+					'conditions'=>array('PatientReferral.patient_id'=>$patient_id));
+
+			$this->set('data',$this->paginate('PatientReferral'));
+			$this->set('referral_id','');
+		}
+	}
+
+	function print_patient_referral($patient_id=null,$id){
+		$this->layout = 'print_with_header';
+		$this->patient_referral($patient_id,$id);
+	}
+
+	function patient_referral_delete($id){
+		if(!empty($id)){
+			$this->uses =  array('PatientReferral') ;
+			$result = $this->PatientReferral->delete($id);
+			if($result){
+				$this->Session->setFlash(__('Record deleted successfully'),'default',array('class'=>'message'));
+				$this->redirect($this->referer());
+			}else{
+				$this->Session->setFlash(__('Please try again'),'default',array('class'=>'message'));
+				$this->redirect($this->referer());
+			}
+		}
+		$this->Session->setFlash(__('Please try again'),'default',array('class'=>'message'));
+		$this->redirect($this->referer());
+	}
+
+	//List of child added
+	function child_birth_list($patient_id=null){
+		if(empty($patient_id)) $this->redirect($this->referer());
+		//BOF referer link
+		$sessionReturnString = $this->Session->read('childReturn') ;
+		$currentReturnString = $this->params->query['return'] ;
+		if(($currentReturnString!='') && ($currentReturnString != $sessionReturnString) ){
+			$this->Session->write('childReturn',$currentReturnString);
+		}
+		//EOF referer link
+
+
+		$this->uses = array('ChildBirth');
+		$this->paginate = array(
+				'limit' => Configure::read('number_of_rows'),
+				'order' => array('ChildBirth.id' => 'desc'),
+				'conditions'=>array('ChildBirth.patient_id'=>$patient_id,'ChildBirth.is_deleted '=> '0') );
+		$this->set('patient_id',$patient_id);
+		$this->set('data',$this->paginate('ChildBirth'));
+	}
+	function child_birth_print($patient_id=null,$id=null){
+		$this->uses=array('ChildBirth');
+		$this->layout = 'print_with_header';
+
+		$result = $this->ChildBirth->read(null,$id) ;
+		$result['ChildBirth']['dob'] = $this->DateFormat->formatDate2Local($result['ChildBirth']['dob'],Configure::read('date_format'),true);
+		$this->set('data',$result['ChildBirth']);
+	}
+	//function to add in DB new born babies entry
+	public function child_birth($patient_id = null,$id=null) {
+		$this->uses = array('ChildBirth','Person');
+		if(!empty($this->request->data)) {
+			$this->ChildBirth->insertChildBirth($this->request->data);
+			$errors = $this->ChildBirth->invalidFields();
+			if(!empty($errors)) {
+				$this->Session->setFlash(__('Please try again'),'default',array('class'=>'error'));
+				//$this->redirect($this->referer());
+				//echo "<script> parent.location.reload();parent.$.fancybox.close();</script>" ;
+			}else{
+				$this->Session->setFlash(__('Record has been saved successfully'),'default',array('class'=>'message'));
+				$this->redirect(array('action'=>'child_birth_list',$patient_id));
+			}
+			// check for existing record //
+			$getPatient = $this->ChildBirth->find('first', array('conditions' => array('ChildBirth.patient_id' => $patient_id)));
+			if(!empty($getPatient)) {
+				$this->request->data = $getPatient;
+			} else {
+				$this->request->data['ChildBirth']['patient_id'] = $patient_id;
+			}
+		}
+		if(!empty($patient_id) && empty($id)){
+			$this->Person->bindModel(array(
+					'hasOne'=>array('Patient'=>array('type'=>'INNER','foreignKey'=>'person_id','conditions'=>array('Patient.id'=>$patient_id)))
+			));
+			$motherData = $this->Person->find('first',array('fields'=>array('id','first_name','last_name','city','district','state')));
+
+			$childBirth['ChildBirth'] = $motherData['Person'];
+			$childBirth['ChildBirth']['name']= $motherData['Person']['first_name'] ;
+			$childBirth['ChildBirth']['mother_name']= $motherData['Person']['first_name']." ".$motherData['Person']['last_name'] ;
+			$childBirth['ChildBirth']['id'] = '';
+			$this->data =$childBirth ;
+			$this->set('patient_id',$patient_id);
+
+		}else if(!empty($id) && !empty($patient_id)){
+
+			$result = $this->ChildBirth->read(null,$id) ;
+			$result['ChildBirth']['dob'] = $this->DateFormat->formatDate2Local($result['ChildBirth']['dob'],Configure::read('date_format'),true);
+			$this->data = $result ;
+			$this->set('patient_id',$patient_id);
+		}
+		$this->set('patient_id',$patient_id);
+	}
+
+	//fucntion to delte child birth entry
+	function child_birth_delete($id=null){
+		if(!empty($id)){
+			$this->uses =  array('ChildBirth') ;
+			$result = $this->ChildBirth->save(array('id'=>$id,'is_deleted'=>1,'modified_by'=>$this->Session->read('userid'),'modify_time'=>date("Y-m-d H:i:s")));
+			if($result){
+				$this->Session->setFlash(__('Record deleted successfully'),'default',array('class'=>'message'));
+				$this->redirect($this->referer());
+			}else{
+				$this->Session->setFlash(__('Please try again'),'default',array('class'=>'message'));
+				$this->redirect($this->referer());
+			}
+		}
+		$this->Session->setFlash(__('Please try again'),'default',array('class'=>'message'));
+		$this->redirect($this->referer());
+	}
+
+	/**
+	 * add police form
+	 *
+	 */
+	public function add_police_form($patientid=null) {
+		$this->uses = array('PoliceForm');
+		$this->set('title_for_layout', __('Add Police Form', true));
+		$this->patient_info($patientid);
+		if ($this->request->is('post') || $this->request->is('put')) {
+			$informDate = $this->DateFormat->formatDate2STD($this->request->data["PoliceForm"]['inform_date'],Configure::read('date_format'));
+			$admitDate = $this->DateFormat->formatDate2STD($this->request->data["PoliceForm"]['admit_date'],Configure::read('date_format'));
+			$accidentDate = $this->DateFormat->formatDate2STD($this->request->data["PoliceForm"]['accident_date'],Configure::read('date_format'));
+			$this->request->data["PoliceForm"]['inform_date'] = $informDate;
+			$this->request->data["PoliceForm"]['admit_date'] = $admitDate;
+			$this->request->data["PoliceForm"]['accident_date'] = $accidentDate;
+			$this->request->data["PoliceForm"]["create_time"] = date("Y-m-d H:i:s");
+			$this->request->data["PoliceForm"]["created_by"] = $this->Session->read('userid');
+			$this->request->data["PoliceForm"]["location_id"] = $this->Session->read('locationid');
+			if($this->PoliceForm->save($this->request->data)) {
+				$this->Session->setFlash(__('Police Form Saved.', true));
+				$this->redirect(array("action" => "police_forms", $this->request->data["PoliceForm"]['patient_id']));
+			} else {
+				$this->set('errors', $this->PoliceForm->invalidFields());
+			}
+
+		}
+
+	}
+
+	/**
+	 * edit police form
+	 *
+	 */
+	public function edit_police_form($patientid=null, $id) {
+		$this->uses = array('PoliceForm');
+		$this->set('title_for_layout', __('Edit Police Form', true));
+		$this->patient_info($patientid);
+		if ($this->request->is('post') || $this->request->is('put')) {
+			$informDate = $this->DateFormat->formatDate2STD($this->request->data["PoliceForm"]['inform_date'],Configure::read('date_format'));
+			$admitDate = $this->DateFormat->formatDate2STD($this->request->data["PoliceForm"]['admit_date'],Configure::read('date_format'));
+			$accidentDate = $this->DateFormat->formatDate2STD($this->request->data["PoliceForm"]['accident_date'],Configure::read('date_format'));
+			$this->request->data["PoliceForm"]['inform_date'] = $informDate;
+			$this->request->data["PoliceForm"]['admit_date'] = $admitDate;
+			$this->request->data["PoliceForm"]['accident_date'] = $accidentDate;
+			$this->request->data["PoliceForm"]["modify_time"] = date("Y-m-d H:i:s");
+			$this->request->data["PoliceForm"]["modified_by"] = $this->Session->read('userid');
+			$this->request->data["PoliceForm"]["location_id"] = $this->Session->read('locationid');
+			if($this->PoliceForm->save($this->request->data)) {
+				$this->Session->setFlash(__('Police Form Updated.', true));
+				$this->redirect(array("action" => "police_forms", $this->request->data["PoliceForm"]['patient_id']));
+			} else {
+				$this->set('errors', $this->PoliceForm->invalidFields());
+			}
+
+		}
+		$this->request->data = $this->PoliceForm->read(null, $id);
+		//debug($this->request->data);
+
+	}
+
+	/**
+	 * print police form
+	 *
+	 */
+	public function print_police_form($patientid=null, $id=null) {
+		$this->loadModel('PoliceForm');
+		$this->patient_info($patientid);
+		if (empty($id)) {
+			$this->Session->setFlash(__('Invalid Id For Police Form', true));
+			$this->redirect(array("controller" => "patients", "action" => "police_forms",$patientid));
+		}
+		$this->PoliceForm->bindModel(array('belongsTo' => array('Patient' =>array('foreignKey' => false, 'conditions' => array('Patient.id=PoliceForm.patient_id')))));
+		$patientPFDetails = $this->PoliceForm->find('first', array('conditions' => array('PoliceForm.id' => $id, 'PoliceForm.location_id' => $this->Session->read('locationid'), 'PoliceForm.is_deleted' => 0) , 'recursive' => 1));
+		$this->set('patientPFDetails', $patientPFDetails);
+		$this->layout = 'print_with_header';
+	}
+
+
+	/**
+	 * police form listing
+	 *
+	 */
+	public function police_forms($patientid=null) {
+		$this->loadModel('PoliceForm');
+		$this->set('title_for_layout', __('Police Form', true));
+		$this->patient_info($patientid);
+		$this->PoliceForm->bindModel(array('belongsTo' => array('Patient' =>array('foreignKey' => false, 'conditions' => array('Patient.id=PoliceForm.patient_id')))));
+		$this->paginate = array('limit' => Configure::read('number_of_rows'),
+				'conditions' => array('PoliceForm.patient_id' => $patientid, 'PoliceForm.is_deleted' => 0,
+						'PoliceForm.location_id'=>$this->Session->read('locationid')));
+		$data = $this->paginate('PoliceForm');
+		$this->set('data', isset($data)?$data:'');
+	}
+	//Death status code//
+	// Aditya//
+	public function death_status($patientid=null) {
+		$this->loadModel('DeathStatus');
+		$this->set('title_for_layout', __('Death Status', true));
+		$this->patient_info($patientid);
+		$this->DeathStatus->bindModel(array('belongsTo' => array('Patient' =>array('foreignKey' => false, 'conditions' => array('Patient.id = DeathStatus.patient_id')))));
+		$a= $this->DeathStatus->find('all');
+		$this->set('data',$a);
+		//pr($a);
+		//$this->paginate = array('limit' => Configure::read('number_of_rows'),
+		//	'conditions' => array('PoliceForm.patient_id' => $patientid, 'PoliceForm.is_deleted' => 0,
+		//		'PoliceForm.location_id'=>$this->Session->read('locationid')));
+		//$data = $this->paginate('PoliceForm');
+		//$this->set('data', isset($data)?$data:'');
+	}
+	//----------------//
+
+
+	/**
+	 * delete function of interpreter statement form
+	 *
+	 */
+	public function delete_police_form($patientid = null, $id=null) {
+		$this->loadModel("PoliceForm");
+		if (empty($id)) {
+			$this->Session->setFlash(__('Invalid Id For Police Form', true));
+			$this->redirect(array("controller" => "patients", "action" => "police_forms",$patientid));
+		}
+		if (!empty($id)) {
+			$this->PoliceForm->id = $id;
+			$this->request->data["PoliceForm"]["id"] = $id;
+			$this->request->data["PoliceForm"]["is_deleted"] = "1";
+			$this->request->data["PoliceForm"]["modify_time"] = date("Y-m-d H:i:s");
+			$this->request->data["PoliceForm"]["modified_by"] = $this->Session->read('userid');
+			$this->PoliceForm->save($this->request->data);
+			$this->Session->setFlash(__('Police Form deleted', true));
+			$this->redirect(array("controller" => "patients", "action" => "police_forms", $patientid));
+		}else {
+			$this->Session->setFlash(__('This police form  is associated with other details so you can not be delete this police form', true));
+			$this->redirect(array("controller" => "patients", "action" => "police_forms", $patientid));
+		}
+	}
+	public function patient_education($patient_edu=null)
+	{
+		$this->layout = false ;
+
+		$this->set('patient_edu',$patient_edu);
+
+	}
+
+
+	public function advance_directive($patientId=null,$admissionId=null,$id=null){
+		App::import('Vendor', 'signature_to_image');
+		$this->uses= array('AdvanceDirective','Patient');
+		//$patientDetails1 = $this->AdvanceDirective->find('first',array('conditions' =>array('AdvanceDirective.patient_id'=>$patientId)));
+		$this->set('patientDetails1', $patientDetails1);
+		if(isset($this->request->data) && !empty($this->request->data)) {
+			//	debug($this->request->data); exit;
+
+			if(!empty($this->request->data["AdvanceDirective"]["patient_output"])) {
+				$signImage = sigJsonToImage($this->request->data["AdvanceDirective"]['patient_output'],array('imageSize'=>array(320, 150)));
+
+				$signpadfile = date('U').'.png';
+				imagepng($signImage, WWW_ROOT.'signpad'.DS.$signpadfile);
+				$this->request->data['AdvanceDirective']['patient_sign'] = $signpadfile;
+			}
+
+			if(!empty($this->request->data["AdvanceDirective"]["witnesses_output1"])) {
+				$signImage = sigJsonToImage($this->request->data["AdvanceDirective"]["witnesses_output1"],array('imageSize'=>array(320, 150)));
+				$signpadfile = date('U').'.png';
+				imagepng($signImage, WWW_ROOT.'signpad'.DS.$signpadfile);
+				$this->request->data['AdvanceDirective']["witness1_sign"] = $signpadfile;
+			}
+			if(!empty($this->request->data["AdvanceDirective"]["witnesses_output2"])) {
+				$signImage = sigJsonToImage($this->request->data["AdvanceDirective"]["witnesses_output2"],array('imageSize'=>array(320, 150)));
+				$signpadfile = date('U').'.png';
+				imagepng($signImage, WWW_ROOT.'signpad'.DS.$signpadfile);
+				$this->request->data['AdvanceDirective']["witness2_sign"] = $signpadfile;
+			}
+
+			$data= $this->AdvanceDirective->save($this->request->data['AdvanceDirective']);
+			$this->redirect(array('action' => 'search_advance_directive', $this->request->data["AdvanceDirective"]["patient_id"]));
+		}
+
+
+
+		$advanceData = $this->AdvanceDirective->find('first', array('conditions' => array('AdvanceDirective.patient_id' => $admissionId)));
+
+		$this->set('advanceData',$advanceData);
+
+
+		$patientDetails = $this->Patient->find('first',array('conditions' =>array('id'=>$patientId,'location_id'=>$this->Session->read('locationid'))));
+
+		$this->loadModel('Diagnosis');
+		$diagnosisData = $this->Diagnosis->find('first',array('conditions'=>array('Diagnosis.patient_id'=>$patientId)));
+		$AdvanceArr = array('AdvanceDirective' => array(
+				'patient_name' => $patientDetails['Patient']['lookup_name'],
+				'patient_age' => $patientDetails['Patient']['age'],
+				'patient_sex' => $patientDetails['Patient']['sex'],
+				'patient_id' => $patientDetails['Patient']['id'],
+
+		));
+
+		$this->data = $AdvanceArr;
+
+		$this->patient_info($patientId);
+
+
+		$this->set('patientDetails',$patientDetails);
+	}
+
+
+	public function search_advance_directive($patient_id = null){
+		App::import('Vendor', 'signature_to_image');
+		$this->uses= array('AdvanceDirective');
+		if($this->request['data']){
+
+			$advanceData = $this->AdvanceDirective->find('first', array('conditions' => array('AdvanceDirective.patient_id' => $this->request['data']['AdvanceDirective']['patient_id_search'])));
+			if($advanceData != ''){
+				$this->set('advanceData', $advanceData);
+			}else{
+				$this->Session->setFlash(__('No record found.', true));
+				$this->redirect(array("controller" => "patients", "action" => "advance_directive"));
+			}
+
+		}else if($patient_id != ''){
+			$advanceData = $this->AdvanceDirective->find('first', array('conditions' => array('AdvanceDirective.patient_id' => $patient_id)));
+			if($advanceData != ''){
+				$this->set('advanceData', $advanceData);
+			}else{
+				$this->Session->setFlash(__('No record found.', true));
+				$this->redirect(array("controller" => "patients", "action" => "advance_directive",$patient_id));
+			}
+		}
+
+	}
+
+
+	public function print_advance_directive($patient_id = null){
+		$this->uses= array('AdvanceDirective');
+		$this->layout = false;
+		if($patient_id != ''){
+			$advanceData = $this->AdvanceDirective->find('first', array('conditions' => array('AdvanceDirective.patient_id' => $patient_id)));
+			if($advanceData != ''){
+				$this->set('advanceData', $advanceData);
+			}else{
+				$this->Session->setFlash(__('No record found.', true));
+				$this->redirect(array("controller" => "patients", "action" => "advance_directive"));
+			}
+		}
+
+	}
+
+
+	public function parseCcdaDemographic(){
+		$this->loadModel('Patient');
+		$patientCcdaObj = $this->Patient->updateDemographics();
+		$patientCcdaObj = $this->Patient->updateMedications();
+		$patientCcdaObj = $this->Patient->updateProblems();
+		$patientCcdaObj = $this->Patient->updateAllergy();
+		$patientCcdaObj = $this->Patient->updateImmunizations();
+		$patientCcdaObj = $this->Patient->updateDiagnosis();
+		$patientCcdaObj = $this->Patient->updateRadiologyTestOrder();
+		exit;
+	}
+	////////////*********************BOF-Mahalaxmi*********************//////////////
+	public function infobutton($icd_id=null,$diagnosis_name=null,$id=null,$language=null,$Idinfo=null,$langvalue=null){
+		$this->uses=array('NoteDiagnosis','SnomedMappingMaster');
+		$this->layout = false ;
+		$this->patient_info($id);
+		/*if((empty($this->patient_details['Person']['preferred_language'])) || (empty($langvalue))){
+			$prefLang="en";
+		$this->set('aProject',"medlineplus");
+		}else */
+		if(($this->patient_details['Person']['preferred_language']=='ES') || (trim($langvalue) == 'ES')){
+			$prefLang="sp";
+			$this->set('aProject',"medlineplus-spanish");
+		}else{
+			$prefLang="en";
+			$this->set('aProject',"medlineplus");
+		}
+		$get_snomwd_code=$this->NoteDiagnosis->find('first',
+				array('fields'=>array('snowmedid','id','patient_info','patient_info_link','patient_info_created_by','patient_id','diagnoses_name','icd_id'),
+						'conditions'=>array('NoteDiagnosis.diagnoses_name'=>$diagnosis_name,'NoteDiagnosis.id'=>$Idinfo)));
+		$snomed = $get_snomwd_code['NoteDiagnosis']['snowmedid'];
+		$snomedMappingMasterData=$this->SnomedMappingMaster->find('first',
+				array('fields'=>array('id','mapTarget','patient_info','patient_info_link','patient_info_created_by'),
+						'conditions'=>array('SnomedMappingMaster.mapTarget'=>$icd_id)));
+		/*if(!empty($get_snomwd_code['NoteDiagnosis']['patient_info_link'])){
+		 $this->redirect($get_snomwd_code['NoteDiagnosis']['patient_info_link']);
+		}*/
+		$this->set(compact('get_snomwd_code','snomedMappingMasterData'));
+		//echo $snomed ."<br/>";
+		$diagnosisname=urlencode($diagnosis_name);
+		$url= "http://apps.nlm.nih.gov/medlineplus/services/mpconnect_service.cfm?mainSearchCriteria.v.cs=2.16.840.1.113883.6.90&mainSearchCriteria.v.c=$icd_id&mainSearchCriteria.v.dn=$diagnosisname&informationRecipient.languageCode.c=$prefLang";
+		$curl = curl_init($url);
+		curl_setopt($curl, CURLOPT_FAILONERROR, true);
+		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+		$result = curl_exec($curl);
+		$xmldata = simplexml_load_string($result);
+		$get_details=$xmldata->entry->summary;
+
+		//echo $url;
+		if($get_details[0]!=''){
+			$finalHtml = str_replace("<a","<a target='_blank'",$get_details[0]);
+
+			$this->set('get_details',$finalHtml);
+			$this->set('diagnosis_name',$diagnosis_name);
+		}
+		else{
+			$this->set('get_details','');
+			$this->set('diagnosis_name',$diagnosis_name);
+		}
+		if(!empty($this->request->data)){
+			$this->request->data['NoteDiagnosis']['patient_info']=addslashes($this->request->data['NoteDiagnosis']['patient_info']);
+			$this->request->data['NoteDiagnosis']['patient_info_link']=addslashes($this->request->data['NoteDiagnosis']['patient_info_link']);
+			$this->request->data['NoteDiagnosis']['patient_info_created_by'] = $this->Session->read('userid');
+			$this->NoteDiagnosis->save($this->request->data,$get_snomwd_code['NoteDiagnosis']['id']);
+			$this->Session->setFlash(__('Information saved successfully'),'default',array('class'=>'message'));
+			$status='success';
+			$this->set('status',$status);
+		}
+		$getNotDiaId=$get_snomwd_code['NoteDiagnosis']['id'];
+		$this->request->data['SnomedMappingMaster']['language'] = (strtolower($prefLang) == 'en') ? 'EN' : 'ES';
+		$this->set(compact('diagnosis_name','id','Idinfo','getNotDiaId'));
+	}
+	public function addInfoDescription($icd_id=null,$diagnosis_name=null,$id=null,$Idinfo=null){
+
+		$this->uses=array('NoteDiagnosis','SnomedMappingMaster');
+		$snomedMappingMasterData=$this->SnomedMappingMaster->find('first',
+				array('fields'=>array('id','mapTarget'),
+						'conditions'=>array('SnomedMappingMaster.mapTarget'=>$icd_id)));
+		$this->set(compact('snomedMappingMasterData'));
+		if(!empty($this->request->data)){
+			$patient_info=addslashes($this->request->data['patient_info']);
+			$this->request->data['NoteDiagnosis']['patient_info_created_by'] = $this->Session->read('userid');
+			$getDataDesc=$this->NoteDiagnosis->updateAll( array('NoteDiagnosis.patient_info'=>"'".$patient_info."'",'NoteDiagnosis.patient_info_created_by'=>"'".$this->request->data['NoteDiagnosis']['patient_info_created_by']."'"),
+					array('NoteDiagnosis.id'=>$this->request->data['id']));
+			$patient_info=  addslashes($this->request->data['patient_info']);
+			$patient_info_created_by=  $this->request->data['NoteDiagnosis']['patient_info_created_by'];
+			$this->SnomedMappingMaster->updateAll(array('patient_info'=>"'$patient_info'",'patient_info_created_by'=>"'$patient_info_created_by'"),
+					array('SnomedMappingMaster.mapTarget'=>$snomedMappingMasterData['SnomedMappingMaster']['mapTarget']));
+		}
+		if($getDataDesc){
+			$showTextBox='success';
+			echo $showTextBox;
+		}
+		exit;
+	}
+	public function addIsPrinted($icd_id=null,$diagnosis_name=null,$id=null,$Idinfo=null){
+		$this->uses=array('NoteDiagnosis');
+		if(!empty($this->request->data)){
+			$is_printed=$this->request->data['is_printed'];
+			$getDataDesc=$this->NoteDiagnosis->updateAll(array('NoteDiagnosis.is_printed'=>"'".$is_printed."'"),
+					array('NoteDiagnosis.id'=>$this->request->data['id']));
+		}
+		exit;
+	}
+	public function addInfoLink($icd_id=null,$diagnosis_name=null,$id=null,$Idinfo=null){
+		$this->uses=array('NoteDiagnosis','SnomedMappingMaster');
+		$snomedMappingMasterData=$this->SnomedMappingMaster->find('first',
+				array('fields'=>array('id','mapTarget'),
+						'conditions'=>array('SnomedMappingMaster.mapTarget'=>$icd_id)));
+		$this->set(compact('snomedMappingMasterData'));
+		if(!empty($this->request->data)){
+			$patient_info_link=addslashes($this->request->data['patient_info_link']);
+			$this->request->data['NoteDiagnosis']['patient_info_created_by'] = $this->Session->read('userid');
+			$getDataLink=$this->NoteDiagnosis->updateAll( array('NoteDiagnosis.patient_info_link'=>"'".$patient_info_link."'",'NoteDiagnosis.patient_info_created_by'=>"'".$this->request->data['NoteDiagnosis']['patient_info_created_by']."'"),
+					array('NoteDiagnosis.id'=>$this->request->data['id']));
+			$patient_info_link=  addslashes($this->request->data['patient_info_link']);
+			$patient_info_created_by=  $this->request->data['NoteDiagnosis']['patient_info_created_by'];
+			$this->SnomedMappingMaster->updateAll(array('patient_info_link'=>"'$patient_info_link'",'patient_info_created_by'=>"'$patient_info_created_by'"),
+					array('SnomedMappingMaster.mapTarget'=>$snomedMappingMasterData['SnomedMappingMaster']['mapTarget']));
+		}
+		if($getDataLink){
+			$showTextBox='success';
+			echo $showTextBox;
+		}
+		exit;
+	}
+	/*function diagnosis_detail_print($id=null){
+		$this->layout = 'print_with_header' ;
+	//$this->layout=false;
+	$this->uses=array('NoteDiagnosis');
+	$getPrintData=$this->NoteDiagnosis->find('first',array('fields'=>array('snowmedid','id','patient_info','patient_info_link','patient_info_created_by'),'conditions'=>array('NoteDiagnosis.id'=>$id)));
+	$this->set(compact('getPrintData'));
+	}*/
+	////////////*********************BOE-Mahalaxmi*********************//////////////
+	public function localMedication($patient_id=null){
+		echo $patient_id;
+		exit;
+
+	}
+	public function infomedication($drugids=null,$newcrop_id=null){
+
+		//echo $medicationname ."<br/>";
+
+		$medicationName =str_replace("~","/",$medicationname);
+		//echo $medicationName ."<br/>";
+
+		$this->uses=array('NewCropPrescription','PharmacyItem');
+		$this->layout = 'ajax' ;
+		$this->autoRender = false ;
+
+		//update newcrop prescription table PrintLeaflet
+		$value['PrintLeaflet'] = "T" ;
+		$value['id'] = $newcrop_id;
+
+		$updatePrintLeaflet=$this->NewCropPrescription->save($value);
+		//$get_rxnorm_code=$this->NewCropPrescription->find('first',array('fields'=>array('rxnorm'),'conditions'=>array('NewCropPrescription.description'=>$medicationName)));
+
+		//$rxnorm = $get_rxnorm_code['NewCropPrescription']['rxnorm'];
+		//echo $rxnorm ."<br/>";
+		//$drug_id=$this->PharmacyItem->find('first',array('fields'=>array('drug_id'),'conditions'=>array('PharmacyItem.name'=>$medicationName)));
+		//$drug_id=$drug_id['PharmacyItem']['drug_id'];
+
+		$url= "http://apps.nlm.nih.gov/medlineplus/services/mpconnect_service.cfm?mainSearchCriteria.v.cs=2.16.840.1.113883.6.88&mainSearchCriteria.v.c=$rxnorm&informationRecipient.languageCode.c=en";
+		//echo $url ."<br/>";exit;
+		$curl = curl_init($url);
+		curl_setopt($curl, CURLOPT_FAILONERROR, true);
+		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+		$result = curl_exec($curl);
+		$xmldata = simplexml_load_string($result);
+		//	echo "<pre>";print_r($xmldata);
+		$get_details=$xmldata->entry->title;
+		$get_link=$xmldata->entry->id;
+		//	echo "<pre>";print_r($xmldata->entry->id);exit;
+		$get_url= explode(":",$get_link[0]);
+		$new_url= 'http://www.nlm.nih.gov'.$get_url[2];
+		//	echo $new_url;
+		if($get_details[0]!=''){
+			//$this->set('get_details',$get_details[0]);
+			//$this->set('new_url',$new_url);
+			//http://preproduction.newcropaccounts.com/Pages/Handouts.aspx?search=556724&searchType=m&drugStandardType=F&reference=ok
+			$new_url="http://secure.newcropaccounts.com/Pages/Handouts.aspx?search=".$drugids."&searchType=L&drugStandardType=F&reference=OK";
+
+			echo $new_url;
+		}
+		else{
+			if($drugids!="")
+			{
+				$new_url="http://secure.newcropaccounts.com/Pages/Handouts.aspx?search=".$drugids."&searchType=L&drugStandardType=F&reference=OK";
+
+				echo $new_url;
+			}
+
+
+			//$this->set('get_details','');
+		}
+
+	}
+	public function infolab($labname=null){
+		//echo $labname;
+		$this->uses=array('Laboratory');
+		$this->autoRender =false ;
+		$this->layout = 'ajax' ;
+		$get_lonic_code=$this->Laboratory->find('first',array('fields'=>array('name','external_link'),'conditions'=>array('Laboratory.lonic_code'=>$labname)));
+			
+		$lonic = $get_lonic_code['Laboratory']['lonic_code'];
+		$external_link=$get_lonic_code['Laboratory']['external_link'];
+		$name=$get_lonic_code['Laboratory']['name'];
+
+
+		// 	echo $lonic ."<br/>";
+
+
+		$url= "http://apps.nlm.nih.gov/medlineplus/services/mpconnect_service.cfm?mainSearchCriteria.v.cs=2.16.840.1.113883.6.1&mainSearchCriteria.v.c=$labname&mainSearchCriteria.v.dn=Factor%20IX%20assay&informationRecipient.languageCode.c=en";
+		///echo $url ."<br/>";
+		$curl = curl_init($url);
+		curl_setopt($curl, CURLOPT_FAILONERROR, true);
+		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+		$result = curl_exec($curl);
+		$xmldata = simplexml_load_string($result);
+		//echo "<pre>";print_r($xmldata);exit;
+		$get_details=$xmldata->entry->title;
+		$get_link=$xmldata->entry->id;
+		//	echo "<pre>";print_r($xmldata->entry->id);exit;
+		$get_url= explode(":",$get_link[0]);
+		$new_url= 'http://www.nlm.nih.gov'.$get_url[2];
+		//	echo $new_url;
+		if($get_details[0]!=''){
+			//$this->set('get_details',$get_details[0]);
+			//$this->set('new_url',$new_url);
+			echo $new_url;
+		}
+		else{
+			if($external_link!="")
+			{
+				//$this->set('get_details',$name);
+				//$this->set('new_url',$external_link);
+				echo $external_link;
+			}
+			else
+			{
+				//$this->set('get_details','');
+			}
+		}
+
+
+	}
+
+	public function edit_rxhistory($medication_name=null,$id=null){
+
+		//echo $id;
+		$this->layout = false ;
+		$this->uses = array('NewCropPrescription');
+		$this->layout = false ;
+		$edit_data=$this->NewCropPrescription->find('all',array('fields'=>array('date_of_prescription','description'),'conditions'=>array('NewCropPrescription.patient_id'=>$id,'NewCropPrescription.description'=>$medication_name)));
+		$this->set('edit_data',$edit_data);
+
+			
+		if(isset($this->request->data)){
+
+
+			$this->request->data["editmedication"]['dob'] = $this->DateFormat->formatDate2STD($this->request->data["editmedication"]['dob'],Configure::read('date_format'));
+			$med_name= $this->request->data['editmedication']['dob'];
+
+
+			$dscp=$this->request->data['editmedication']['medication_name'];
+			$this->NewCropPrescription->updateAll(array('drm_date'=>"'$med_name'",'is_date_flag'=>"'1'"
+			),array('description'=>$dscp));
+
+			//$this->redirect(array('controller'=>'Patients','action' => 'rxhistory'));
+		}
+		//echo $this->Session->setFlash(__('Date Edited', true));
+
+	}
+	public function edit_allergies($allergy_name=null,$id=null){
+
+
+		$this->layout = false ;
+		$this->uses = array('NewCropAllergies');
+		$this->layout = false ;
+		$edit_data=$this->NewCropAllergies->find('all',array('fields'=>array('start_date','created','name'),'conditions'=>array('NewCropAllergies.patient_id'=>$id,'NewCropAllergies.name'=>$allergy_name),'group'=>array('NewCropAllergies.name')));
+		$this->set('edit_data',$edit_data);
+			
+			
+		if(isset($this->request->data)){
+
+
+			$this->request->data["editallergy"]['dob'] = $this->DateFormat->formatDate2STD($this->request->data["editallergy"]['dob'],Configure::read('date_format'));
+			$allergy_date= $this->request->data['editallergy']['dob'];
+
+
+			$descp=$this->request->data['editallergy']['allergy_name'];
+			$this->NewCropAllergies->updateAll(array('start_date'=>"'$allergy_date'",'is_date_flag'=>"'1'"
+			),array('name'=>$descp));
+
+			//$this->redirect(array('controller'=>'Patients','action' => 'rxhistory'));
+		}
+		//echo $this->Session->setFlash(__('Date Edited', true));
+
+	}
+
+	public function reconcile($id=null){
+		$this->set('id',$id);
+		$this->set('title_for_layout', __('-Select IPD code.', true));
+		//$this->layout = false ;
+
+		$this->uses = array('NewCropPrescription','Patient','NoteDiagnosis','NewCropAllergies');
+		$this->patient_info($id);
+		$prescription_data=$this->NewCropPrescription->find('all',array('fields'=>array('NewCropPrescription.id','NewCropPrescription.description','NewCropPrescription.date_of_prescription'),'conditions'=>array('NewCropPrescription.patient_uniqueid'=>$id,'NewCropPrescription.archive'=>"N",'NewCropPrescription.is_ccda'=>"0",'NewCropPrescription.is_discharge_medication'=>'0','NewCropPrescription.is_reconcile'=>'0'),'group'=>array('NewCropPrescription.description')));
+		$patient_prescription_data=$this->NewCropPrescription->find('all',array('fields'=>array('NewCropPrescription.id','NewCropPrescription.description','NewCropPrescription.date_of_prescription'),'conditions'=>array('NewCropPrescription.patient_uniqueid'=>$id,'NewCropPrescription.archive'=>"N",'NewCropPrescription.is_ccda'=>"0",'NewCropPrescription.is_discharge_medication'=>'2','NewCropPrescription.is_reconcile'=>'0'),'group'=>array('NewCropPrescription.description')));
+		//echo "<pre>";print_r($patient_prescription_data);exit;
+		$refferal_summary_data=$this->NewCropPrescription->find('all',array('fields'=>array('NewCropPrescription.id','NewCropPrescription.description','NewCropPrescription.date_of_prescription'),'conditions'=>array('NewCropPrescription.patient_uniqueid'=>$id,'NewCropPrescription.archive'=>"N",'NewCropPrescription.is_ccda'=>"1",'NewCropPrescription.is_reconcile'=>'0','OR'=>array(array('NewCropPrescription.is_discharge_medication'=>"2"),array('NewCropPrescription.is_discharge_medication'=>"1"),array('NewCropPrescription.is_discharge_medication'=>"0"))),'group'=>array('NewCropPrescription.description')));
+		//echo "<pre>";print_r($refferal_summary_data);exit;
+		//$consolidated_data=$this->NewCropPrescription->find('all',array('fields'=>array('NewCropPrescription.id','NewCropPrescription.description','NewCropPrescription.date_of_prescription'),'conditions'=>array('OR'=>array(array('NewCropPrescription.is_ccda'=>"1"),array('NewCropPrescription.is_ccda'=>"0")),'NewCropPrescription.patient_uniqueid'=>$id,'NewCropPrescription.archive'=>"N",'NewCropPrescription.description'=>"insulin glargine 100 unit/mL Sub-Q",'NewCropPrescription.is_discharge_medication'=>'0'),'group'=>array('NewCropPrescription.description'),'order'=>array('NewCropPrescription.date_of_prescription'=>'DESC')));
+		$consolidated_data=$this->NewCropPrescription->query("SELECT `NewCropPrescription`.`id`, `NewCropPrescription`.`description`,`NewCropPrescription`.`patient_uniqueid`,`NewCropPrescription`.`is_ccda` ,`NewCropPrescription`.`archive`,`NewCropPrescription`.`date_of_prescription` FROM
+
+
+				`new_crop_prescription` AS `NewCropPrescription` INNER JOIN(SELECT MAX(date_of_prescription) as dateofpr from new_crop_prescription WHERE `patient_uniqueid` = $id AND (`new_crop_prescription`.`is_discharge_medication` IN (2)  OR `new_crop_prescription`.`is_ccda` IN (1)) group by
+
+
+				description)
+
+				newcrp1 on NewCropPrescription.date_of_prescription=newcrp1.dateofpr WHERE `patient_uniqueid` = $id AND NewCropPrescription.`archive` IN ('N') AND NewCropPrescription.`is_deleted` IN (0) group by `NewCropPrescription`.`description`");
+
+
+		$consolidated_facesheet_data=$this->NewCropPrescription->query("SELECT `NewCropPrescription`.`id`, `NewCropPrescription`.`description`,`NewCropPrescription`.`patient_uniqueid`,`NewCropPrescription`.`is_ccda` ,`NewCropPrescription`.`archive`,`NewCropPrescription`.`date_of_prescription` FROM
+
+				`new_crop_prescription` AS `NewCropPrescription` INNER JOIN(SELECT MAX(date_of_prescription) as dateofpr from new_crop_prescription WHERE `patient_uniqueid` = $id AND `new_crop_prescription`.`is_discharge_medication` IN (0) AND new_crop_prescription.`is_ccda` IN(0,1) group by
+
+				description)
+
+				newcrp1 on NewCropPrescription.date_of_prescription=newcrp1.dateofpr WHERE `patient_uniqueid` = $id  AND NewCropPrescription.`archive` IN ('N') AND NewCropPrescription.`is_deleted` IN (0) group by `NewCropPrescription`.`description`");
+		//echo "<pre>";print_r($consolidated_facesheet_data);exit;
+
+
+		$problem_data = $this->NoteDiagnosis->find('all',array('fields'=>array('id','diagnoses_name','start_dt','icd_id','snowmedid'),'conditions'=>array('NoteDiagnosis.patient_id'=>$id,'NoteDiagnosis.is_ccda'=>0,'NoteDiagnosis.is_reconcile'=>0,'NoteDiagnosis.disease_status !='=>'resolved'),'group'=>array('NoteDiagnosis.diagnoses_name')));
+		$problem_refferal_data = $this->NoteDiagnosis->find('all',array('fields'=>array('id','diagnoses_name','start_dt'),'conditions'=>array('NoteDiagnosis.patient_id'=>$id,'NoteDiagnosis.is_ccda'=>1,'NoteDiagnosis.is_reconcile'=>0,'NoteDiagnosis.disease_status !='=>'resolved'),'group'=>array('NoteDiagnosis.diagnoses_name')));
+		$consolidated_problem_data = $this->NoteDiagnosis->query("SELECT `NoteDiagnosis`.`id`, `NoteDiagnosis`.`diagnoses_name`, `NoteDiagnosis`.`start_dt`,`NoteDiagnosis`.`status` FROM
+
+				`note_diagnosis` AS `NoteDiagnosis` INNER JOIN(SELECT MAX(start_dt) as startdateofpr from note_diagnosis WHERE `note_diagnosis`.`is_deleted` = 0 AND patient_id = $id group by
+
+				diagnoses_name)
+
+				notediagnosis1 on NoteDiagnosis.start_dt=notediagnosis1.startdateofpr WHERE `NoteDiagnosis`.`patient_id` =$id AND `NoteDiagnosis`.`is_deleted` = 0 AND `NoteDiagnosis`.`status` = 'Active'  group by `NoteDiagnosis`.`diagnoses_name`");
+
+		$allergy_data = $this->NewCropAllergies->find('all',array('fields'=>array('NewCropAllergies.id','NewCropAllergies.name','NewCropAllergies.created'),'conditions'=>array('NewCropAllergies.patient_uniqueid'=>$id,'NewCropAllergies.status'=>"A",'NewCropAllergies.is_ccda'=>"0",'NewCropAllergies.is_reconcile'=>'0','NewCropAllergies.is_discharge_allergy'=>'0'),'group'=>array('NewCropAllergies.name')));
+		$patient_allergy_data = $this->NewCropAllergies->find('all',array('fields'=>array('NewCropAllergies.id','NewCropAllergies.name','NewCropAllergies.created'),'conditions'=>array('NewCropAllergies.patient_uniqueid'=>$id,'NewCropAllergies.status'=>"A",'NewCropAllergies.is_ccda'=>"0",'NewCropAllergies.is_reconcile'=>'0','NewCropAllergies.is_discharge_allergy'=>'1'),'group'=>array('NewCropAllergies.name')));
+		$allergy_refferal_data = $this->NewCropAllergies->find('all',array('fields'=>array('NewCropAllergies.id','NewCropAllergies.name','NewCropAllergies.created'),'conditions'=>array('NewCropAllergies.patient_uniqueid'=>$id,'NewCropAllergies.status'=>"A",'NewCropAllergies.is_ccda'=>"1",'NewCropAllergies.is_reconcile'=>'0'),'group'=>array('NewCropAllergies.name')));
+		$consolidated_allergy_data = $this->NewCropAllergies->query("SELECT `NewCropAllergies`.`id`, `NewCropAllergies`.`name`, `NewCropAllergies`.`created`, `NewCropAllergies`.`is_reconcile` FROM `new_crop_allergies` AS `NewCropAllergies` WHERE ((`NewCropAllergies`.`is_ccda` = '1') OR `NewCropAllergies`.`is_discharge_allergy` = 1) AND `NewCropAllergies`.`patient_uniqueid` = $id AND `NewCropAllergies`.`status` = 'A' AND `NewCropAllergies`.`is_deleted` = 0 AND `NewCropAllergies`.`is_reconcile` = 0 GROUP BY `NewCropAllergies`.`name` ORDER BY `NewCropAllergies`.`created` DESC");
+		//$consolidated_allergy_data=$this->NewCropAllergies->find('all',array('fields'=>array('NewCropAllergies.id','NewCropAllergies.name','NewCropAllergies.created'),'conditions'=>array('OR'=>array(array('NewCropAllergies.is_ccda'=>"1"),array('NewCropAllergies.is_ccda'=>"0")),'NewCropAllergies.patient_uniqueid'=>$id,'NewCropAllergies.status'=>"A",'NewCropAllergies.is_deleted'=>"0",'NewCropAllergies.is_reconcile'=>'0','OR'=>array(array('NewCropAllergies.is_discharge_allergy'=>"1",'NewCropAllergies.is_discharge_allergy'=>"0"))),'group'=>array('NewCropAllergies.name'),'order'=>array('NewCropAllergies.created'=>'DESC')));
+		//$consolidated_facesheet_allergy_data=$this->NewCropAllergies->find('all',array('fields'=>array('NewCropAllergies.id','NewCropAllergies.name','NewCropAllergies.created'),'conditions'=>array('OR'=>array(array('NewCropAllergies.is_ccda'=>"1"),array('NewCropAllergies.is_ccda'=>"0")),'NewCropAllergies.patient_uniqueid'=>$id,'NewCropAllergies.status'=>"A",'NewCropAllergies.is_deleted'=>"0",'NewCropAllergies.is_reconcile'=>'0','NewCropAllergies.is_discharge_allergy'=>'0'),'group'=>array('NewCropAllergies.name'),'order'=>array('NewCropAllergies.created'=>'DESC')));
+		//echo "<pre>";print_r($patient_allergy_data);exit;
+
+
+
+
+
+		$this->set('prescription_data',$prescription_data);
+		$this->set('patient_prescription_data',$patient_prescription_data);
+		$this->set('refferal_summary_data',$refferal_summary_data);
+		$this->set('consolidated_data',$consolidated_data);
+		$this->set('consolidated_facesheet_data',$consolidated_facesheet_data);
+		$this->set('consolidated_problem_data',$consolidated_problem_data);
+		$this->set('problem_data',$problem_data);
+		$this->set('problem_refferal_data',$problem_refferal_data);
+		$this->set('allergy_data',$allergy_data);
+		$this->set('patient_allergy_data',$patient_allergy_data);
+		$this->set('allergy_refferal_data',$allergy_refferal_data);
+		$this->set('consolidated_allergy_data',$consolidated_allergy_data);
+		$this->set('consolidated_facesheet_allergy_data',$consolidated_facesheet_allergy_data);
+		$this->set('id',$id);
+	}
+
+	public function delete_prescription($val=null){//delete_prescription_facesheet
+		//echo "<pre>";print_r($val);exit;
+		$this->uses = array('NewCropPrescription');
+		$short_list_array = explode(',', $val);
+		//echo "<pre>";print_r($short_list_array);
+		$cnt=0;
+		foreach($short_list_array as $list){
+			$result  = $this->NewCropPrescription->save(array('id'=>$list,'is_deleted'=>'1'));
+			//$problem_result  = $this->NoteDiagnosis->save(array('id'=>$list,'is_deleted'=>'1'));
+			$cnt++;
+		}
+		$this->redirect(array('controller'=>'patients','action' => 'index',$patient_id));
+	}
+
+	public function delete_prescription_facesheet($val=null){//delete_prescription_facesheet
+		//echo "<pre>";print_r($val);exit;
+		$this->uses = array('NewCropPrescription');
+		$short_list_array = explode(',', $val);
+		//echo "<pre>";print_r($short_list_array);
+		$cnt=0;
+		foreach($short_list_array as $list){
+			$result  = $this->NewCropPrescription->save(array('id'=>$list,'is_deleted'=>'1'));
+			//$problem_result  = $this->NoteDiagnosis->save(array('id'=>$list,'is_deleted'=>'1'));
+			$cnt++;
+		}
+		$this->redirect(array('controller'=>'patients','action' => 'index',$patient_id));
+	}
+
+	public function delete_problem__prescription($val=null){
+		//echo "<pre>";print_r($val);exit;
+		$this->uses = array('NoteDiagnosis');
+		$short_list_array = explode(',', $val);
+		//echo "<pre>";print_r($short_list_array);
+		$cnt=0;
+		foreach($short_list_array as $list){
+			//$result  = $this->NewCropPrescription->save(array('id'=>$list,'is_deleted'=>'1'));
+			$problem_result  = $this->NoteDiagnosis->save(array('id'=>$list,'is_deleted'=>'1'));
+			$cnt++;
+		}
+		$this->redirect(array('controller'=>'patients','action' => 'index',$patient_id));
+	}
+
+	public function delete_allergy($val=null){
+		//echo "<pre>";print_r($val);exit;
+		$this->uses = array('NewCropAllergies');
+		$short_list_array = explode(',', $val);
+		//echo "<pre>";print_r($short_list_array);
+		$cnt=0;
+		foreach($short_list_array as $list){
+			$result  = $this->NewCropAllergies->save(array('id'=>$list,'is_deleted'=>'1'));
+			//$problem_result  = $this->NoteDiagnosis->save(array('id'=>$list,'is_deleted'=>'1'));
+			$cnt++;
+		}
+		$this->redirect(array('controller'=>'patients','action' => 'index',$patient_id));
+	}
+
+	public function delete_allergy_facesheet($val=null){
+		//echo "<pre>";print_r($val);exit;
+		$this->uses = array('NewCropAllergies');
+		$short_list_array = explode(',', $val);
+		//echo "<pre>";print_r($short_list_array);
+		$cnt=0;
+		foreach($short_list_array as $list){
+			$result  = $this->NewCropAllergies->save(array('id'=>$list,'is_deleted'=>'1'));
+			//$problem_result  = $this->NoteDiagnosis->save(array('id'=>$list,'is_deleted'=>'1'));
+			$cnt++;
+		}
+		$this->redirect(array('controller'=>'patients','action' => 'index',$patient_id));
+	}
+
+	public function undo_delete_allergy($id=null){
+		$this->uses = array('NewCropAllergies');
+		$result  = $this->NewCropAllergies->updateAll(array('is_deleted'=>'0'),array('is_reconcile'=>'0','patient_uniqueid'=>$id));
+		//$problem_result  = $this->NoteDiagnosis->updateAll(array('is_deleted'=>'0'),array('is_reconcile'=>'0','patient_id'=>$id));
+			
+		$this->redirect(array('controller'=>'patients','action' => 'index',$patient_id));
+	}
+
+	public function undo_delete_allergy_facesheet($id=null){
+		$this->uses = array('NewCropAllergies');
+		$result  = $this->NewCropAllergies->updateAll(array('is_deleted'=>'0'),array('is_reconcile'=>'0','patient_uniqueid'=>$id));
+		//$problem_result  = $this->NoteDiagnosis->updateAll(array('is_deleted'=>'0'),array('is_reconcile'=>'0','patient_id'=>$id));
+			
+		$this->redirect(array('controller'=>'patients','action' => 'index',$patient_id));
+	}
+
+	public function undo_delete_prescription($id=null){//undo_delete_prescription_facesheet
+		$this->uses = array('NewCropPrescription','NoteDiagnosis');
+		$result  = $this->NewCropPrescription->updateAll(array('is_deleted'=>'0'),array('is_reconcile'=>'0','patient_uniqueid'=>$id));
+		//$problem_result  = $this->NoteDiagnosis->updateAll(array('is_deleted'=>'0'),array('is_reconcile'=>'0','patient_id'=>$id));
+			
+		$this->redirect(array('controller'=>'patients','action' => 'index',$patient_id));
+	}
+
+	public function undo_delete_prescription_facesheet($id=null){//undo_delete_prescription_facesheet
+		$this->uses = array('NewCropPrescription');
+		$result  = $this->NewCropPrescription->updateAll(array('is_deleted'=>'0'),array('is_reconcile'=>'0','patient_uniqueid'=>$id));
+		//$problem_result  = $this->NoteDiagnosis->updateAll(array('is_deleted'=>'0'),array('is_reconcile'=>'0','patient_id'=>$id));
+			
+		$this->redirect(array('controller'=>'patients','action' => 'index',$patient_id));
+	}
+
+	public function undo_delete_problem_prescription($id=null){
+		$this->uses = array('NoteDiagnosis');
+		//$result  = $this->NewCropPrescription->updateAll(array('is_deleted'=>'0'),array('is_reconcile'=>'0','patient_uniqueid'=>$id));
+		$problem_result  = $this->NoteDiagnosis->updateAll(array('is_deleted'=>'0'),array('is_reconcile'=>'0','patient_id'=>$id));
+			
+		$this->redirect(array('controller'=>'patients','action' => 'index',$patient_id));
+	}
+
+	public function update_facesheet($id=null,$date=null){
+		//$date = $this->request->data['NewcropPrescription']['drm_date'];
+		//print_r($id);exit;
+		//print_r($date);exit;
+		$this->uses = array('NewCropPrescription');
+		$data = $this->NewCropPrescription->find('all',array('fields'=>array('id'),'conditions'=>array('is_deleted'=>1)));
+		//echo"<pre>";print_r($data);exit;
+		//$short_list_array = explode(',', $data);
+		//echo "<pre>";print_r($short_list_array);
+		$cnt=0;
+		foreach($data as $datas){//echo "<pre>";print_r($datas);//exit;
+			if($date==''){
+				$result  = $this->NewCropPrescription->save(array('id'=>$datas['NewCropPrescription']['id'],'is_reconcile'=>1,'drm_date'=>date('Y-m-d')));
+			}
+			else{
+				$result  = $this->NewCropPrescription->save(array('id'=>$datas['NewCropPrescription']['id'],'is_reconcile'=>1,'drm_date'=>$date));
+			}
+			$cnt++;
+		}
+		$this->redirect(array('controller'=>'patients','action' => 'patient_information',$id));
+	}
+
+	public function update_facesheet_medication($id=null){
+		$this->uses = array('NewCropPrescription');
+		$data = $this->NewCropPrescription->find('all',array('fields'=>array('id'),'conditions'=>array('is_deleted'=>1)));
+		//echo"<pre>";print_r($data);exit;
+		//$short_list_array = explode(',', $data);
+		//echo "<pre>";print_r($short_list_array);
+		$cnt=0;
+		foreach($data as $datas){//echo "<pre>";print_r($datas);//exit;
+			$result  = $this->NewCropPrescription->save(array('id'=>$datas['NewCropPrescription']['id'],'is_reconcile'=>1));
+			$cnt++;
+		}
+		$this->redirect(array('controller'=>'patients','action' => 'reconcile',$id));
+	}
+
+	public function update_problem_facesheet($id=null){
+		$this->uses = array('NoteDiagnosis');
+		$data = $this->NoteDiagnosis->find('all',array('fields'=>array('id'),'conditions'=>array('is_deleted'=>1)));
+		//echo"<pre>";print_r($data);exit;
+		//$short_list_array = explode(',', $data);
+		//echo "<pre>";print_r($short_list_array);
+		$cnt=0;
+		foreach($data as $datas){//echo "<pre>";print_r($datas);//exit;
+			$result  = $this->NoteDiagnosis->save(array('id'=>$datas['NoteDiagnosis']['id'],'is_reconcile'=>1));
+			$cnt++;
+		}
+		$this->redirect(array('controller'=>'patients','action' => 'patient_information',$id));
+	}
+
+	public function update_allergy_facesheet($id=null){
+		$this->uses = array('NewCropAllergies');
+		$data = $this->NewCropAllergies->find('all',array('fields'=>array('id'),'conditions'=>array('is_deleted'=>1)));
+		//echo"<pre>";print_r($data);exit;
+		//$short_list_array = explode(',', $data);
+		//echo "<pre>";print_r($short_list_array);
+		$cnt=0;
+		foreach($data as $datas){//echo "<pre>";print_r($datas);//exit;
+			$result  = $this->NewCropAllergies->save(array('id'=>$datas['NewCropAllergies']['id'],'is_reconcile'=>1));
+			$cnt++;
+		}
+		$this->redirect(array('controller'=>'patients','action' => 'patient_information',$id));
+	}
+
+	public function update_allergy_facesheet_fc($id=null){
+		$this->uses = array('NewCropAllergies');
+		$data = $this->NewCropAllergies->find('all',array('fields'=>array('id'),'conditions'=>array('is_deleted'=>1)));
+		//echo"<pre>";print_r($data);exit;
+		//$short_list_array = explode(',', $data);
+		//echo "<pre>";print_r($short_list_array);
+		$cnt=0;
+		foreach($data as $datas){//echo "<pre>";print_r($datas);//exit;
+			$result  = $this->NewCropAllergies->save(array('id'=>$datas['NewCropAllergies']['id'],'is_reconcile'=>1));
+			$cnt++;
+		}
+		$this->redirect(array('controller'=>'patients','action' => 'reconcile',$id));
+	}
+	//Medication Reported by patient starts here
+
+
+	function patient_medication($id)
+	{
+		$this->uses = array('NewCropAllergies');
+		$patient_xml=$this->generateXML_reportedmedication($id);
+		$this->set('patient_xml', $patient_xml);
+		$this->layout = false ;
+
+	}
+
+	function medication_allergy_redirect($id = null){
+		//print_r($id);exit;
+		$this->uses = array('NewCropAllergies','NewCropPrescription');
+		//Patient Medication insertion starts here
+		$uid = $this->NewCropPrescription->find('all',array('fields'=>array('id','patient_uniqueid'),'conditions'=>array('patient_uniqueid'=>$id,'OR'=>array(array('NewCropPrescription.is_reconcile'=>"0"),array('NewCropPrescription.is_reconcile'=>"1")))));
+		//echo "<pre>";print_r($uid);//exit;
+
+		$update_id = $this->NewCropPrescription->find('list',array('fields'=>array('id'),'conditions'=>array('is_reconcile'=>0,'patient_uniqueid'=>$id)));
+		//echo "<pre>";print_r($update_id);exit;
+		$get_medication=$this->get_patient_medication_record($id);
+		$getmdecation =explode(',',$get_medication);
+
+		$CountOfMedicationRecords=count($getmdecation)-1;
+		if($uid[0]['NewCropPrescription']['patient_uniqueid'] == ''){
+			//print_r('INSERT');//exit;
+			for($i=0;$i<$CountOfMedicationRecords;$i++){
+				$MedicationSpecific[] =explode('>>>>',$getmdecation[$i]);
+			}
+			$this->Patient->insertPatientMedications($patient_id,$id,$MedicationSpecific);
+		}
+		else {
+			//print_r('UPDATE');//exit;
+			for($i=0;$i<$CountOfMedicationRecords;$i++){
+				$MedicationSpecific[] =explode('>>>>',$getmdecation[$i]);
+			}
+			$this->Patient->updatePatientMedications($id,$MedicationSpecific,$update_id);
+		}
+		//Patient Medication insertion ends here
+
+
+		//Patient Allergies insertion starts here
+		$uid = $this->NewCropAllergies->find('all',array('fields'=>array('id','patient_uniqueid'),'conditions'=>array('patient_uniqueid'=>$id,'OR'=>array(array('NewCropAllergies.is_reconcile'=>"0"),array('NewCropAllergies.is_reconcile'=>"1")))));
+		$update_id = $this->NewCropAllergies->find('list',array('fields'=>array('id'),'conditions'=>array('is_reconcile'=>0,'patient_uniqueid'=>$id)));
+		$getPatientAllergies=$this->ReportedPatientAllergies($id);
+		$PatientAllergies =explode('~',$getPatientAllergies);
+		$CountOfAllergiesRecords=count($PatientAllergies)-1;
+		if($uid[0]['NewCropAllergies']['patient_uniqueid'] == '0'){
+			for($i=0;$i<$CountOfAllergiesRecords;$i++){
+				$AllergiesSpecific[] =explode('>>>>',$PatientAllergies[$i]);
+			}
+			$this->Patient->insertPatientAllergies($id,$AllergiesSpecific);
+		}
+		else {
+			for($i=0;$i<$CountOfAllergiesRecords;$i++){
+				$AllergiesSpecific[] =explode('>>>>',$PatientAllergies[$i]);
+			}
+			$this->Patient->updatePatientAllergies($id,$AllergiesSpecific,$update_id);
+		}
+		//Patient Allergies insertion ends here
+
+		$this->redirect(array('controller'=>'patients','action' => 'reconcile',$id));
+	}
+
+
+
+	public function snowmedcog($patient_id=null){
+		$this->set('title_for_layout', __('-Select IPD code.', true));
+		$this->layout = false ;
+		if(empty($searchtest)){
+			$getdata= $this->request->query['description'];
+			$port = "42011";
+		}else{
+			$getdata = $searchtest;
+			$port = "42045";
+		}
+		//-----------------------socket connection-----------------------------------------
+		$host = "sandbox.e-imo.com";
+		$timeout = 15;  //timeout in seconds
+		$socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)
+		or die("Unable to create socket\n");
+		$result=socket_connect($socket, $host, $port);
+		if ($result === false) {
+			echo "socket_connect() failed.\nReason: ($result) " .
+			socket_strerror(socket_last_error($socket)) . "\n";
+		}
+		$msg = "search^10|||1^".$getdata."^e0695fe74f6466d0^" . "\r\n";
+
+		if (!socket_write($socket, $msg, strlen($msg))) {
+			echo socket_last_error($socket);
+		}
+
+		while ($bytes=socket_read($socket, 100000)) {
+			if ($bytes === false) {
+				echo socket_last_error($socket);
+				break;
+			}
+			if (strpos($bytes, "\r\n") != false) break;
+		}
+		socket_close($socket);
+		if(empty($searchtest)){
+			$xmlString=$bytes;
+			$xmldata = simplexml_load_string($xmlString);
+			$this->set('xmldata',$xmldata);
+		}else{
+
+			$xmlString=$bytes;
+			$xmldata = simplexml_load_string($xmlString);//echo '<pre>';print_r($xmldata);exit;
+			for($i=0;$i<=9;$i++){
+				$testdatatitle.= $xmldata->item[$i][title]."|";
+				$testdatacode.= $xmldata->item[$i][code]."|";
+				$testdataLonicCode.= $xmldata->item[$i][LOINC_CODE]."|";
+				$testdataSCTcode.= $xmldata->item[$i][SCT_CONCEPT_ID]."|";
+			}
+			$titleData =  explode('|',$testdatatitle);
+			$codeData =  explode('|',$testdatacode);
+			$LonicCode =  explode('|',$testdataLonicCode);
+			$SctCode = explode('|',$testdataSCTcode);
+			unset($SctCode[10]);
+			unset($titleData[10]);
+			unset($codeData[10]);
+
+			unset($SctCode[10]);
+			unset($LonicCode[10]);
+			echo json_encode(array('testTitle' =>$titleData,'testCode'=>$codeData,'SctCode'=>$SctCode,'LonicCode'=>$LonicCode));
+
+
+			exit;
+		}
+
+
+
+	}
+	public function drug_medication_allergies(){
+
+		$this->layout = false ;
+		$this->uses=array('Highrisk');
+		$medi_name=$this->Highrisk->find('all',array('fields'=>array('medicine_name','alternative_medi')));
+		$this->set('medi_name',$medi_name);
+
+	}
+
+	//----notesadd Plan settings
+	public function dbproblem($problem_id= null){
+		$this->uses = array('DiagnosisMaster');
+
+		$problems  = $this->DiagnosisMaster->find('first',array('fields'=>array('diagnoses_name','sct_us_concept_id','icd_id','imo_code'),'conditions'=>array('id'=>$problem_id)));
+			
+		echo $problems['DiagnosisMaster']['diagnoses_name']."|".$problems['DiagnosisMaster']['sct_us_concept_id']."|".$problems['DiagnosisMaster']['icd_id']."|".$problems['DiagnosisMaster']['imo_code'];
+		exit;
+	}
+
+	public function dbproblem_functionalstatusresult($problem_id= null){
+		$this->uses = array('FunctionalstatusresultMaster');
+
+		$problems  = $this->FunctionalstatusresultMaster->find('first',array('fields'=>array('diagnoses_name','sct_us_concept_id','icd_id','imo_code'),'conditions'=>array('id'=>$problem_id)));
+			
+		echo $problems['FunctionalstatusresultMaster']['diagnoses_name']."|".$problems['FunctionalstatusresultMaster']['sct_us_concept_id']."|".$problems['FunctionalstatusresultMaster']['icd_id']."|".$problems['FunctionalstatusresultMaster']['imo_code'];
+		exit;
+	}
+	public function dbproblem_diagnosisstatusresult($problem_id= null){
+		$this->uses = array('DiagnosticstudyresultMaster');
+
+		$problems  = $this->DiagnosticstudyresultMaster->find('first',array('fields'=>array('diagnoses_name','sct_us_concept_id','icd_id','imo_code'),'conditions'=>array('id'=>$problem_id)));
+			
+		echo $problems['DiagnosticstudyresultMaster']['diagnoses_name']."|".$problems['DiagnosticstudyresultMaster']['sct_us_concept_id']."|".$problems['DiagnosticstudyresultMaster']['icd_id']."|".$problems['DiagnosticstudyresultMaster']['imo_code'];
+		exit;
+	}
+	public function dbproblem_riskcategoryassesment($problem_id= null){
+		$this->uses = array('RiskcategoryassesmentMaster');
+
+		$problems  = $this->RiskcategoryassesmentMaster->find('first',array('fields'=>array('diagnoses_name','sct_us_concept_id','icd_id','imo_code'),'conditions'=>array('id'=>$problem_id)));
+			
+		echo $problems['RiskcategoryassesmentMaster']['diagnoses_name']."|".$problems['RiskcategoryassesmentMaster']['sct_us_concept_id']."|".$problems['RiskcategoryassesmentMaster']['icd_id']."|".$problems['RiskcategoryassesmentMaster']['imo_code'];
+		exit;
+	}
+
+
+
+
+	public function save_problemPlan(){
+		$this->uses = array('PlannedProblem');
+		if(!empty($this->request->data['PlannedProblem']['snomed_description'])){
+			$this->request->data['PlannedProblem']['patient_id'] = $this->request->data['patientid'];
+			$this->request->data["PlannedProblem"]["plan_date"] = $this->DateFormat->formatDate2STD($this->request->data["PlannedProblem"]["plan_date"],Configure::read('date_format_us'));
+			$this->PlannedProblem->insertProblem($this->request->data);
+			exit;
+		}else{
+			echo "error";
+			exit;
+		}
+	}
+
+	public function edit_Problem($id=null){
+		$this->uses = array('PlannedProblem');
+		$edit_data = $this->PlannedProblem->find('first',array('conditions'=>array('id'=>$id)));
+		$edit_data['PlannedProblem']['plan_date'] = $this->DateFormat->formatDate2Local($edit_data['PlannedProblem']['plan_date'],Configure::read('date_format_us'),false);
+		echo $edit_data['PlannedProblem']['snomed_description']."|".$edit_data['PlannedProblem']['sct_us_concept_id']."|".$edit_data['PlannedProblem']['sct_concept_id']."|".$edit_data['PlannedProblem']['instruction']."|".$edit_data['PlannedProblem']['id']."|".$edit_data['PlannedProblem']['plan_date'];
+
+		exit;
+	}
+
+	public function delete_Problem($id=null){
+		$this->uses =array('PlannedProblem');
+
+		$this->PlannedProblem->save(array('id'=>$id,'is_deleted' => 1));
+			
+		exit;
+	}
+	//bof code related to finalization patient charcter
+	public function patient_char_onChange($patient_id= null){
+		$this->uses = array('PatientCharacter');
+
+		$problems  = $this->PatientCharacter->find('first',array('fields'=>array('character_name','snomed_code'),'conditions'=>array('id'=>$problem_id)));
+			
+		echo $problems['PatientCharacter']['character_name']."|".$problems['PatientCharacter']['snomed_code'];
+		exit;
+	}
+	//
+	//BOF code related to Intervention
+
+	public function save_interventions(){
+		$this->uses = array('Intervention');
+		if(!empty($this->request->data['Intervention']['intervention_name'])){
+			$this->request->data['Intervention']['patient_id'] = $this->request->data['patientid'];
+			$this->request->data["Intervention"]["intervention_date"] = $this->DateFormat->formatDate2STD($this->request->data["Intervention"]["intervention_date"],Configure::read('date_format_us'));
+			$this->Intervention->insertIntervention($this->request->data);
+			exit;
+		}
+		else{
+			echo "Please Insert Data";
+			exit;
+		}
+	}
+	public function edit_interventions($id=null){
+
+		$this->uses = array('Intervention');
+		$edit_data = $this->Intervention->find('first',array('conditions'=>array('id'=>$id)));
+		$edit_data['Intervention']['intervention_date'] = $this->DateFormat->formatDate2Local($edit_data['Intervention']['intervention_date'],Configure::read('date_format_us'),false);
+		echo $edit_data['Intervention']['intervention_name']."|".$edit_data['Intervention']['snomed_code']."|".$edit_data['Intervention']['intervention_note']."|".$edit_data['Intervention']['id']."|".$edit_data['Intervention']['create_time']."|".$edit_data['Intervention']['lonic_code']."|".$edit_data['Intervention']['intervention_date'];;
+		exit;
+	}
+
+	public function delete_interventions($id=null){
+		$this->uses =array('Intervention');
+
+		$this->Intervention->save(array('id'=>$id,'is_deleted' => 1));
+			
+		exit;
+	}
+	//EOF code related to Risk Category
+
+	//BOF code related to Risk Category
+	public function save_riskCategory(){
+		$this->uses = array('RiskCategory');
+		if(!empty($this->request->data['RiskCategory']['risk_category_name'])){
+			$this->request->data['RiskCategory']['patient_id'] = $this->request->data['patientid'];
+			$this->request->data["RiskCategory"]["risk_category_date"] = $this->DateFormat->formatDate2STD($this->request->data["RiskCategory"]["risk_category_date"],Configure::read('date_format_us'));
+			$this->RiskCategory->insertRiskCategory($this->request->data);
+			exit;
+		}
+		else{
+			echo "Please Insert Data";
+			exit;
+		}
+
+	}
+	public function edit_riskCategory($id=null){
+
+		$this->uses = array('RiskCategory');
+		$edit_data = $this->RiskCategory->find('first',array('conditions'=>array('id'=>$id)));
+		$edit_data['RiskCategory']['risk_category_date'] = $this->DateFormat->formatDate2Local($edit_data['RiskCategory']['risk_category_date'],Configure::read('date_format_us'),false);
+		echo $edit_data['RiskCategory']['risk_category_name']."|".$edit_data['RiskCategory']['snomed_code']."|".$edit_data['RiskCategory']['risk_category_note']."|".$edit_data['RiskCategory']['id']."|".$edit_data['RiskCategory']['create_time']."|".$edit_data['RiskCategory']['lonic_code']."|".$edit_data['RiskCategory']['risk_category_date']."|".$edit_data['RiskCategory']['is_riskcheck']."|".$edit_data['RiskCategory']['risk_reason_type']."|".$edit_data['RiskCategory']['risk_type_note']."|".$edit_data['RiskCategory']['reason_type'];
+		exit;
+	}
+
+	public function delete_riskCategory($id=null){
+		$this->uses =array('RiskCategory');
+
+		$this->RiskCategory->save(array('id'=>$id,'is_deleted' => 1));
+			
+		exit;
+	}
+	//EOF code related to Risk Category
+
+	//BOF code related to Procedure
+	public function dbprocedureperform($problem_id= null){
+		$this->uses = array('Surgery');
+		$problems  = $this->Surgery->find('first',array('fields'=>array('name'),'conditions'=>array('id'=>$problem_id)));
+		echo $problems['Surgery']['name']."|".$problems['Surgery']['id'];
+		exit;
+	}
+	//bof code  releted to device
+	public function device_onChange($problem_id= null){
+		$this->uses = array('DeviceMaster');
+
+		$problems  = $this->DeviceMaster->find('first',array('fields'=>array('device_name','code_value'),'conditions'=>array('id'=>$problem_id)));
+			
+		echo $problems['DeviceMaster']['device_name']."|".$problems['DeviceMaster']['code_value'];
+		exit;
+	}
+	public function save_devices(){
+		$this->uses = array('DeviceUse');
+		if(!empty($this->request->data['DeviceUse']['device_name'])){
+			$this->request->data['DeviceUse']['patient_id'] = $this->request->data['patientid'];
+			$this->request->data["DeviceUse"]["device_date"] = $this->DateFormat->formatDate2STD($this->request->data["DeviceUse"]["device_date"],Configure::read('date_format_us'));
+			$this->DeviceUse->insertDeviceUse($this->request->data);
+			exit;
+		}
+		else{
+			echo "Please Insert Data";
+			exit;
+		}
+	}
+	//
+
+
+
+	//Bof of devices used
+
+
+	public function edit_devices($id=null){
+
+		$this->uses = array('DeviceUse');
+		$edit_data = $this->DeviceUse->find('first',array('conditions'=>array('id'=>$id)));
+		$edit_data['DeviceUse']['device_date'] = $this->DateFormat->formatDate2Local($edit_data['DeviceUse']['device_date'],Configure::read('date_format_us'),false);
+
+		echo $edit_data['DeviceUse']['device_name']."|".$edit_data['DeviceUse']['snowmed_code']."|".$edit_data['DeviceUse']['device_note']."|".$edit_data['DeviceUse']['id']."|".$edit_data['DeviceUse']['create_time']."|".$edit_data['DeviceUse']['device_date'];
+		exit;
+	}
+
+	public function delete_devices($id=null){
+		$this->uses =array('DeviceUse');
+
+		$this->DeviceUse->save(array('id'=>$id,'is_deleted' => 1));
+			
+		exit;
+	}
+
+	//eof devices function
+
+	//bof symptom function symptom_onChange
+
+	public function symptom_onChange($problem_id= null){
+		$this->uses = array('SymptomMaster');
+
+		$problems  = $this->SymptomMaster->find('first',array('fields'=>array('symptom_name','code_value'),'conditions'=>array('id'=>$problem_id)));
+			
+		echo $problems['SymptomMaster']['symptom_name']."|".$problems['SymptomMaster']['code_value'];
+		exit;
+	}
+
+	public function save_symptoms(){
+		$this->uses = array('Symptom');
+		if(!empty($this->request->data['Symptom']['symptom_name'])){
+			$this->request->data['Symptom']['patient_id'] = $this->request->data['patientid'];
+			$this->request->data["Symptom"]["symptom_date"] = $this->DateFormat->formatDate2STD($this->request->data["Symptom"]["symptom_date"],Configure::read('date_format_us'));
+			$this->Symptom->insertSymptom($this->request->data);
+			exit;
+		}
+		else{
+			echo "Please Insert Data";
+			exit;
+		}
+	}
+
+	public function edit_symptoms($id=null){
+
+		$this->uses = array('Symptom');
+		$edit_data = $this->Symptom->find('first',array('conditions'=>array('id'=>$id)));
+		$edit_data['Symptom']['symptom_date'] = $this->DateFormat->formatDate2Local($edit_data['Symptom']['symptom_date'],Configure::read('date_format_us'),false);
+
+		echo $edit_data['Symptom']['symptom_name']."|".$edit_data['Symptom']['snomed_code']."|".$edit_data['Symptom']['symptom_note']."|".$edit_data['Symptom']['id']."|".$edit_data['Symptom']['create_time']."|".$edit_data['Symptom']['symptom_date'];
+		exit;
+	}
+
+	public function delete_symptoms($id=null){
+		$this->uses =array('Symptom');
+
+		$this->Symptom->save(array('id'=>$id,'is_deleted' => 1));
+			
+		exit;
+	}
+	//eof symptom function
+
+	//BOF code related to diagostic
+	public function diagnostic_onChange($problem_id= null){
+		$this->uses = array('DiagnosticMaster');
+
+		$problems  = $this->DiagnosticMaster->find('first',array('fields'=>array('diagnostic_name','lonic_code'),'conditions'=>array('id'=>$problem_id)));
+			
+		echo $problems['DiagnosticMaster']['diagnostic_name']."|".$problems['DiagnosticMaster']['lonic_code'];
+		exit;
+	}
+	public function save_diagnostics(){
+		$this->uses = array('Diagnostic');
+		if(!empty($this->request->data['Diagnostic']['diagnostic_name'])){
+			$this->request->data['Diagnostic']['patient_id'] = $this->request->data['patientid'];
+			$this->request->data["Diagnostic"]["diagnostic_date"] = $this->DateFormat->formatDate2STD($this->request->data["Diagnostic"]["diagnostic_date"],Configure::read('date_format_us'));
+			$this->Diagnostic->insertDiagnostic($this->request->data);
+			exit;
+		}
+		else{
+			echo "Please Insert Data";
+			exit;
+		}
+	}
+
+	public function edit_diagnostics($id=null){
+
+		$this->uses = array('Diagnostic');
+		$edit_data = $this->Diagnostic->find('first',array('conditions'=>array('id'=>$id)));
+		$edit_data['Diagnostic']['diagnostic_date'] = $this->DateFormat->formatDate2Local($edit_data['Diagnostic']['diagnostic_date'],Configure::read('date_format_us'),false);
+		//debug($edit_data);
+		echo $edit_data['Diagnostic']['diagnostic_name']."|".$edit_data['Diagnostic']['lonic_code']."|".$edit_data['Diagnostic']['diagnostic_note']."|".$edit_data['Diagnostic']['id']."|".$edit_data['Diagnostic']['create_time']."|".$edit_data['Diagnostic']['diagnostic_date'];
+		exit;
+	}
+
+	public function delete_diagnostics($id=null){
+		$this->uses =array('Diagnostic');
+
+		$this->Diagnostic->save(array('id'=>$id,'is_deleted' => 1));
+			
+		exit;
+	}
+
+
+
+	//EOF code related to diagnostic
+	public function save_procedure(){
+		$this->uses = array('DignosticStudy');
+		$this->request->data['DignosticStudy']['patient_id'] = $this->request->data['patientid'];
+		$this->request->data["DignosticStudy"]["procedure_date"] = $this->DateFormat->formatDate2STD($this->request->data["DignosticStudy"]["procedure_date"],Configure::read('date_format_us'));
+		$this->DignosticStudy->insertProcedure($this->request->data);
+		exit;
+	}
+
+	public function save_order_set($p_id){
+
+		$this->uses = array('NewCropPrescription');
+
+		$this->request->data['NewCropPrescription']['patient_uniqueid'] = $this->request->data['patientid'];
+		//$this->request->data["NewCropPrescription"]["procedure_date"] = $this->DateFormat->formatDate2STD($this->request->data["DignosticStudy"]["procedure_date"],Configure::read('date_format_us'));
+		$this->NewCropPrescription->insertMedication($this->request->data);
+		exit;
+	}
+	public function save_order_ekg($p_id){
+
+		$this->uses = array('EKG');
+		$this->request->data['EKG']['patient_id'] = $this->request->data['patientid'];
+		//$this->request->data["NewCropPrescription"]["procedure_date"] = $this->DateFormat->formatDate2STD($this->request->data["DignosticStudy"]["procedure_date"],Configure::read('date_format_us'));
+		$this->EKG->insertEKG($this->request->data);
+		exit;
+	}
+	public function save_order_lab($p_id){
+		$this->uses = array('LaboratoryTestOrder');
+		$this->request->data['Laboratory']['patient_id'] = $this->request->data['patientid'];
+		//$this->request->data["NewCropPrescription"]["procedure_date"] = $this->DateFormat->formatDate2STD($this->request->data["DignosticStudy"]["procedure_date"],Configure::read('date_format_us'));
+		$this->LaboratoryTestOrder->insertTestOrder_orderset($this->request->data);
+		exit;
+	}
+	public function save_order_rad($p_id){
+		$this->uses = array('Radiology');
+		$this->request->data['Radiology']['patient_id'] = $this->request->data['patientid'];
+		$this->Radiology->insertRad($this->request->data);
+		exit;
+	}
+
+	public function edit_procedure($id=null){
+		$this->uses = array('DignosticStudy');
+		$edit_data = $this->DignosticStudy->find('first',array('conditions'=>array('id'=>$id)));
+		$edit_data['DignosticStudy']['procedure_date'] = $this->DateFormat->formatDate2Local($edit_data['DignosticStudy']['procedure_date'],Configure::read('date_format_us'),false);
+		echo $edit_data['DignosticStudy']['procedure_description']."|".$edit_data['DignosticStudy']['test_code']."|".$edit_data['DignosticStudy']['loinc_code']."|".$edit_data['DignosticStudy']['snomed_code']."|".$edit_data['DignosticStudy']['cpt_code']."|".$edit_data['DignosticStudy']['procedure_date']."|".$edit_data['DignosticStudy']['instruction']."|".$edit_data['DignosticStudy']['id']."|".$edit_data['DignosticStudy']['vte_confirm'];
+
+		exit;
+	}
+
+	public function delete_Procedure($id=null){
+		$this->uses =array('DignosticStudy');
+
+		$this->DignosticStudy->save(array('id'=>$id,'is_deleted' => 1));
+			
+		exit;
+	}
+
+	public function save_result(){
+		$this->uses = array('FunctionalResult');
+		$this->request->data['FunctionalResult']['patient_id'] = $this->request->data['patientid'];
+		$this->request->data["FunctionalResult"]["result_date"] = $this->DateFormat->formatDate2STD($this->request->data["FunctionalResult"]["result_date"],Configure::read('date_format_us'));
+		$this->FunctionalResult->insertResult($this->request->data);
+		exit;
+	}
+
+	public function delete_result($id=null){
+		$this->uses =array('FunctionalResult');
+
+		$this->FunctionalResult->save(array('id'=>$id,'is_deleted' => 1));
+			
+		exit;
+	}
+
+	public function edit_result($id=null){
+		$this->uses = array('FunctionalResult');
+		$edit_data = $this->FunctionalResult->find('first',array('conditions'=>array('id'=>$id)));
+		$edit_data['FunctionalResult']['result_date'] = $this->DateFormat->formatDate2Local($edit_data['FunctionalResult']['result_date'],Configure::read('date_format_us'),false);
+		echo $edit_data['FunctionalResult']['result_description']."|".$edit_data['FunctionalResult']['test_code']."|".$edit_data['FunctionalResult']['loinc_code']."|".$edit_data['FunctionalResult']['snomed_code']."|".$edit_data['FunctionalResult']['cpt_code']."|".$edit_data['FunctionalResult']['result_date']."|".$edit_data['FunctionalResult']['instruction']."|".$edit_data['FunctionalResult']['id'];
+
+		exit;
+	}
+
+	public function prescriptionDetails($patient_id,$prescriptionCount=0){
+		$this->layout=false;
+		$this->uses = array('NewCropPrescription');
+		if($this->request->data){
+			$this->request->data['NewCropPrescription']['date_of_prescription_1'] = $this->DateFormat->formatDate2STD($this->request->data["NewCropPrescription"]["date_of_prescription_1"],Configure::read('date_format_us'));
+			$date_of_prescription_1 = $this->request->data['NewCropPrescription']['date_of_prescription_1'];
+			$no_of_prescription_not_controlled = $this->request->data['NewCropPrescription']['no_of_prescription_not_controlled'];
+			$no_of_transmitted_prescription_not_controlled = $this->request->data['NewCropPrescription']['no_of_transmitted_prescription_not_controlled'];
+			$no_of_prescription_controlled = $this->request->data['NewCropPrescription']['no_of_prescription_controlled'];
+			$no_of_transmitted_prescription_controlled = $this->request->data['NewCropPrescription']['no_of_transmitted_prescription_controlled'];
+			$prescription_queried_for_drug_formulary = $this->request->data['NewCropPrescription']['prescription_queried_for_drug_formulary'];
+			$patient_id = $this->request->data['NewCropPrescription']['patient_id'];
+			//echo $date_of_prescription_1;exit;
+			//pr($this->request->data);exit;
+			if($this->request->data['NewCropPrescription']['stage1_stage2'] == 'Stage 2'){
+				$this->NewCropPrescription->updateAll(
+						array('date_of_prescription_1' => "'$date_of_prescription_1'",'no_of_prescription_not_controlled' => "'$no_of_prescription_not_controlled'",
+								'no_of_transmitted_prescription_not_controlled' => "'$no_of_transmitted_prescription_not_controlled'",'no_of_prescription_controlled' => "'$no_of_prescription_controlled'",
+								'no_of_transmitted_prescription_controlled'=>$no_of_transmitted_prescription_controlled,
+								'prescription_queried_for_drug_formulary' => "'$prescription_queried_for_drug_formulary'"),array('NewCropPrescription.patient_uniqueid'=>$patient_id)
+				);
+			}else{
+				$this->NewCropPrescription->updateAll(
+						array('date_of_prescription_1' => "'$date_of_prescription_1'",'no_of_prescription_not_controlled' => "'$no_of_prescription_not_controlled'",
+								'no_of_transmitted_prescription_not_controlled' => "'$no_of_transmitted_prescription_not_controlled'"),array('NewCropPrescription.patient_uniqueid'=>$patient_id)
+				);
+			}
+
+			$this->set('message','Record successfully saved.');
+		}
+		$this->set('patient_id',$patient_id);//echo $patient_id;exit;
+		$this->set('prescriptionCount',$prescriptionCount);
+		$data = $this->NewCropPrescription->find('first',array('conditions'=>array('patient_uniqueid'=>$patient_id)));
+		$this->data = $data;
+	}
+
+
+	public function getLabInfo($id){
+		$this->layout = false;
+		$this->uses = array('LaboratoryToken');
+		$this->LaboratoryToken->bindModel(array('belongsTo' => array(
+				'Laboratory' =>array('foreignKey'=>false, 'conditions' => array('LaboratoryToken.laboratory_id=Laboratory.id')),
+				'LaboratoryTestOrder' =>array('foreignKey'=>false, 'conditions' => array('LaboratoryTestOrder.laboratory_id=LaboratoryToken.laboratory_id')),
+		)),false);
+
+		$get_data= $this->LaboratoryToken->find('all',array('conditions'=>array('LaboratoryToken.patient_id'=>$id,'LaboratoryTestOrder.is_deleted'=>'0'),'group'=>'Laboratory.name'));
+		$this->set('get_lab',$get_data);
+		$this->render('get_lab_info');
+
+	}
+
+	public function getProblemInfo($id){
+		//exit;
+		$this->layout = false;
+		$this->uses = array('NoteDiagnosis','PastMedicalHistory');
+		$icd_imo=$this->NoteDiagnosis->find('all',array('conditions'=>array('patient_id'=>$id,'is_deleted'=>0,'is_reconcile'=>0,'disease_status !='=>'resolved'),'group'=>array('diagnoses_name')));
+
+		foreach($icd_imo as $icd_imos){
+			$consolidate[]=$icd_imos['NoteDiagnosis']['diagnoses_name'];
+		}
+
+		$medicalHistory = $this->PastMedicalHistory->find('first',array(
+				'conditions'=>array('PastMedicalHistory.patient_id'=>$patientId)));
+		$this->set('medicalHistory',$medicalHistory);
+		$this->set('icd_imo',$icd_imo);
+		$this->set('consolidate',$consolidate);
+		$this->render('get_problem_info');
+
+	}
+
+	public function getMedicationInfo($id,$patient_id){
+		$this->uses = array('NewCropPrescription','SuggestedDrug','Note');
+		$this->SuggestedDrug->bindModel(array(
+				'belongsTo' => array(
+						'Note'=> array( 'foreignKey'=>false,'conditions'=>array('Note.id=SuggestedDrug.note_id')),
+				)
+		));
+		$localMedicationData=$this->SuggestedDrug->find('all',array('fields'=>array('PharmacyItem.name'),'conditions'=>array('Note.patient_id'=>$id)));
+		$this->set('localMedicationData',$localMedicationData);
+		$get_medication=$this->get_medication_record($patient_id,$id);
+
+		//$getmdecation =explode(',',$get_medication);
+
+		$CountOfMedicationRecords=count($get_medication);
+
+		for($i=0;$i<$CountOfMedicationRecords;$i++){
+
+			$MedicationSpecific[] = $get_medication[$i];
+
+		}
+
+		if($get_medication['0']!=""){
+			$this->Patient->insertPrescription($patient_id,$id,$MedicationSpecific);
+		}
+		$prescription_data=$this->NewCropPrescription->query("SELECT `NewCropPrescription`.`id`,`NewCropPrescription`.`route`,`NewCropPrescription`.`frequency`,
+				`NewCropPrescription`.`frequency`,`NewCropPrescription`.`is_discharge_medication`,`NewCropPrescription`.`description`, `NewCropPrescription`.`patient_uniqueid`,
+				`NewCropPrescription`.`dose` ,`NewCropPrescription`.`is_ccda` ,`NewCropPrescription`.`archive`,`NewCropPrescription`.`date_of_prescription`,`NewCropPrescription`.`drug_id` FROM
+				`new_crop_prescription` AS `NewCropPrescription` INNER JOIN(SELECT MAX(date_of_prescription) as dateofpr from new_crop_prescription
+				WHERE `patient_uniqueid` = $id
+				AND ( `new_crop_prescription`.`is_discharge_medication` IN (0,2) AND `new_crop_prescription`.`archive` IN ('N')  OR `new_crop_prescription`.`is_ccda` IN (1))
+				group by description) newcrp1 on NewCropPrescription.date_of_prescription=newcrp1.dateofpr
+				WHERE `patient_uniqueid` = $id AND NewCropPrescription.`archive` IN ('N') AND NewCropPrescription.`is_reconcile` IN ('0') group by NewCropPrescription.description");
+
+		//----Code For Medication QR Code Gaurav Chauriya ----
+		if(!empty($prescription_data)){
+
+			for($i=0;$i<count($prescription_data);$i++){
+				// if($MedicationSpecific[$i]['archive'] == 'N'){
+				$qrText .= $prescription_data[$i]['NewCropPrescription']['description']."^~~^".$prescription_data[$i]['NewCropPrescription']['route']."^~~^".$prescription_data[$i]['NewCropPrescription']['frequency']."^~~^".$prescription_data[$i]['NewCropPrescription']['dose']."^~~^";
+					
+				//}
+			}
+
+			if(!file_exists("uploads/qrcodes/medicationQrCode/medicationQR/".$patient_id.".png")){
+				$this->Patient->updateAll(array('newmedicationqr_flag'=>1),array('id'=>$id));
+			}
+			$qrText = substr($qrText,0,-4);
+			// generate Text Type QrCode
+			$this->QRCode ->text($qrText);
+			// display new QR code image to temporary folder
+			$this->QRCode ->draw(400, "uploads/qrcodes/medicationQrCode/temp/".$patient_id.".png");
+
+			$diff = $this->QRCode ->imageCompare("uploads/qrcodes/medicationQrCode/medicationQR/".$patient_id.".png","uploads/qrcodes/medicationQrCode/temp/".$patient_id.".png",5,5,5,1,5);
+			if(isset($diff['PercentDifference'])){
+				$this->Patient->updateAll(array('newmedicationqr_flag'=>1),array('id'=>$id));
+				//move qrcode from temp to used folder
+				copy("uploads/qrcodes/medicationQrCode/temp/".$patient_id.".png", "uploads/qrcodes/medicationQrCode/medicationQR/".$patient_id.".png");
+				//delete temporary qrcode
+				unlink("uploads/qrcodes/medicationQrCode/temp/".$patient_id.".png");
+
+			}else{
+				//delete temporary qrcode if no difference is found
+				unlink("uploads/qrcodes/medicationQrCode/temp/".$patient_id.".png");
+			}
+			$this->Patient->unBindModel(array(
+					'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+			$medication_flag = $this->Patient->read('newmedicationqr_flag',$id);
+			$this->set(compact('medication_flag'));
+
+		}else{
+			$noQrCard = '1';
+			$this->set(compact('noQrCard'));
+		}
+		//--------EOF QR Code
+		$i=0;
+		foreach($prescription_data as $prescription_datas){
+			$med_expl=explode(" ",$prescription_datas['NewCropPrescription']['description']);
+
+			$med_str[$i]=$med_expl[0];
+			$i++;
+		}
+		$this->set('prescription_data',$prescription_data);
+		$this->render('get_medication_info');
+	}
+
+
+
+
+
+	public function getAllergyInfo($id,$patient_id){
+		$this->layout = false;
+		$this->uses = array('NewCropAllergies');
+		$getPatientAllergies=$this->PatientAllergies($patient_id,$id);
+		$PatientAllergies =explode('~',$getPatientAllergies);
+
+		$CountOfAllergiesRecords=count($PatientAllergies)-1;
+		for($i=0;$i<$CountOfAllergiesRecords;$i++){
+			$AllergiesSpecific[] =explode('>>>>',$PatientAllergies[$i]);
+		}
+
+		$this->Patient->insertAllergies($patient_id,$id,$AllergiesSpecific);
+
+		$allergies_data=$this->NewCropAllergies->find('all',array('fields'=>array('NewCropAllergies.name'),
+				'conditions'=>array('NewCropAllergies.patient_uniqueid'=>$id,'NewCropAllergies.status !='=>'N', 'NewCropAllergies.is_reconcile'=>0,
+						'NewCropAllergies.location_id'=>$this->Session->read('locationid')),'group'=>array('NewCropAllergies.name')));
+		$this->set('allergies_data',$allergies_data);
+		$this->render('get_allergy_info');
+	}
+
+	public function getElderlyInfo($id){
+		$this->layout = false;
+		$this->uses = array('ElderlyMedication','NewCropPrescription');
+
+		$prescription_data=$this->NewCropPrescription->query("SELECT `NewCropPrescription`.`id`, `NewCropPrescription`.`is_discharge_medication`, `NewCropPrescription`.`description`,`NewCropPrescription`.`patient_uniqueid`,`NewCropPrescription`.`is_ccda` ,`NewCropPrescription`.`archive`,`NewCropPrescription`.`date_of_prescription` FROM
+				`new_crop_prescription` AS `NewCropPrescription` INNER JOIN(SELECT MAX(date_of_prescription) as dateofpr from new_crop_prescription WHERE `patient_uniqueid` = $id AND ( `new_crop_prescription`.`is_discharge_medication` IN (0,2)   OR `new_crop_prescription`.`is_ccda` IN (1)) group by
+				description)
+				newcrp1 on NewCropPrescription.date_of_prescription=newcrp1.dateofpr WHERE `patient_uniqueid` = $id AND NewCropPrescription.`archive` IN ('N') AND NewCropPrescription.`is_reconcile` IN ('0') group by `NewCropPrescription`.`description`");
+		$i=0;
+		foreach($prescription_data as $prescription_datas){
+			$med_expl=explode(" ",$prescription_datas['NewCropPrescription']['description']);
+
+			$med_str[$i]=$med_expl[0];
+			$i++;
+		}
+
+		$elderly_medication = $this->ElderlyMedication->find('all',array('fields'=>array('id','medication_name'),'group'=>('medication_name')));
+		$i=0;
+		foreach($elderly_medication as $elderly_medications){
+			$elder_expl=explode(" ",$elderly_medications['ElderlyMedication']['medication_name']);
+			$eld_str[$i]=$elder_expl[0];
+			$i++;
+		}
+		$interaction_elder=array_intersect($med_str, $eld_str);
+		if(count($interaction_elder) > 0){
+			echo true;
+		}else{
+			echo false;
+		}
+		exit;
+	}
+
+
+	public function dragon($notetype=null){
+		$this->layout=false;
+		$this->set('notetype',$notetype);
+
+	}
+	//BOF aditya
+
+	/* public function presonpaymentupdate($person_id,$paytype){
+		debug($person_id);
+	debug($paytype);
+	///$this->Person->save(array('Person.payment_category'=>$paytype),array('id'=>$person_id));
+	$this->updateAll(array('Person.payment_category'=>"'$paytype'"), array('Person.id'=>$person_id));
+	echo "Success";
+	exit;
+
+	} */
+	public function patientsinsurance($patient_id=null){
+		/* 	$rest = substr($patient_id, 0,3);
+		 if($rest=='UHH'){
+		$getPatientUid=$patient_id;
+
+		}
+		else{
+		$getPatient=$this->Patient->find('first',array('fields'=>array('Patient.id','Patient.id'),'conditions'=>array('Patient.patient_id'=>$patient_id)));
+		$getPatientUid=$getPatient['Patient']['id'];
+		}
+
+		$this->uses = array('NewInsurance','InsuranceType','InsuranceCompany','Patient');
+		$this->set('patient_id',$patient_id);
+		//Patient Portal
+		$p_id=$_SESSION['Auth']['User']['patient_uid'];
+		$recivePortalData=$this->portal_header($p_id);
+		$this->set('recivePortalData',$recivePortalData);
+		//EOF Aditya
+		$getDataInsuranceType=$this->InsuranceType->find('list',array('fields'=>array('InsuranceType.description','InsuranceType.description'),'conditions'=>array('is_deleted'=>'0')));
+		$getDataInsuranceCompany=$this->InsuranceCompany->find('list',array('fields'=>array('InsuranceCompany.name','InsuranceCompany.name'),'conditions'=>array('InsuranceCompany.is_deleted'=>'0')));
+		if(!empty($this->request->data)){
+
+		$this->request->data['NewInsurance']['effective_date'] = $this->DateFormat->formatDate2STD($this->request->data['NewInsurance']['effective_date'],Configure::read('date_format_us'));
+		$this->NewInsurance->save($this->request->data);
+		$this->Session->setFlash(__('Insurance has been saved', true));
+		$this->redirect(array('action'=>'insuranceindex',$getPatientUid));
+		}
+
+		$this->set(compact('getDataInsuranceType','getDataInsuranceCompany')); */
+
+	}
+
+	//EOF aditya
+
+	public function referral($patient_id){
+		//pr($patient_id);
+		$this->patient_info($patient_id);
+
+	}
+	public function referral_patient_action($patient_id){
+		$this->patient_info($patient_id);
+	}
+	public function referral_preview($patient_id){
+		$this->layout = 'print_with_header';
+	}
+	public function orders($id=null,$updateStatus=null){
+		$this->uses= array('OrderCategory','PatientOrder','OrderSubcategory','OrdersetMaster','OrdersetSubcategoryMapping','OrderSentence');
+		$this->patient_info($id);
+		$getOrderData=$this->OrderCategory->find('all',array('fields'=>array('id','order_description')));
+		$this->set('getOrderData',$getOrderData);
+		$this->set('patient_id',$id);
+		//----------------------Display Added Records----------------------------------------
+
+
+		$this->OrderCategory->bindModel(array(
+				'hasMany' => array(
+						'PatientOrder' =>array('foreignKey' => 'order_category_id',
+								'conditions'=>array('PatientOrder.patient_id'=>$id,)
+						),
+				)),false);
+		/*$this->OrdersetMaster->bindModel(array(
+		 'hasMany' => array(
+		 		'OrdersetSubcategoryMapping' =>array('foreignKey' =>false,'conditions'=>array('OrdersetMaster.id=OrdersetSubcategoryMapping.orderset_master_id'))),
+				'belongsTo'=>array('OrderCategory' =>array('foreignKey' =>false,'conditions'=>array('OrderCategory.id=OrdersetSubcategoryMapping.order_category_id')),
+						'OrderSubcategory' =>array('foreignKey' =>false,'conditions'=>array('OrderSubcategory.id=OrdersetSubcategoryMapping.order_subcategory_id'))),
+
+
+		),false); */
+
+		/*$this->OrdersetMaster->bindModel(array(
+		 'hasMany' => array(
+		 		'OrdersetCategoryMapping' =>array('foreignKey' =>'orderset_master_id'),
+		 		'OrdersetSubcategoryMapping' =>array('foreignKey' =>'order_category_mapping_id'),
+		 )
+
+		),false);
+
+		$getDataAll=$this->OrdersetMaster->find('all',array('conditions'=>array('OrdersetMaster.id'=>'1')));
+		debug($getDataAll);*/
+
+		$this->OrdersetMaster->bindModel(array(
+				'hasMany'=>array(
+						'OrdersetCategoryMapping'=>array('foreignKey'=>'orderset_master_id'))));
+		$data = $this->OrdersetMaster->find('all',array('conditions'=>array('OrdersetMaster.id'=>'1')));
+
+		//debug($data);
+		$i=0 ;
+		foreach($data as $key => $value){
+
+			if(!empty($value['OrdersetCategoryMapping'])){
+				foreach($value['OrdersetCategoryMapping'] as $subKey =>$subValue){
+					$customArray[$value['OrdersetCategoryMapping']['name']][$subValue['id']]  = $subValue['name'] ;
+					$ids[] = $subValue['id'] ;
+				}
+			}else{
+				$customArray[$value['ReviewCategory']['name']]   = $value['ReviewCategory']['name']; //only main category
+			}
+		}
+
+			
+		/*$idsStr = implode(",",$ids) ;
+		 $categoryData = $this->ReviewSubCategoriesOption->find('all',array('conditions'=>array('ReviewSubCategoriesOption.review_sub_categories_id'=>$idsStr))) ;
+
+		foreach($data as $key => $value){
+		if(!empty($value['ReviewSubCategory'])){
+		foreach($value['ReviewSubCategory'] as $subKey =>$subValue){
+		$customArray[$value['ReviewCategory']['name']][$subValue['id']]  = $subValue['name'] ;
+		$ids[] = $subValue['id'] ;
+		}
+		}else{
+		$customArray[$value['ReviewCategory']['name']]   = $value['ReviewCategory']['name']; //only main category
+		}
+		} */
+
+
+		$getTotalData=$this->OrderCategory->find('all');//,array('conditions'=>array()));'OrderCategory.id=PatientOrder.order_category_id',
+		$getCountOfOrders=$this->PatientOrder->find('count',array('conditions'=>array('PatientOrder.patient_id'=>$id)));
+		//for checking left side checkbox
+		if($updateStatus=='1'){
+			$this->Session->setFlash(__('Order Successfully Saved', true),true,array('class'=>'message'));
+		}
+		if($updateStatus=='2'){
+			$this->Session->setFlash(__('Order Successfully Update', true),true,array('class'=>'message'));
+		}
+		//debug($getTotalData);
+		$this->set('setdata',$getTotalData);
+		$this->set('setCount',$getCountOfOrders);
+	}
+	public function addorders($id=null,$categoryOrderId=null){
+		$this->uses=array('OrderCategory');
+		$getDataCategory=$this->OrderCategory->find('list',array('fields'=>array('id','order_description'),'conditions'=>array('status'=>'1')));
+		$this->set('patient_id',$id);
+		$this->set('getDataCategory',$getDataCategory);
+		$this->set('categoryOrderId',$categoryOrderId);
+
+		$this->layout=false;
+
+	}
+
+
+	public function updateorderset($id=null,$order_id=null,$type=null){
+		$this->layout=false;
+		$this->uses=array('PatientOrder','NewCropPrescription','LaboratoryToken','LaboratoryTestOrder');
+		$getStatus=$this->PatientOrder->find('first',array('fields'=>array('PatientOrder.status'),'conditions'=>array('PatientOrder.patient_id'=>$id,'PatientOrder.id'=>$order_id)));
+		if($getStatus['PatientOrder']['status']=='Pending'){
+			$changeStatus='Cancelled';
+		}
+		else if($getStatus['PatientOrder']['status']=='Ordered'){
+			$changeStatus='Cancelled';
+		}
+		else{
+			$changeStatus='Ordered';
+		}
+		if($type=='med'){
+			$updateData=$this->PatientOrder->updateAll(array('PatientOrder.status'=>"'".$changeStatus."'"),array('PatientOrder.patient_id'=>$id,'PatientOrder.id'=>$order_id));
+			$changeStatus = trim(str_replace("\n","",$changeStatus));
+			$getStatusToUpdateMedication=$this->NewCropPrescription->find('first',array('fields'=>array('NewCropPrescription.archive'),'conditions'=>array('NewCropPrescription.patient_order_id'=>$order_id,'NewCropPrescription.patient_uniqueid'=>$id)));
+			/* debug($id);
+			 debug($order_id);
+			debug($getStatusToUpdateMedication);
+			exit; */
+			if($getStatusToUpdateMedication){
+				$changeArchive=$getStatusToUpdateMedication['NewCropPrescription']['archive'];
+				if($changeArchive=='N'){
+					$setArchive='Y';
+				}
+				else{
+					$setArchive='N';
+				}
+				$updateDataMedication=$this->NewCropPrescription->updateAll(array('NewCropPrescription.archive'=>"'".$setArchive."'"),
+						array('NewCropPrescription.patient_order_id'=>$order_id,'NewCropPrescription.patient_uniqueid'=>$id));
+
+			}
+
+			echo json_encode(array('status'=>$setArchive));exit;
+		}
+
+		else if($type=='lab'){
+			$this->LaboratoryToken->bindModel(array(
+					'belongsTo' => array(
+							'LaboratoryTestOrder'=>array('foreignKey'=>false,'conditions'=>array('LaboratoryToken.laboratory_id=LaboratoryTestOrder.laboratory_id'))
+					)),false);
+			$getIdLabToUpdate=$this->LaboratoryToken->find('first',array('fields'=>array('LaboratoryTestOrder.id','LaboratoryTestOrder.is_deleted'),
+					'conditions'=>array('LaboratoryToken.patient_order_id'=>$order_id,'LaboratoryToken.patient_id'=>$id)));
+			if($getIdLabToUpdate['LaboratoryTestOrder']['is_deleted']=='1'){
+				$changeStatus='0';
+			}
+			else{
+				$changeStatus='1';
+			}
+			$check=$this->LaboratoryTestOrder->updateAll(array('LaboratoryTestOrder.is_deleted'=>$changeStatus),array('id'=>$getIdLabToUpdate['LaboratoryTestOrder']['id']));
+			echo json_encode(array('status'=>$changeStatus));exit;
+		}
+		else{
+
+		}
+		$this->redirect(array('action'=>'orders',$id));
+		$this->Session->setFlash(__('Order Successfully Updated', true),true,array('class'=>'message'));
+		exit;
+
+	}
+	public function ordersentence($id=null,$category=null,$loinc=null,$drug_id=null){
+		$this->Session->write('issave',"0");
+		$this->uses=array('OrderSentence','PatientOrder','SpecimenType','OrderSubcategory','ReviewSubCategory','PharmacyItemDetail');
+		$spec_type  = $this->SpecimenType->find('list',array('fields'=>array('SpecimenType.description','SpecimenType.description'),'order' => array('SpecimenType.description ASC')));;
+		$resultOfSubCategory  = $this->ReviewSubCategory->find('list',array('fields'=>array('ReviewSubCategory.name','ReviewSubCategory.name'),
+				'conditions' => array('ReviewSubCategory.parameter'=>'intake','ReviewSubCategory.name'=>array('Medications','Continuous Infusion'))));
+		$this->set('resultOfSubCategory',$resultOfSubCategory);
+		// to get the default order sentence for the Pharmacy_details Table
+		$checkUpdateOrderSentence=$this->OrderSentence->find('first',array('fields'=>array('code'),'conditions'=>array('code'=>$loinc)));
+
+		if(empty($checkUpdateOrderSentence)){
+			$getPharmacyDetailsData=$this->PharmacyItemDetail->find('first',array('fields'=>array('MED_STRENGTH','MED_STRENGTH_UOM','MED_ROUTE_ABBR'),'conditions'=>array('MEDID'=>$drug_id)));
+			if(!empty($getPharmacyDetailsData)){
+				$sentence=$getPharmacyDetailsData['PharmacyItemDetail']['MED_STRENGTH']." ".$getPharmacyDetailsData['PharmacyItemDetail']['MED_STRENGTH_UOM'].", ".$getPharmacyDetailsData['PharmacyItemDetail']['MED_ROUTE_ABBR'];
+				$this->OrderSentence->saveAll(array('code'=>$loinc,'sentence'=>$sentence,'type'=>'med','status'=>'1'));
+			}
+		}
+		$allData=$id.'~~'.$category.'~~'.$loinc;
+		$this->set('allData',$allData);
+		$this->set('category',$category);
+		$this->set('spec_type',$spec_type);
+		if(!empty($this->request->data)){
+			//exit;
+			$this->request->data['PatientOrder']['order_category_id']=$category;
+			if($category=='33'){
+				$reviewName=explode('Intake:',$this->request->data['radioId']);
+				$reviewName=trim($reviewName[1]);
+				$this->request->data['PatientOrder']['type']='med';
+				$this->request->data['PatientOrder']['sentence']=$this->request->data['radioId'];
+				$this->request->data['PatientOrder']['review_id']=$reviewName;
+				$this->request->data['PatientOrder']['create_time']=date('Y-m-d');
+					
+			}
+			else if($category=='36'){
+				$this->request->data['PatientOrder']['type']='rad';
+				$this->request->data['PatientOrder']['sentence']=$this->request->data['radioId'];
+				$this->request->data['PatientOrder']['create_time']=date('Y-m-d');
+			}
+			else if($category=='34'){
+				$this->request->data['PatientOrder']['type']='lab';
+				$this->request->data['PatientOrder']['sentence']=$this->request->data['radioId'];
+				$this->request->data['PatientOrder']['create_time']=date('Y-m-d');
+			}
+			$this->Session->setFlash(__('Order Successfully Saved', true),true,array('class'=>'message'));
+			$this->PatientOrder->save($this->request->data['PatientOrder']);
+			$this->Session->write('issave',"1");
+		}
+
+
+
+
+		$getResultedRecords=$this->OrderSentence->find('all',array('conditions'=>array('FIND_IN_SET(\''. $loinc .'\',OrderSentence.code)')));
+		$this->set('getResultedRecord',$getResultedRecords);
+		$this->set('rule',$flag);
+		$this->set('loinc',$loinc);
+
+		$this->set('patient_id',$id);
+		$this->set('name',$name);
+
+
+		$this->layout=false;
+
+	}
+	public function orderresults(){
+		$this->uses=array('Laboratory','Radiology','PharmacyItem');
+		$this->autoRender=false;
+		//echo $this->request->query['race']."<br/>";
+		//echo $this->request->query['category']."<br/>";
+			
+		if($this->request->query['category']=='34'){
+			if($this->request->query['finddata']!='')
+				$conditions['Laboratory']['name LIKE'] = $this->request->query['finddata']."%";
+			$conditions['Laboratory']['lonic_code NOT']='';
+			//$conditions=array_merge($search_key,$conditions);
+			$conditions = $this->postConditions($conditions);
+			/* $this->paginate = array(
+			 'limit' => Configure::read('number_of_rows'),
+					'conditions' =>$conditions,
+					'fields'=>array('Laboratory.name','Laboratory.lonic_code')
+			);
+			$data = $this->paginate('Laboratory'); */
+			$data =$this->Laboratory->find('all',array('conditions'=>array($conditions),'limit'=>Configure::read('number_of_rows')));
+			$this->set('data', $data);
+			$this->set('patient_id',$this->request->query['patientid']);
+			$this->set('category',$this->request->query['category']);
+			$this->set('isAjax', $this->RequestHandler->isAjax());
+			//$this->layout = false;
+			$this->render('ajaxorderresult');
+			//echo  json_encode($result_demograpic);exit;
+
+		}
+
+
+		if($this->request->query['category']=='36'){
+
+			if($this->request->query['finddata']!=''){
+				$conditions['Radiology']['name LIKE'] = $this->request->query['finddata']."%";
+				$conditions['Radiology']['cpt_code NOT']='';
+			}
+
+			//$conditions=array_merge($search_key,$conditions);
+			$conditionsForRad = $this->postConditions($conditions);
+
+			/* $this->paginate = array(
+			 'limit' => Configure::read('number_of_rows'),
+					'conditions' =>$conditionsForRad
+
+			); */
+			//$data = $this->paginate('Radiology');
+			$data =$this->Radiology->find('all',array('conditions'=>array($conditionsForRad),'limit'=>Configure::read('number_of_rows')));
+			$this->set('data', $data);
+			$this->set('patient_id',$this->request->query['patientid']);
+			$this->set('category',$this->request->query['category']);
+			$this->set('isAjax', $this->RequestHandler->isAjax());
+			$this->layout = false;
+			$this->render('ajaxradiologyresult');
+			//echo  json_encode($result_demograpic);exit;
+
+		}
+		if($this->request->query['category']=='33'){
+
+			if($this->request->query['finddata']!=''){
+				$conditions['PharmacyItem']['name LIKE'] = $this->request->query['finddata']."%";
+				$conditions['PharmacyItem']['rxcui NOT']='';
+			}
+
+			//$conditions=array_merge($search_key,$conditions);
+			$conditionsForMed = $this->postConditions($conditions);
+
+			/* $this->paginate = array(
+			 'limit' => Configure::read('number_of_rows'),
+					'conditions' =>$conditionsForMed
+
+			); */
+			/* $this->paginate('PharmacyItem'); */
+			$data =$this->PharmacyItem->find('all',array('conditions'=>array($conditionsForMed),'limit'=>Configure::read('number_of_rows')));
+			$this->set('data', $data);
+			$this->set('patient_id',$this->request->query['patientid']);
+			$this->set('category',$this->request->query['category']);
+			$this->set('isAjax', $this->RequestHandler->isAjax());
+			$this->layout = false;
+			$this->render('ajaxmedicationresult');
+			//echo  json_encode($result_demograpic);exit;
+
+		}
+	}
+	public function SaveOrderMedication($is_overridden=null){
+		$this->uses=array('NewCropPrescription','PatientOrder');
+		$this->layout=false;
+		if(!empty($this->request->data)){
+
+			$this->request->data['NewCropPrescription']['firstdose']=$this->DateFormat->formatDate2STD($this->request->data['NewCropPrescription']['firstdose_time'],Configure::read('date_format'));
+			$this->request->data['NewCropPrescription']['stopdose']=$this->DateFormat->formatDate2STD($this->request->data['NewCropPrescription']['stopdose_time'],Configure::read('date_format'));
+			$this->request->data['NewCropPrescription']['checkoverride']=$is_overridden;
+			if(!empty($this->request->data['NewCropPrescription']['overrideInstruction'])){
+
+				$this->PatientOrder->updateAll(array('overrideInstruction'=>"'".$this->request->data['NewCropPrescription']['overrideInstruction']."'",'is_orverride'=>'1'),array('id'=>$this->request->data['NewCropPrescription']['patient_order_id']));
+			}else{
+				$getConditonalData=$this->NewCropPrescription->insertMedication_order($this->request->data);
+			}
+			if(!empty($getConditonalData['AllData']) && ($getConditonalData['AllData']!='1')){
+				$this->set('getConditonalData',$getConditonalData['AllData']);
+				$this->set('newCropPrescriptionId',$getConditonalData['AllData']);
+				echo $this->render('interaction_details');
+				exit;
+			}
+			else {
+				$this->request->data['NewCropPrescription']['firstdose']=$this->DateFormat->formatDate2Local($this->request->data['NewCropPrescription']['firstdose'],Configure::read('date_format'),true);
+				$sentenceimplode='';
+				if(!empty($this->request->data['NewCropPrescription']['dose']))
+					$sentenceimplode.=$this->request->data['NewCropPrescription']['dose'].", ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['strength']))
+					$sentenceimplode.=$this->request->data['NewCropPrescription']['strength'].", ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['route']))
+					$sentenceimplode.=$this->request->data['NewCropPrescription']['route'].", ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['frequency']))
+					$sentenceimplode.=$this->request->data['NewCropPrescription']['frequency'].", ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['duration']))
+					$sentenceimplode.=$this->request->data['NewCropPrescription']['duration'].", ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['refills']))
+					$sentenceimplode.=$this->request->data['NewCropPrescription']['refills']."refills, ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['firstdose']))
+					$sentenceimplode.="first dose : ".$this->request->data['NewCropPrescription']['firstdose'].", ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['special_instruction']))
+					$sentenceimplode.="first dose : ".$this->request->data['NewCropPrescription']['special_instruction'];
+				else
+					$sentenceimplode=$sentenceimplode;
+				/* $sentenceimplode=implode(', ',
+				 array($this->request->data['NewCropPrescription']['dose']." ".$this->request->data['NewCropPrescription']['strength'],
+				 		$this->request->data['NewCropPrescription']['route'],
+				 		$this->request->data['NewCropPrescription']['frequency'],
+				 		$this->request->data['NewCropPrescription']['duration'],$this->request->data['NewCropPrescription']['refills']." refills","first dose : ".$this->request->data['NewCropPrescription']['firstdose'],$this->request->data['NewCropPrescription']['special_instruction'])); */
+				$this->request->data['NewCropPrescription']['firstdose']=$this->DateFormat->formatDate2Local($this->request->data['NewCropPrescription']['firstdose'],Configure::read('date_format'),true);
+				$this->PatientOrder->updateAll(array('PatientOrder.sentence'=>"'$sentenceimplode'",'PatientOrder.status'=>"'Ordered'"),array('PatientOrder.id'=>$this->request->data['NewCropPrescription']['patient_order_id']));
+				echo trim($getConditonalData) ;
+				exit;
+				$this->Session->setFlash(__('Medication Successfully Signed', true),true,array('class'=>'message'));
+				$this->redirect(array('action'=>'orders',$this->request->data['NewCropPrescription']['patient_uniqueid']));
+
+			}
+			if(!empty($getConditonalData['AllData']) && ($getConditonalData['AllData']=='1')){
+				$this->set('getConditonalData',$getConditonalData['AllData']);
+				$this->set('newCropPrescriptionId',$getConditonalData['AllData']);
+				echo $this->render('interaction_details');
+				exit;
+			}
+			else {
+					
+				$sentenceimplode='';
+				if(!empty($this->request->data['NewCropPrescription']['dose']))
+					$sentenceimplode.=$this->request->data['NewCropPrescription']['dose'].", ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['strength']))
+					$sentenceimplode.=$this->request->data['NewCropPrescription']['strength'].", ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['route']))
+					$sentenceimplode.=$this->request->data['NewCropPrescription']['route'].", ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['frequency']))
+					$sentenceimplode.=$this->request->data['NewCropPrescription']['frequency'].", ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['duration']))
+					$sentenceimplode.=$this->request->data['NewCropPrescription']['duration'].", ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['refills']))
+					$sentenceimplode.=$this->request->data['NewCropPrescription']['refills']."refills, ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['firstdose']))
+					$sentenceimplode.="first dose : ".$this->request->data['NewCropPrescription']['firstdose'].", ";
+				else
+					$sentenceimplode=$sentenceimplode;
+				if(!empty($this->request->data['NewCropPrescription']['special_instruction']))
+					$sentenceimplode.="first dose : ".$this->request->data['NewCropPrescription']['special_instruction'];
+				else
+					$sentenceimplode=$sentenceimplode;
+
+				$this->PatientOrder->updateAll(array('PatientOrder.sentence'=>"'$sentenceimplode'",'PatientOrder.status'=>"'Ordered'"),array('PatientOrder.id'=>$this->request->data['NewCropPrescription']['patient_order_id']));
+				echo $getConditonalData;
+				exit;
+				$this->Session->setFlash(__('Medication Successfully Signed', true),true,array('class'=>'message'));
+				$this->redirect(array('action'=>'orders',$this->request->data['NewCropPrescription']['patient_uniqueid']));
+
+			}
+
+		}
+
+	}
+
+	public function SaveOrderLab(){
+		$this->uses=array('LaboratoryTestOrder','PatientOrder','Laboratory');
+
+		if(!empty($this->request->data)){
+			$labId=$this->Laboratory->find('first',array('fields'=>array('id'),'conditions'=>array('Laboratory.name'=>$this->request->data['Laboratory']['name'])));
+			$this->request->data['LaboratoryTestOrder']['collected_date']=$this->DateFormat->formatDate2STD($this->request->data['LaboratoryTestOrder']['collected_date'],Configure::read('date_format'));
+			$this->request->data['LaboratoryTestOrder']['end_date']=$this->DateFormat->formatDate2STD($this->request->data['LaboratoryTestOrder']['end_date'],Configure::read('date_format'));
+			$this->request->data['LaboratoryTestOrder']['laboratory_id']=$labId['Laboratory']['id'];
+
+			$this->LaboratoryTestOrder->insertTestOrder($this->request->data);
+			$sentenceimplode='';
+			if(!empty($this->request->data['LaboratoryTestOrder']['specimen_type_id']))
+				$sentenceimplode.=$this->request->data['LaboratoryTestOrder']['specimen_type_id'];
+			else
+				$sentenceimplode=$sentenceimplode;
+			if(!empty($this->request->data['LaboratoryTestOrder']['collection_priority']))
+				$sentenceimplode.=$this->request->data['LaboratoryTestOrder']['collection_priority'];
+			else
+				$sentenceimplode=$sentenceimplode;
+			if(!empty($this->request->data['LaboratoryTestOrder']['frequency_l']))
+				$sentenceimplode.=$this->request->data['LaboratoryTestOrder']['frequency_l'];
+			else
+				$sentenceimplode=$sentenceimplode;
+			if(!empty($this->request->data['LaboratoryTestOrder']['duration_l']))
+				$sentenceimplode.=$this->request->data['LaboratoryTestOrder']['duration_l'].$this->request->data['LaboratoryTestOrder']['duration_unit'];
+			else
+				$sentenceimplode=$sentenceimplode;
+			/* $sentenceimplode=implode(', ',
+			 array($this->request->data['LaboratoryTestOrder']['specimen_type_id'],
+			 		$this->request->data['LaboratoryTestOrder']['collection_priority'],
+			 		$this->request->data['LaboratoryTestOrder']['frequency_l'],
+			 		$this->request->data['LaboratoryTestOrder']['duration_l'].$this->request->data['LaboratoryTestOrder']['duration_unit'])); */
+
+			$this->PatientOrder->updateAll(array('PatientOrder.sentence'=>"'$sentenceimplode'",'PatientOrder.status'=>"'Ordered'"),array('PatientOrder.id'=>$this->request->data['LaboratoryTestOrder']['patient_order_id']));
+			$this->Session->setFlash(__('Lab Successfully Signed', true),true,array('class'=>'message'));
+			$this->redirect(array('action'=>'orders',$this->request->data['Laboratory']['patient_id']));
+			exit;
+
+		}
+
+	}
+	public function SaveOrderRad(){
+
+		$this->uses=array('RadiologyTestOrder','PatientOrder');
+
+		$this->request->data['RadiologyTestOrder']['is_procedure']='0';
+		$this->request->data['RadiologyTestOrder']['collected_date']=$this->DateFormat->formatDate2STD($this->request->data['RadiologyTestOrder']['collected_date'],Configure::read('date_format'));
+		if(!empty($this->request->data)){
+			$this->RadiologyTestOrder->insertRadioTestOrder($this->request->data);
+			$sentenceimplode='';
+			if(!empty($this->request->data['RadiologyTestOrder']['collection_priority']))
+				$sentenceimplode=$this->request->data['RadiologyTestOrder']['collection_priority'];
+			else
+				$sentenceimplode=$sentenceimplode;
+			if(!empty($this->request->data['RadiologyTestOrder']['frequency_r']))
+				$sentenceimplode=$this->request->data['RadiologyTestOrder']['frequency_r'];
+			else
+				$sentenceimplode=$sentenceimplode;
+			if(!empty($this->request->data['RadiologyTestOrder']['reason_exam']))
+				$sentenceimplode=$this->request->data['RadiologyTestOrder']['reason_exam'];
+			else
+				$sentenceimplode=$sentenceimplode;
+			/* $sentenceimplode=implode(',',
+			 array($this->request->data['RadiologyTestOrder']['collection_priority'],
+			 		$this->request->data['RadiologyTestOrder']['frequency_r'],
+			 		$this->request->data['RadiologyTestOrder']['reason_exam'])); */
+			//debug($sentenceimplode);
+			$this->PatientOrder->updateAll(array('PatientOrder.sentence'=>"'$sentenceimplode'",'PatientOrder.status'=>"'Ordered'"),array('PatientOrder.id'=>$this->request->data['RadiologyTestOrder']['patient_order_id']));
+			$this->Session->setFlash(__('Radiology Successfully Signed', true),true,array('class'=>'message'));
+			$this->redirect(array('action'=>'orders',$this->request->data['RadiologyTestOrder']['patient_id']));
+			exit;
+
+		}
+
+
+	}
+	public function AddNewOrderSet($specimen_type_id=null,$collection_priority=null,$frequency_l=null,$allData=null){
+		$this->layout = false;
+		$this->uses=array('OrderSentence');
+		$alldata=explode('~~',$this->request->data['OrderSentence']['allData']);
+		$code=$alldata['2'];
+		if($alldata['1']=='34'){
+			$type='lab';
+			$specimenTypeId=$this->request->data['OrderSentence']['specimen_type_id'];
+			$collectionPriority=$this->request->data['OrderSentence']['collection_priority'];
+			$frequency=$this->request->data['OrderSentence']['frequency_l'];
+			$newSentence='';
+			if(!empty($specimenTypeId)){
+				$newSentence.=$specimenTypeId.", ";
+			}
+			if(!empty($collectionPriority)){
+				$newSentence.=$collectionPriority.", ";
+			}
+			if(!empty($frequency)){
+				$newSentence.=$frequency;
+			}
+			$newSentence=trim($newSentence);
+			$cnd=substr($newSentence,-1);
+			if($cnd==',')
+			{
+				$newSentence=rtrim($newSentence,',');
+			}
+
+			/* $newSentence=$this->request->data['OrderSentence']['specimen_type_id'].",".$this->request->data['OrderSentence']['collection_priority'].", ".
+			 $this->request->data['OrderSentence']['frequency_l'].",".$this->request->data['OrderSentence']['startDate']; */
+
+			$this->OrderSentence->save(array('sentence'=>$newSentence,'type'=>$type,'code'=>$code,'status'=>'1'));
+		}
+		else if($alldata['1']=='33'){
+			$type='med';
+			$dose=$this->request->data['OrderSentence']['dose']." ".$this->request->data['OrderSentence']['strength'];
+			$route=$this->request->data['OrderSentence']['route'];
+			$frequency=$this->request->data['OrderSentence']['frequency'];
+			$review_id=$this->request->data['OrderSentence']['intake'];
+			$newSentence='';
+			if(!empty($dose)){
+				$newSentence.=$dose.", ";
+			}
+			if(!empty($route)){
+				$newSentence.=$route.", ";
+			}
+			if(!empty($frequency)){
+				$newSentence.=$frequency.", ";
+			}
+			if(!empty($review_id)){
+				$newSentence.="Intake: ".$review_id;
+			}
+			$newSentence=trim($newSentence);
+			$cnd=substr($newSentence,-1);
+			if($cnd==',')
+			{
+				$newSentence=rtrim($newSentence,',');
+			}
+			/* $newSentence=$this->request->data['OrderSentence']['dose']." ".$this->request->data['OrderSentence']['strength'].", ".$this->request->data['OrderSentence']['route']
+			 .", ".$this->request->data['OrderSentence']['frequency']; */
+
+
+			$this->OrderSentence->save(array('sentence'=>$newSentence,'review_id'=>$review_id,'type'=>$type,'code'=>$code,'status'=>'1'));
+
+		}
+		else if($alldata['1']=='36'){
+			$type='rad';
+			$startDate="Requested Date : ".$this->request->data['RadiologyTestOrder']['Start_date'];
+			$collectionPriority=$this->request->data['RadiologyTestOrder']['collection_priority'];
+			$reasonExam="Reason for exam : ".$this->request->data['RadiologyTestOrder']['reason_exam'];
+			$newSentence='';
+			if(!empty($this->request->data['RadiologyTestOrder']['Start_date'])){
+				$newSentence.=$startDate.", ";
+			}
+			if(!empty($this->request->data['RadiologyTestOrder']['collection_priority'])){
+				$newSentence.=$collectionPriority.", ";
+			}
+			if(!empty($this->request->data['RadiologyTestOrder']['reason_exam'])){
+				$newSentence.=$reasonExam;
+			}
+			$newSentence=trim($newSentence);
+			$cnd=substr($newSentence,-1);
+			if($cnd==',')
+			{
+				$newSentence=rtrim($newSentence,',');
+			}
+			$this->OrderSentence->save(array('sentence'=>$newSentence,'type'=>$type,'code'=>$code,'status'=>'1'));
+
+		}
+		else{
+			//more data to come
+		}
+		exit;
+
+	}
+
+
+	public function moreInteractionData(){
+
+	}
+
+	function check_druginteraction($id=null,$proposed_medication=null,$current_medication=null)
+	{
+		$this->uses=array('Patient');
+		$this->Patient->drugdruginteracton($id,$proposed_medication,$current_medication);
+	}
+
+	public function insuranceindex($patient_id=null){
+		$this->uses = array('NewInsurance','Patient','Person','TariffStandard','Location');
+		$this->patient_info($patient_id);
+
+		$this->Patient->unbindModel(array('hasMany'=>array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+		//*****************find person ,patient ids and uids and check and update the records ******************************************************************
+		$chekForId=$this->NewInsurance->find('first',array('conditions'=>array('patient_id'=>$patient_id),'fields'=>array('patient_uid')));
+		if(!empty($chekForId['NewInsurance']['patient_uid']) && empty($chekForId['NewInsurance']['patient_id'])){
+			$updateArray['NewInsurance']['patient_id']="'$patient_id'";
+			$this->NewInsurance->updateAll($updateArray['NewInsurance'], array('NewInsurance.patient_uid' => $chekForId['NewInsurance']['patient_uid']));
+		}
+		//****************EOF-***************************************************//
+		if(empty($chekForId)){
+			$getPersonID=$this->Patient->find('first',array('fields'=>array('Patient.person_id','Patient.person_id','Patient.patient_id'),'conditions'=>array('Patient.id'=>$patient_id)));
+			$this->NewInsurance->updateAll(array('patient_id'=>$getPersonID['Patient']['id']),array('patient_uid'=>$getPersonID['Patient']['patient_id']));
+		}
+		$getPatientUid=$getPersonID['Patient']['patient_id'];
+		$getPersonUid=$getPersonID['Patient']['id'];
+		$getPersonPayType=$this->Person->find('list',array('fields'=>array('Person.payment_category','Person.payment_category'),
+				'conditions'=>array('id'=>$getPersonID['Patient']['person_id'])));
+		$this->set('getPersonPayType',$getPersonPayType);
+		$this->set('getPersonID',$getPersonID['Patient']['person_id']);
+		//******************************************************************************************************************************
+		$getDataNewInsurance=$this->NewInsurance->find('all',array('fields'=>array('NewInsurance.*'),'conditions'=>array('NewInsurance.patient_id'=>$patient_id,'NewInsurance.refference_id'=>null,'NewInsurance.is_active'=>'0')));
+		foreach($getDataNewInsurance as $data){
+			$reffernceId[]=$data['NewInsurance']['id'];
+		}
+		$this->NewInsurance->bindModel(array(
+				'hasMany' => array(
+						'Secondary' =>array('className'=>'NewInsurance',
+								'foreignKey'=>refference_id),)));
+
+		$pairData=$this->NewInsurance->find('all',array('conditions'=>array('NewInsurance.id'=>$reffernceId)));
+
+		$hospital_location = $this->Location->find('first', array('fields'=> array('Location.id', 'Location.name'),'conditions'=>array('Location.id'=>$this->Session->read('locationid'), 'Location.is_active' => 1, 'Location.is_deleted' => 0)));
+		$this->set('hospital_location',$hospital_location['Location']['name']);
+		//debug($this->referer);exit;
+
+		if(empty($pairData)){
+			if($this->params->query['flagBack']=='1'){
+				$this->set('getDataNewInsurance',$pairData);
+			}else{
+				$this->redirect(array('action'=>'addInsurance',$patient_id,'?'=>array('person_id'=>$this->params->query['person_id'])));
+			}
+		}else{
+			$this->set('getDataNewInsurance',$pairData);
+		}
+		$getDataNewInsuranceInactive1=$this->NewInsurance->find('all',array('fields'=>array('NewInsurance.*'),'conditions'=>array('NewInsurance.patient_id'=>$patient_id,'NewInsurance.refference_id'=>null,'NewInsurance.is_active'=>'1')));
+		//'OR'=>array('NOT' =>array('NewInsurance.tariff_standard_name'=>'SELF PAY'),'NewInsurance.tariff_standard_name'=>''),
+		foreach($getDataNewInsuranceInactive1 as $data){
+			$reffernceId[]=$data['NewInsurance']['id'];
+		}
+		$this->NewInsurance->bindModel(array(
+				'hasMany' => array(
+						'Secondary' =>array('className'=>'NewInsurance',
+								'foreignKey'=>refference_id),)));
+
+		$pairDatainactive=$this->NewInsurance->find('all',array('conditions'=>array('NewInsurance.id'=>$reffernceId,'NewInsurance.is_active'=>'1')));
+		$this->set('getDataNewInsuranceInactive',$pairDatainactive);
+		$this->set('patient_id',$patient_id);
+	}
+	public function tariffPayerId($tariffStandardId){
+		$this->layout = 'ajax';
+		$this->uses =array('TariffStandard');
+		$getTariffStandardData=$this->TariffStandard->find('first',array('fields'=>array('id','payer_id','HealthplanDetailID'),'conditions'=>array('TariffStandard.id'=>$tariffStandardId)));
+		echo json_encode($getTariffStandardData);
+		exit;
+
+	}
+	public function addInsurance($patient_id,$lastId=null,$checkTab=null){ //
+		$this->layout = 'advance';
+		$this->uses = array('Guarantor','NameType','Person','City','State','Country','NewInsurance','InsuranceType',
+				'TariffStandard','Patient','Person','User');
+		App::import('Vendor', 'signature_to_image');
+		$this->patient_info($patient_id);
+		$this->set('lastInsertId',$lastId);
+		$this->set('checkTab',$checkTab);
+		///*************************State and country********************************************************************************************************
+		$countries = $this->Country->find('list',array('fields'=>array('id','name')));
+		$state=$this->State->find('list',array('fields'=>array('id','name'),'conditions'=>array('State.country_id'=>'2')));
+		$this->set(compact('countries','state'));
+		$this->Patient->bindModel(array(
+				'belongsTo' => array(
+						'Person' =>array( 'foreignKey'=>false,'conditions'=>array('Person.id=Patient.person_id')),
+						'NewInsurance' =>array( 'foreignKey'=>false,'conditions'=>array('NewInsurance.patient_id=Patient.id')),
+				)),false);
+
+		$getPatient=$this->Patient->find('first',array('fields'=>array('Patient.id','Patient.patient_id','Person.id','Person.payment_category'),'conditions'=>array('Patient.id'=>$patient_id)));
+		$getallNewInsurance=$this->NewInsurance->find('count',array('conditions'=>array('NewInsurance.patient_id'=>$patient_id)));
+		$this->set('getallNewInsurance',$getallNewInsurance);
+		////BOF-Update Payment Type in Person table---*****************************
+		$this->set('getpersonId',$getPatient['Person']['id']);
+		////EOF-Update Payment Type in Person table---**********
+		$getPatientUid=$getPatient['Patient']['patient_id'];
+		$this->set(compact('patient_id','getPatientUid'));
+		//****************************To save Data***********************************************************************************************************
+		$getDataInsuranceType=$this->TariffStandard->find('list',array('fields'=>array('TariffStandard.id','TariffStandard.name'),'conditions'=>array('TariffStandard.payer_id <>'=>'')));
+		if(!empty($this->request->data)){
+
+			//to check reffrence id is present or not
+			if(empty($this->request->data['NewInsurance']['refference_id']) && $this->request->data['NewInsurance']['priority']!=='P'){
+				$NewInsurance['NewInsurance']['priority']='P';
+				$NewInsurance['NewInsurance']['patient_id']=$this->request->data['NewInsurance']['patient_id'];
+				$NewInsurance['NewInsurance']['patient_uid']=$this->request->data['NewInsurance']['patient_uid'];
+
+				$this->NewInsurance->saveAll($NewInsurance);
+				$lastInsuranceId=$this->NewInsurance->getLastInsertID();
+				$this->set('lastInsuranceId',$lastInsuranceId);
+			}
+			if(empty($this->request->data['NewInsurance']['refference_id']) && $this->request->data['NewInsurance']['priority']=='T'){
+				$NewInsurance['NewInsurance']['priority']='S';
+				$NewInsurance['NewInsurance']['patient_id']=$this->request->data['NewInsurance']['patient_id'];
+				$NewInsurance['NewInsurance']['patient_uid']=$this->request->data['NewInsurance']['patient_uid'];
+				$NewInsurance['NewInsurance']['refference_id']=$lastInsuranceId;
+				$NewInsurance['NewInsurance']['id'] = '';
+				$this->NewInsurance->saveAll($NewInsurance);
+
+			}
+			//EOD
+			$this->request->data['NewInsurance']['effective_date'] = $this->DateFormat->formatDate2STD($this->request->data['NewInsurance']['effective_date'],Configure::read('date_format_us'));
+			$this->request->data['NewInsurance']['subscriber_dob'] = $this->DateFormat->formatDate2STD($this->request->data['NewInsurance']['subscriber_dob'],Configure::read('date_format_us'));
+			//	$this->request->data['NewInsurance']['subscriber_state'] = $this->request->data['Person']['state'];
+
+			if(!empty($this->data['NewInsurance']['upload_card']['name'])){
+				$file = $this->data['NewInsurance']['upload_card'];
+				move_uploaded_file($file['tmp_name'], WWW_ROOT.'uploads'.DS.'patient_images'.DS.'thumbnail'.DS.$file['name']);
+				$this->request->data['NewInsurance']['upload_card'] = $file['name'];
+			}else if(!empty($this->request->data['NewInsurance']['web_cam'])){
+				$im = imagecreatefrompng($this->request->data['NewInsurance']['web_cam']);
+				if($im){
+					$imagename= "insurancecard_".mktime().'.png';
+					$is_uploaded = imagejpeg($im,WWW_ROOT.'/uploads/patient_images/thumbnail/'.$imagename);
+					if($is_uploaded){
+						$this->request->data["NewInsurance"]['upload_card']  = $imagename ;
+					}
+				}else{
+					unset($this->request->data["NewInsurance"]['upload_card']);
+				}
+			}
+			else {
+				unset($this->request->data['NewInsurance']['upload_card'] );
+			}
+
+			if(!empty($this->request->data['NewInsurance']['back_of_card']['name'])){
+				$file = $this->request->data['NewInsurance']['back_of_card'];
+				move_uploaded_file($file['tmp_name'], WWW_ROOT.'uploads'.DS.'patient_images'.DS.'thumbnail'.DS.$file['name']);
+				$this->request->data['NewInsurance']['back_of_card'] = $file['name'];
+			}else{
+				unset($this->request->data['NewInsurance']['back_of_card'] );
+			}
+			if(!empty($this->request->data['NewInsurance']['sign'])) {
+				$signImage = sigJsonToImage($this->request->data["NewInsurance"]["sign"],array('imageSize'=>array(320, 150)));
+				$signpadfile = date('U').'.png';
+				imagepng($signImage, WWW_ROOT.'signpad'.DS.$signpadfile);
+				$this->request->data['NewInsurance']["sign"] = $signpadfile;
+			}else{
+				unset($this->request->data['NewInsurance']['sign'] );
+			}
+
+
+			$this->request->data['NewInsurance']['insurance_name']=$this->request->data['NewInsurance']['tariff_standard_name'];
+			$this->request->data['NewInsurance']['refference_id']=$lastInsuranceId;
+			$this->request->data['NewInsurance']['id'] = '';
+			//debug($this->request->data);exit;
+			if ($this->NewInsurance->save($this->request->data)){
+				$this->Session->setFlash(__('Insurance saved successfully'),true);
+				if($this->request->data['NewInsurance']['ForsingleSec']=='1'){
+					$payment_category=$this->request->data['Person']['payment_category'];
+					$updateArray=array('Person.payment_category'=>"'$payment_category'");
+					$res = $this->Person->updateAll($updateArray,array('Person.id'=>$getPatient['Person']['id']));
+					if($res=='1'){
+						$this->redirect(array("controller" => "appointments", "action" => "appointments_management"));
+					}
+					$this->redirect(array("controller" => "appointments", "action" => "appointments_management"));
+				}else{
+					if($this->request->data['NewInsurance2']['check']=='Second_check'){
+						//$refferNewId=$this->request->data['NewInsurance']['refference_id'];
+						//$thiridTab=2;
+						//$this->redirect(array('action'=>'addInsurance',$patient_id,$refferNewId,$thiridTab));
+					}
+				}
+				if($this->request->data['NewInsurance3']['check']=='thrid_tab'){
+					//$this->redirect(array('action'=>'insuranceindex',$patient_id));
+					//$this->redirect(array("controller" => "appointments", "action" => "appointments_management"));
+				}
+				else{
+					if(!empty($this->request->data['Person']['payment_category']) && $this->request->data['NewInsurance']['Forsingle']=='1'){
+						$payment_category=$this->request->data['Person']['payment_category'];
+						$updateArray=array('Person.payment_category'=>"'$payment_category'");
+						$res = $this->Person->updateAll($updateArray,array('Person.id'=>$getPatient['Person']['id']));
+						if($res=='1'){
+							$this->redirect(array("controller" => "appointments", "action" => "appointments_management"));
+						}
+					}else{
+						//$lastInsuranceId=$this->NewInsurance->getLastInsertID();
+						//$this->set('lastInsuranceId',$lastInsuranceId);
+						//$secondaryTab=1;
+						//$this->redirect(array('action'=>'addInsurance',$patient_id,$lastInsuranceId,$secondaryTab));
+					}
+				}$this->redirect(array("controller" => "appointments", "action" => "appointments_management"));
+
+			} else {
+				$this->Session->setFlash('Unable to add your Insurance.');
+			}
+		}
+		//$getFlag=$this->request->query['flag'];
+		$this->set(compact('getDataInsuranceType','getDataInsuranceCompany','getFlag'));
+	}
+
+	public function editInsurance($id=null,$patient_id=null){
+		$this->uses=array('Guarantor','Person','City','State','Country','NewInsurance','InsuranceType','InsuranceCompany',
+				'Patient','Person','TariffStandard','User');
+		App::import('Vendor', 'signature_to_image');
+		$this->set('checkTab',$checkTab);
+		$this->set('id',$id);
+		$this->set('patient_id',$patient_id);
+		$this->patient_info($patient_id);
+		$getPatientUID=$this->Patient->find('first',array('fields'=>array('Patient.patient_id'),'conditions'=>array('Patient.id'=>$patient_id)));
+		$this->set('patientUid',$getPatientUID['Patient']['patient_id']);
+		// Sign of Doctor for insurance -aditya
+		//$usersign=$this->User->userWithSign();
+		//$this->set('usersign',$usersign);
+		//EOF
+
+		if(isset($this->request->data) && !empty($this->request->data)){
+			$this->request->data['NewInsurance']['effective_date'] = $this->DateFormat->formatDate2STD($this->request->data['NewInsurance']['effective_date'],Configure::read('date_format_us'));
+			$this->request->data['NewInsurance']['subscriber_dob'] = $this->DateFormat->formatDate2STD($this->request->data['NewInsurance']['subscriber_dob'],Configure::read('date_format_us'));
+			if(!empty($this->data['NewInsurance']['upload_card']['name'])){
+				$file = $this->data['NewInsurance']['upload_card'];
+				move_uploaded_file($file['tmp_name'], WWW_ROOT.'uploads'.DS.'patient_images'.DS.'thumbnail'.DS.$file['name']);
+				$this->request->data['NewInsurance']['upload_card'] = $file['name'];
+			}else if(!empty($this->request->data['NewInsurance']['web_cam'])){
+				$im = imagecreatefrompng($this->request->data['NewInsurance']['web_cam']);
+				if($im){
+					$imagename= "insurancecard_".mktime().'.png';
+					$is_uploaded = imagejpeg($im,WWW_ROOT.'/uploads/patient_images/thumbnail/'.$imagename);
+					if($is_uploaded){
+						$this->request->data["NewInsurance"]['upload_card']  = $imagename ;
+					}
+				}else{
+					unset($this->request->data["NewInsurance"]['upload_card']);
+				}
+			}else{
+				$this->request->data['NewInsurance']['upload_card']=$this->request->data['NewInsurance']['uploadedImageName'];
+			}
+			if(!empty($this->request->data['NewInsurance']['back_of_card']['name'])){
+				$file = $this->request->data['NewInsurance']['back_of_card'];
+				move_uploaded_file($file['tmp_name'], WWW_ROOT.'uploads'.DS.'patient_images'.DS.'thumbnail'.DS.$file['name']);
+				$this->request->data['NewInsurance']['back_of_card'] = $file['name'];
+			}else{
+				unset($this->request->data['NewInsurance']['back_of_card'] );
+			}
+			/*if(!empty($this->request->data['NewInsurance']['sign'])) {
+				$signImage = sigJsonToImage($this->request->data["NewInsurance"]["sign"],array('imageSize'=>array(320, 150)));
+			$signpadfile = date('U').'.png';
+			imagepng($signImage, WWW_ROOT.'signpad'.DS.$signpadfile);
+			$this->request->data['NewInsurance']["sign"] = $signpadfile;
+			}else{
+			unset($this->request->data['NewInsurance']['sign'] );
+			}*/
+
+			if(!empty($this->request->data['NewInsurance']['sign_output'])) {
+				$signImage = sigJsonToImage($this->request->data['NewInsurance']['sign_output'],array('imageSize'=>array(320, 150)));
+				$signpadfile = date('U').'.png';
+				imagepng($signImage, WWW_ROOT.'signpad'.DS.$signpadfile);
+				$this->request->data["NewInsurance"]["sign"] = $signpadfile;
+			}else{
+				unset($this->request->data["NewInsurance"]["sign"]);
+			}
+
+			$this->NewInsurance->id = $this->request->data['NewInsurance']['id'];
+			//debug($this->request->data['NewInsurance']);exit;
+			$this->NewInsurance->save($this->request->data['NewInsurance']);
+			$this->Session->setFlash(__('Insurance updated successfully'),'default',array('class'=>'message'));
+			$this->redirect(array('action'=>'insuranceindex',$this->request->data['NewInsurance']['patient_id']));
+
+		}else{
+			$getDataInsuranceType=$this->TariffStandard->find('list',array('fields'=>array('TariffStandard.id','TariffStandard.name'),'conditions'=>array('TariffStandard.payer_id <>'=>'')));
+			//$getDataInsuranceCompany=$this->InsuranceCompany->find('list',array('fields'=>array('InsuranceCompany.id','InsuranceCompany.name'),'conditions'=>array('InsuranceCompany.is_deleted'=>'0')));
+			$countries = $this->Country->find('list',array('fields'=>array('id','name')));
+			$state=$this->State->find('list',array('fields'=>array('id','name'),'conditions'=>array('State.country_id'=>'2')));
+			$getDataForEdit=$this->NewInsurance->find('all',array('conditions'=>array('OR'=>array('NewInsurance.id'=>$id,'NewInsurance.refference_id'=>$id))));
+
+			$this->set(compact('getDataInsuranceType','getDataInsuranceCompany','countries','state','patient_id'));
+			$getDataForEdit['NewInsurance']['effective_date'] = $this->DateFormat->formatDate2Local($getDataForEdit['NewInsurance']['effective_date'],Configure::read('date_format_us'),false);
+			$getDataForEdit['NewInsurance']['subscriber_dob'] = $this->DateFormat->formatDate2Local($getDataForEdit['NewInsurance']['subscriber_dob'],Configure::read('date_format_us'),false);
+
+			/*	$getDataForEditrefference_id=$this->NewInsurance->find('all',array('conditions'=>array('OR'=>array('NewInsurance.id'=>$id,'NewInsurance.refference_id'=>$id))));
+
+			foreach($getDataForEditrefference_id as $data){
+			if($data['NewInsurance']['priority']=='P'){
+			$priorityArray['Primary'] = $data['NewInsurance']['id'];
+			}if($data['NewInsurance']['priority']=='S'){
+			$priorityArray['Secondary'] = $data['NewInsurance']['id'];
+			}if($data['NewInsurance']['priority']=='T'){
+			$priorityArray['Tertiary'] = $data['NewInsurance']['id'];
+			}
+			}
+			$this->set('priorityArrayP',$priorityArray['Primary']);
+			$this->set('priorityArrayS',$priorityArray['Secondary']);
+			$this->set('priorityArrayT',$priorityArray['Tertiary']);*/
+			if($getDataForEdit[0]['NewInsurance']['priority']=='S' && $getDataForEdit[0]['NewInsurance']['tariff_standard_name']!='' || $getDataForEdit[0]['NewInsurance']['priority']=='Secondary' && $getDataForEdit[0]['NewInsurance']['tariff_standard_name']!='' || $getDataForEdit[1]['NewInsurance']['priority']=='S' && $getDataForEdit[1]['NewInsurance']['tariff_standard_name']!='' || $getDataForEdit[1]['NewInsurance']['priority']=='Secondary' && $getDataForEdit[1]['NewInsurance']['tariff_standard_name']!='' || $getDataForEdit[2]['NewInsurance']['priority']=='S' && $getDataForEdit[2]['NewInsurance']['tariff_standard_name']!='' || $getDataForEdit[2]['NewInsurance']['priority']=='Secondary' && $getDataForEdit[2]['NewInsurance']['tariff_standard_name']!=''){
+				$secondTab=1;
+				$this->set('checkTab',$secondTab);
+			}else if($getDataForEdit[0]['NewInsurance']['priority']=='T' && $getDataForEdit[0]['NewInsurance']['tariff_standard_name']!='' || $getDataForEdit[0]['NewInsurance']['priority']=='Tertiary' && $getDataForEdit[0]['NewInsurance']['tariff_standard_name']!=''|| $getDataForEdit[1]['NewInsurance']['priority']=='T' && $getDataForEdit[1]['NewInsurance']['tariff_standard_name']!=''|| $getDataForEdit[1]['NewInsurance']['priority']=='Tertiary' && $getDataForEdit[1]['NewInsurance']['tariff_standard_name']!=''|| $getDataForEdit[2]['NewInsurance']['priority']=='T' && $getDataForEdit[2]['NewInsurance']['tariff_standard_name']!='' || $getDataForEdit[2]['NewInsurance']['priority']=='Tertiary' && $getDataForEdit[2]['NewInsurance']['tariff_standard_name']!=''){
+				$ThirdTab=2;
+				$this->set('checkTab',$ThirdTab);
+			}else{
+				$firstTab=0;
+				$this->set('checkTab',$firstTab);
+			}
+			$this->set('getDataForEdit',$getDataForEdit);
+		}
+	}
+	public function insurance_onchange($id){
+		$this->loadModel('InsuranceCompany');
+		$parentOption  = $this->InsuranceCompany->find('list',array('fields'=>array('name'),'conditions'=>array('InsuranceCompany.insurance_type_id'=>$id,'InsuranceCompany.is_deleted'=>'0')));
+		echo json_encode($parentOption);
+		exit;
+	}
+	public function viewImage($imageName){
+		$this->layout =false;
+		$this->set(compact('imageName'));
+	}
+	function isVerified($verifiedValueId=null,$verifiedValue=null){
+		$this->layout = false;
+		$this->autoRender = false;
+		$this->uses = array('NewInsurance');
+		$checkUpdate=$this->NewInsurance->updateAll(array('is_verified' => "'$verifiedValue'"),array('NewInsurance.id' => $verifiedValueId));
+		if($checkUpdate==1){
+			$status=$verifiedValue;
+			echo $status;
+		}
+		exit;
+	}
+	public function saveInsuranceActive(){
+		$this->uses=array('NewInsurance');
+		if($this->request->data['is_active']=='0'){
+			$is_active=$this->request->data['is_active'];
+			$patient_id=$this->request->data['patient_id'];
+			$updateArray=array('NewInsurance.is_active'=>"'$is_active'",'NewInsurance.patient_id'=>"'$patient_id'");
+			$res1 = $this->NewInsurance->updateAll($updateArray,array('OR'=>array('NewInsurance.id'=>$this->request->data['id'],'NewInsurance.refference_id'=>$this->request->data['id'])));
+		}
+		if($this->request->data['is_active']=='1'){
+			$is_active=$this->request->data['is_active'];
+			$patient_id=$this->request->data['patient_id'];
+			$updateArray=array('NewInsurance.is_active'=>"'$is_active'",'NewInsurance.patient_id'=>"'$patient_id'");
+			$res1 = $this->NewInsurance->updateAll($updateArray,array('OR'=>array('NewInsurance.id'=>$this->request->data['id'],'NewInsurance.refference_id'=>$this->request->data['id'])));
+		}
+		//exit;
+	}
+	///***********BOF-Save Data for Indigent Or Self OR Both---------**********************///
+
+	public function saveInsuranceType(){
+		$this->uses=array('Person','NewInsurance');
+		if(!empty($this->request->data['id'])){
+			$payment_category=$this->request->data['payment_category'];
+			$updateArray=array('Person.payment_category'=>"'$payment_category'");
+			$res = $this->Person->updateAll($updateArray,array('Person.id'=>$this->request->data['id']));
+		}
+		if($this->request->data['is_active']=='1'){
+			$is_active=$this->request->data['is_active'];
+			$updateArray=array('NewInsurance.is_active'=>"'$is_active'");
+			$res1 = $this->NewInsurance->updateAll($updateArray,array('NewInsurance.patient_id'=>$this->request->data['patient_id']));
+		}
+		exit;
+	}
+	///***********EOF-Save Data for Indigent Or Self OR Both---------**********************///
+
+
+	function webcam(){
+		$this->layout ='ajax';
+			
+		if(isset($_POST['image'])){
+
+			if ($_POST['type'] == "pixel") {
+				// input is in format 1,2,3...|1,2,3...|...
+				$im = imagecreatetruecolor(100, 100);
+
+				foreach (explode("|", $_POST['image']) as $y => $csv) {
+					foreach (explode(";", $csv) as $x => $color) {
+						imagesetpixel($im, $x, $y, $color);
+					}
+				}
+			} else {
+				// input is in format: data:image/png;base64,...
+				$im = imagecreatefrompng($_POST['image']);
+			}
+			// Copy
+			if($im){
+
+				//save image resource in session
+				$this->Session->write('image_src',$_POST['image']);
+				echo $this->Session->read('image_src');
+					
+				//$res= imagejpeg($im,WWW_ROOT.'/uploads/upload.jpg');
+			}
+		}
+		echo $this->Session->read('image_src');
+			
+	}
+	/*
+	 * only gathers data to load on fields
+	*/
+	public function edit_loadGauranter($patient_id=null){
+		$this->autoRender = false;
+		$this->uses = array('Guarantor','Person','State');
+		$this->Patient->bindModel(array(
+				'belongsTo' => array(
+						'Person'=>array('foreignKey'=>false,'conditions'=>array('Patient.person_id=Person.id')),
+						'Guarantor'=>array('foreignKey'=>false,'conditions'=>array('Guarantor.person_id=Person.id')),
+				)),false);
+		$getData=$this->Patient->find('all',array('fields'=>array('Guarantor.*'),'conditions'=>array('Patient.id'=>$patient_id)));
+		echo $getData['0']['Guarantor']['gau_first_name']."|".$getData['0']['Guarantor']['gau_middle_name']."|".
+				$getData['0']['Guarantor']['gau_last_name']."|".$getData['0']['Guarantor']['dobg']."|".
+				$getData['0']['Guarantor']['gau_sex']."|".$getData['0']['Guarantor']['gau_ssn']."|".
+				$getData['0']['Guarantor']['gau_plot_no']."|".$getData['0']['Guarantor']['gau_landmark']."|".
+				$getData['0']['Guarantor']['gau_country']."|".$getData['0']['Guarantor']['gau_state']."|".
+				$getData['0']['Guarantor']['gau_city']."|".$getData['0']['Guarantor']['gau_zip']."|".
+				$getData['0']['Guarantor']['gau_home_phone']."|".$getData['0']['Guarantor']['gau_mobile'];
+	}
+
+
+
+	public function getChiefComplaints($patientId = null){
+		$this->layout = false;
+		$this->uses = array('Diagnosis');
+		$chiefComplaintsData=$this->Diagnosis->find('first',array('fields'=>array('complaints'),'conditions'=>array('Diagnosis.patient_id'=>$patientId)));
+		echo $chiefComplaintsData['Diagnosis']['complaints'];
+		exit;
+
+	}
+
+	public function getSignificantHistory($patientId = null , $patientGender = null,$isView=null ){
+		$this->layout = false;
+		$this->uses = array('Diagnosis','DoctorProfile','TariffList','ProcedureHistory');
+
+		$this->Diagnosis->bindModel( array(
+				'belongsTo' => array(
+
+						'PastMedicalRecord'=>array('conditions'=>array('PastMedicalRecord.patient_id'=>$patientId),'foreignKey'=>false),
+						'FamilyHistory'=>array('conditions'=>array('FamilyHistory.patient_id'=>$patientId),'foreignKey'=>false),
+						'PatientPersonalHistory'=>array('conditions'=>array('Diagnosis.id=PatientPersonalHistory.diagnosis_id'),'foreignKey'=>false),
+						'PatientSmoking'=>array('conditions'=>array('Diagnosis.id=PatientSmoking.diagnosis_id'),'foreignKey'=>false),
+						'SmokingStatusOncs'=>array('className'=>'SmokingStatusOncs','conditions'=>array('PatientPersonalHistory.smoking_fre=SmokingStatusOncs.id'),
+								'foreignKey'=>false),
+						'SmokingStatusOncs1'=>array('conditions'=>array('PatientSmoking.current_smoking_fre=SmokingStatusOncs1.id'),
+								'className'=>'SmokingStatusOncs','foreignKey'=>false),
+
+
+				),
+				'hasMany'=>array(
+						'PregnancyCount'=>array('conditions'=>array('PregnancyCount.patient_id'=>$patientId),'order'=>array('PregnancyCount.counts Asc'),
+								'foreignKey'=>false),
+						'PastMedicalHistory'=>array('conditions'=>array('PastMedicalHistory.patient_id'=>$patientId),'foreignKey'=>false),
+						'ProcedureHistory'=>array('conditions'=>array('ProcedureHistory.patient_id'=>$patientId),'foreignKey'=>false),),
+
+		));
+
+		$trarifName=$this->TariffList->find('list',array('fields'=>array('id','name'),'conditions'=>array('is_deleted'=>'0')));
+
+		$optDoctor=$this->DoctorProfile->find('list',array('fields'=>array('id','doctor_name')));
+		$medicalHistory = $this->Diagnosis->find('first',array('fields'=>array('PastMedicalRecord.*','FamilyHistory.*','PatientPersonalHistory.*',
+				'PatientSmoking.*','SmokingStatusOncs.*','SmokingStatusOncs1.*',/*'ProcedureHistory.*' ,'TariffList.name' */),
+				'conditions'=>array('Diagnosis.patient_id'=>$patientId)));
+
+		$this->set(compact('medicalHistory','patientGender','optDoctor','trarifName','procedure_name'));
+
+
+
+
+		if($isView==1)
+		{
+			$procedureHistoryRec = $this->ProcedureHistory->find('all',array('conditions'=>array('ProcedureHistory.patient_id'=>$patientId),
+					'order'=>array('ProcedureHistory.id Asc')));
+
+			$preventive_care="Preventive Care :";
+			$subjectiveText="";
+			$patienttext="The patient ";
+
+
+			if(!empty($medicalHistory)){
+
+				if(!empty($procedureHistoryRec)){
+					$subjectiveText.="<br><br>The patient has following surgery :<br>";
+					foreach($procedureHistoryRec as $procedureHistoryData){
+						if(!empty($procedureHistoryData['ProcedureHistory']['procedure_name']))
+							$subjectiveText.= trim($procedureHistoryData['ProcedureHistory']['procedure_name'])." on this: ".$this->DateFormat->formatDate2LocalForReport($procedureHistoryData['ProcedureHistory']['procedure_date'],Configure::read('date_format'),false)." date at the age of ".$procedureHistoryData['ProcedureHistory']['age_value']." ".$procedureHistoryData['ProcedureHistory']['age_unit']." by ".trim($procedureHistoryData['ProcedureHistory']['provider_name'])." provider <br><br>";
+							
+					}
+
+				}
+				if(!empty($medicalHistory['PastMedicalHistory']['0']['illness'])){
+					$subjectiveText.="The patient has below illness<br><br>";
+					foreach($medicalHistory['PastMedicalHistory'] as $history){
+						if(empty($history['illness']))
+							continue;
+
+						$subjectiveText.= $history['illness']." and it's status is: ".$history['status']."<br>";
+							
+					}
+
+			 }
+			 if(!empty($medicalHistory['PastMedicalRecord']['preventive_care'])){
+			 	$subjectiveText.= "<br>".$preventive_care." ".$medicalHistory['PastMedicalRecord']['preventive_care']."<br>";
+
+			 }
+			 	
+			 if(!empty($medicalHistory['FamilyHistory']['problemf']) || !empty($medicalHistory['FamilyHistory']['problemm']) || !empty($medicalHistory['FamilyHistory']['problemb']) || !empty($medicalHistory['FamilyHistory']['problems']) || !empty($medicalHistory['FamilyHistory']['problemson']) || !empty($medicalHistory['FamilyHistory']['problemd']))
+			 {
+			 	if(!empty($medicalHistory['FamilyHistory']['problemf']))
+			 	{
+			 		$subjectiveText.="<br>".$patienttext."father has the problem of ".$medicalHistory['FamilyHistory']['problemf'];
+			 		 
+			 		if(!empty($medicalHistory['FamilyHistory']['statusf']))
+			 		{
+			 			$subjectiveText.=" which is ".$medicalHistory['FamilyHistory']['statusf'];
+			 		}
+			 	}
+			 	if(!empty($medicalHistory['FamilyHistory']['problemm']))
+			 	{
+			 		$subjectiveText.="<br>".$patienttext."mother has the problem of ".$medicalHistory['FamilyHistory']['problemm'];
+			 		 
+			 		if(!empty($medicalHistory['FamilyHistory']['statusm']))
+			 		{
+
+			 			$subjectiveText.=" which is ".$medicalHistory['FamilyHistory']['statusm'];
+			 		}
+
+			 	}
+			 	if(!empty($medicalHistory['FamilyHistory']['problemb']))
+			 	{
+			 		$subjectiveText.="<br>".$patienttext."brother has the problem of ".$medicalHistory['FamilyHistory']['problemb'];
+			 		 
+			 		if(!empty($medicalHistory['FamilyHistory']['statusb']))
+			 		{
+			 			$subjectiveText.=" which is ".$medicalHistory['FamilyHistory']['statusb'];
+			 		}
+			 	}
+			 	if(!empty($medicalHistory['FamilyHistory']['problems']))
+			 	{
+			 		$subjectiveText.="<br>".$patienttext."sister has the problem of ".$medicalHistory['FamilyHistory']['problems'];
+			 		 
+			 		if(!empty($medicalHistory['FamilyHistory']['statuss']))
+			 		{
+			 			$subjectiveText.=" which is ".$medicalHistory['FamilyHistory']['statuss'];
+			 		}
+			 	}
+			 	if(!empty($medicalHistory['FamilyHistory']['problemson']))
+			 	{
+			 		$subjectiveText.="<br>".$patienttext."son has the problem of ".$medicalHistory['FamilyHistory']['problemson'];
+			 		 
+			 		if(!empty($medicalHistory['FamilyHistory']['statusson']))
+			 		{
+			 			$subjectiveText.=" which is ".$medicalHistory['FamilyHistory']['statusson'];
+			 		}
+			 	}
+			 	if(!empty($medicalHistory['FamilyHistory']['problemd']))
+			 	{
+			 		$subjectiveText.="<br>".$patienttext."daughter has the problem of ".$medicalHistory['FamilyHistory']['problemd'];
+			 		 
+			 		if(!empty($medicalHistory['FamilyHistory']['statusd']))
+			 		{
+			 			$subjectiveText.=" which is ".$medicalHistory['FamilyHistory']['statusd'];
+			 		}
+			 	}
+			 }
+			 if(!empty($medicalHistory['PastMedicalRecord']))
+			 {
+			 	if($patientGender == 'Female')
+			 	{
+			 		$subjectiveText.="<br>Obstetric History : <br><br>";
+			 		if(!empty($medicalHistory['PastMedicalRecord']['age_menses']))
+			 		{
+			 			$subjectiveText.="Age Onset of Menses: ".$medicalHistory['PastMedicalRecord']['age_menses']." Years<br>";
+
+			 		}
+			 		if(!empty($medicalHistory['PastMedicalRecord']['length_period']))
+			 		{
+			 			$subjectiveText.="Length of Periods: ".$medicalHistory['PastMedicalRecord']['length_period']." Days<br>";
+
+			 		}
+			 		if(!empty($medicalHistory['PastMedicalRecord']['days_betwn_period']))
+			 		{
+			 			$subjectiveText.="Number of days between Periods: ".$medicalHistory['PastMedicalRecord']['days_betwn_period']." Days<br>";
+
+			 		}
+			 		if(!empty($medicalHistory['PastMedicalRecord']['recent_change_period']))
+			 		{
+			 			$subjectiveText.="Any recent changes in Periods: ".$medicalHistory['PastMedicalRecord']['recent_change_period']."<br>";
+
+			 		}
+			 		if(!empty($medicalHistory['PastMedicalRecord']['age_menopause']))
+			 		{
+			 			$subjectiveText.="'Age at Menopause: ".$medicalHistory['PastMedicalRecord']['age_menopause']." Years<br>";
+
+			 		}
+			 		 
+			 		if(!empty($medicalHistory['PregnancyCount']['0']['counts']))
+			 		{
+			 			$subjectiveText.="<br>Number of Pregnancies : <br><br>";
+
+			 			foreach($medicalHistory['PregnancyCount'] as $history)
+			 			{
+			 				if(!empty($history['counts'])) $subjectiveText.="Pregnancy Count # :".$history['counts']."<br>";
+			 				if(!empty($history['date_birth'])) $subjectiveText.="Date of birth :".$history['date_birth']."<br>";
+			 				if(!empty($history['weight'])) $subjectiveText.="Weight :".$history['weight']."<br>";
+			 				if(!empty($history['baby_gender'])) $subjectiveText.="Baby Gender :".$history['baby_gender']."<br>";
+			 				if(!empty($history['week_pregnant'])) $subjectiveText.="Week Pregnant :".$history['week_pregnant']."<br>";
+			 				if(!empty($history['type_delivery'])) $subjectiveText.="Delivery Type :".$history['type_delivery']."<br>";
+			 				if(!empty($history['complication'])) $subjectiveText.="Complication :".$history['complication']."<br>";
+			 					
+			 			}
+
+			 		}
+			 		if(!empty($medicalHistory['PastMedicalRecord']['abortions_miscarriage']))
+			 		{
+			 			$subjectiveText.="<br>Abortions. Still Births. Miscarriages: ".$medicalHistory['PastMedicalRecord']['abortions_miscarriage']."<br>";
+
+			 		}
+			 		if(!empty($medicalHistory['PastMedicalRecord']))
+			 		{
+			 			$subjectiveText.="<br><br>Gynecology History :<br>";
+
+
+			 			if(!empty($medicalHistory['PastMedicalRecord']['present_symptom'])) $subjectiveText.="Present Symptoms: ".$medicalHistory['PastMedicalRecord']['present_symptom']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['past_infection'])) $subjectiveText.="Past Infections: ".$medicalHistory['PastMedicalRecord']['past_infection']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['hx_abnormal_pap'])) $subjectiveText.="History of abnormal PAP smear: ".$medicalHistory['PastMedicalRecord']['hx_abnormal_pap']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['hx_cervical_bx'])) $subjectiveText.="History of cervical biopsy: ".$medicalHistory['PastMedicalRecord']['hx_cervical_bx']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['hx_fertility_drug'])) $subjectiveText.="History of fertility drugs ".$medicalHistory['PastMedicalRecord']['hx_fertility_drug']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['hx_hrt_use'])) $subjectiveText.="HRT Use: ".$medicalHistory['PastMedicalRecord']['hx_hrt_use']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['hx_irregular_menses'])) $subjectiveText.="History of irregular menses:: ".$medicalHistory['PastMedicalRecord']['hx_irregular_menses']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['lmp'])) $subjectiveText.=" L.M.P. ".$medicalHistory['PastMedicalRecord']['lmp']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['symptom_lmp'])) $subjectiveText.="Symptoms since L.M.P.: ".$medicalHistory['PastMedicalRecord']['symptom_lmp']."<br>";
+
+			 			$subjectiveText.="<br><br>Sexual Activity :<br>";
+
+			 			if(!empty($medicalHistory['PastMedicalRecord']['sexually_active'])) $subjectiveText.="Are you sexually active? ".$medicalHistory['PastMedicalRecord']['sexually_active']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['birth_controll'])) $subjectiveText.="Do you use birth control? ".$medicalHistory['PastMedicalRecord']['birth_controll']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['breast_self_exam'])) $subjectiveText.="'Do you do regular Breast self-exam? ".$medicalHistory['PastMedicalRecord']['breast_self_exam']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['new_partner'])) $subjectiveText.="New Partners? ".$medicalHistory['PastMedicalRecord']['new_partner']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['partner_notification'])) $subjectiveText.="Partner Notification ".$medicalHistory['PastMedicalRecord']['partner_notification']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['hiv_education'])) $subjectiveText.="HIV Education Given: ".$medicalHistory['PastMedicalRecord']['hiv_education']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['pap_education'])) $subjectiveText.="PAP STD Education Given: ".$medicalHistory['PastMedicalRecord']['pap_education']."<br>";
+			 			if(!empty($medicalHistory['PastMedicalRecord']['gyn_referral'])) $subjectiveText.="GYN Referral:: ".$medicalHistory['PastMedicalRecord']['gyn_referral']."<br>";
+
+			 		}
+			 	}
+			 }
+			 	
+			 if(count($medicalHistory['PatientPersonalHistory'])!=0)
+			 {
+
+			 	$smokingStatus = ($medicalHistory['PatientPersonalHistory']['smoking'] == 1)? "Yes" : "No";
+
+			 	if($smokingStatus == 'Yes')
+			 	{
+			 		 
+			 		 
+			 		//if(!empty($medicalHistory['PatientPersonalHistory']['smoking_desc'])) $subjectiveText.="Smoking Quantity: ".$medicalHistory['PatientPersonalHistory']['smoking_desc']."<br>";
+			 		if($medicalHistory['PatientPersonalHistory']['smoking_desc']!='Since'){
+			 			$subjectiveText.="<br><br>Social History :<br><br>";$subjectiveText.="Smoking Description: ".$medicalHistory['PatientPersonalHistory']['smoking_desc']."<br>";
+			 		}
+			 		//if(!empty($medicalHistory['PatientPersonalHistory']['smoking_fre'])) $subjectiveText.="Smoking Frequency: ".$medicalHistory['PatientPersonalHistory']['smoking_fre']."<br>";
+			 		 
+			 		$alcoholStatus = ($medicalHistory['PatientPersonalHistory']['alcohol'] == 1)? "Yes" : "No";
+			 		if($alcoholStatus == 'Yes')
+			 		{
+			 			if($medicalHistory['PatientPersonalHistory']['alcohol_desc']!='Since') $subjectiveText.="Alcohol Quantity: ".$medicalHistory['PatientPersonalHistory']['alcohol_desc']."<br>";
+			 			if(!empty($medicalHistory['PatientPersonalHistory']['alcohol_fre'])) $subjectiveText.="Alcohol Description: ".$medicalHistory['PatientPersonalHistory']['alcohol_fre']."<br>";
+			 		}
+			 		$drugsStatus = ($medicalHistory['PatientPersonalHistory']['drugs'] == 1)? "Yes" : "No";
+			 		if($drugsStatus == 'Yes')
+			 		{
+			 			if($medicalHistory['PatientPersonalHistory']['drugs_desc']!='Since') $subjectiveText.="Substance Quantity: ".$medicalHistory['PatientPersonalHistory']['drugs_desc']."<br>";
+			 			if($medicalHistory['PatientPersonalHistory']['drugs_fre']!='Frequency') $subjectiveText.="Substance Description: ".$medicalHistory['PatientPersonalHistory']['drugs_fre']."<br>";
+			 		}
+			 		$tobaccoStatus = ($medicalHistory['PatientPersonalHistory']['tobacco'] == 1)? "Yes" : "No";
+			 		if($tobaccoStatus == 'Yes')
+			 		{
+			 			if($medicalHistory['PatientPersonalHistory']['tobacco_desc']!='Since') $subjectiveText.="Caffiene Quantity: ".$medicalHistory['PatientPersonalHistory']['tobacco_desc']."<br>";
+			 			if($medicalHistory['PatientPersonalHistory']['tobacco_fre']!='Frequency') $subjectiveText.="Caffiene Description: ".$medicalHistory['PatientPersonalHistory']['tobacco_fre']."<br>";
+
+			 		}
+			 		$retired = ($medicalHistory['PatientPersonalHistory']['retired'] == 1)? "Yes" : "No";
+			 		 
+			 		if(!empty($retired)) $subjectiveText.="<br>Retired: ".$retired."<br>";
+			 		$dietStatus = ($medicalHistory['PatientPersonalHistory']['diet'] == 1)? "Non-Veg" : "Veg";
+			 		if(!empty($dietStatus)) $subjectiveText.="Diet: ".$dietStatus."<br>";
+			 		 
+			 		 
+			 		 
+			 		$procedure=trim($medicalHistory['ProcedureHistory']['0']['procedure']);
+			 		if(!empty($procedure))
+			 		{
+
+			 			$subjectiveText.="<br><br>Procedure History :<br>";
+			 			$i=0;
+			 			foreach($medicalHistory['ProcedureHistory'] as $history)
+			 			{
+			 				$procedure_name= !empty($procedureHistoryRec[$i]['TariffList']['name'])?$procedureHistoryRec[$i]['TariffList']['name']:$history['procedure_name'] ;
+			 				$provider_name = !empty($procedureHistoryRec[$i]['DoctorProfile']['doctor_name'])?$procedureHistoryRec[$i]['DoctorProfile']['doctor_name']:$history['provider_name'] ;
+			 				if(!empty($history['procedure_name'])) $subjectiveText.="Procedure :".$procedure_name."<br>";
+			 				if(!empty($history['provider_name'])) $subjectiveText.="Provider :".$provider_name."<br>";
+			 				if(!empty($history['age_value'])) $subjectiveText.="Age :".$history['age_value']." ".$history['age_unit']."<br>";
+			 				if(!empty($history['procedure_date'])) $subjectiveText.="Procedure Date :".$this->DateFormat->formatDate2LocalForReport($history['procedure_date'],Configure::read('date_format'),false)."<br>";
+			 				if(!empty($history['comment'])) $subjectiveText.="Comment :".$history['comment']."<br>";
+			 					
+			 				$i++;
+			 			}
+
+			 		}
+			 		 
+			 		 
+			 	}
+			 }
+			 	
+			}
+			echo trim($subjectiveText);
+			exit;
+		}
+		/*else if($isView==0)
+		 {
+		$subjectiveText="";
+		echo $subjectiveText;
+		exit;
+		}*/
+		//else
+		$this->render('get_significant_history');
+		//debug($diagnosisRec);exit;
+	}
+
+	public function extraNotes($patientId= null, $noteId = null){
+		$this->layout = 'advance';
+		$this->uses = array('RiskcategoryassesmentMaster','RiskCategory','FunctionalResult','CognitiveFunction','Intervention','DiagnosisMaster',
+				'Finalization','Note','consultant','AmbulatoryVisitType','InpatientVisitType','DoctorProfile');
+		$this->patient_info($patientId);
+		$patientData = $this->patient_details;
+		if(empty($this->request->data['Note'])){
+
+			$this->set('consultant',$this->Consultant->getRegistrar());
+			if($patientData['Patient']['admission_type'] == 'OPD'){
+				$visitType  = $this->AmbulatoryVisitType->find('list',array('fields'=>array('value_code','code_description')));
+			}else{
+				$visitType  = $this->InpatientVisitType->find('list',array('fields'=>array('code','description')));
+
+			}
+			$this->set('visitType',$visitType);
+
+			$riskStatus  = $this->RiskcategoryassesmentMaster->find('list',array('fields'=>array('id','diagnoses_name'),'order' => array('diagnoses_name ASC')));
+			$this->set('riskStatus',$riskStatus);
+
+			$risk_category_result  = $this->RiskCategory->find('all',array('conditions'=>array('patient_id'=>$patientId,'is_deleted'=>'0')));
+			$this->set('risk_category_result',$risk_category_result);
+
+			$functionalResult  = $this->FunctionalResult->find('all',array('conditions'=>array('patient_id'=>$patientId,'is_deleted'=>'0')));
+			$this->set('functionalResult',$functionalResult);
+
+			$cogFunc = $this->CognitiveFunction->find('all',array('conditions'=>array('CognitiveFunction.patient_id'=>$patientId,'is_cognitive'=>1,'note_id'=>$noteId)));
+			$this->set('cogFunc' ,$cogFunc); //cognitive
+
+			$funStatus = $this->CognitiveFunction->find('all',array('conditions'=>array('patient_id'=>$patientId,'is_cognitive'=>0,'note_id'=>$noteId)));
+			$this->set('funStatus' ,$funStatus); //functional status
+
+			$interventionResult  = $this->Intervention->find('all',array('conditions'=>array('patient_id'=>$patientId,'is_deleted'=>'0')));
+			$this->set('interventionResult',$interventionResult);
+
+			$dbproblems1  = $this->DiagnosisMaster->find('list',array('fields'=>array('id','diagnoses_name')));
+			$this->set('dbproblems1',$dbproblems1);
+
+			$visittype = $this->Finalization->find('all',array('fields'=>array('Finalization.id','Finalization.description')));
+			$this->set('visittype',$visittype);
+			if(!empty($noteId)){
+					
+				$noteData = $this->Note->find('first',array('fields'=>array('id','patient_id','sb_registrar','sb_consultant','visit_type',
+						'note_date','is_documentation','ht','wt','bmi','finalization_date','final','patient_character_snomed',
+						'patient_char_date','event_note','note','decision_aids'),'conditions'=>array('id'=>$noteId)));
+				$selectfinal= explode('|', $notesRec['Note']['final']);
+				if(!empty($noteData['Note']['note_date'])){
+					$noteData['Note']['note_date'] = $this->DateFormat->formatDate2Local($noteData['Note']['note_date'],Configure::read('date_format'),true);
+				}
+				if(!empty($noteData['Note']['finalization_date'])){
+					$noteData['Note']['finalization_date'] = $this->DateFormat->formatDate2Local($noteData['Note']['finalization_date'],Configure::read('date_format'),true);
+				}
+				if(!empty($noteData['Note']['patient_char_date'])){
+					$noteData['Note']['patient_char_date'] = $this->DateFormat->formatDate2Local($noteData['Note']['patient_char_date'],Configure::read('date_format'),true);
+				}
+				$registrarName = $this->DoctorProfile->find('first',array('fields'=>array('doctor_name'),'conditions'=>array('user_id'=>$noteData['Note']['sb_registrar'])));
+				$noteData['Note']['doctor_id_txt'] = $registrarName['DoctorProfile']['doctor_name'];
+				$noteData['Note']['final'] = explode('|',$noteData['Note']['final']);
+				$this->data = $noteData;
+				$this->set(array('selectfinal'=>$selectfinal));
+			}
+
+
+		}else{
+			//converting date to standard format
+			$this->request->data["Note"]['note_date'] = $this->DateFormat->formatDate2STD($this->request->data["Note"]['note_date'],Configure::read('date_format'));
+			$this->request->data["Note"]['finalization_date'] = $this->DateFormat->formatDate2STD($this->request->data["Note"]['finalization_date'],Configure::read('date_format'));
+			$this->request->data["Note"]['patient_char_date'] = $this->DateFormat->formatDate2STD($this->request->data["Note"]['patient_char_date'],Configure::read('date_format'));
+			$this->request->data['Note']['visitid']= implode('|', $this->request->data['Note']['visitid']);
+			$this->request->data['Note']['final']= implode('|',$this->request->data['Note']['final']);
+			$queryReturn = $this->Note->insertNote($this->request->data);
+			if($queryReturn['0']){
+				$lastNotesId = $queryReturn['1'];
+				if(!empty($this->request->data['CognitiveFunction']['cog_name'])){
+					$this->request->data['CognitiveFunction']['location_id'] = $this->Session->read('locationid');
+					$this->request->data['CognitiveFunction']['created_by'] = $this->Session->read('userid');
+					$this->request->data['CognitiveFunction']['create_time'] = date("Y-m-d H:i:s");
+					$this->request->data['CognitiveFunction']['is_cognitive'] = 1;
+					$cogni_date = $this->request->data['CognitiveFunction']['cog_date'];
+					$this->request->data['CognitiveFunction']['cog_date'] = $this->DateFormat->formatDate2STD($cogni_date,Configure::read('date_format'));
+					$this->request->data['CognitiveFunction']['patient_id'] = $this->request->data['Note']['patient_id'];
+					$this->request->data['CognitiveFunction']['note_id'] = $lastNotesId;
+					$this->CognitiveFunction->save($this->request->data['CognitiveFunction']);
+					$this->CognitiveFunction->id='';
+				}
+				if(!empty($this->request->data['FunctionalStatus']['funct_name'])){
+					$functArray= array();
+
+					$functArray['CognitiveFunction']['location_id'] = $this->Session->read('locationid');
+					$functArray['CognitiveFunction']['patient_id'] = $this->request->data['Note']['patient_id'];
+					$functArray['CognitiveFunction']['note_id'] = $lastNotesId;
+					$functArray['CognitiveFunction']['cog_name'] = $this->request->data['FunctionalStatus']['funct_name'];
+					$cog_date=$this->request->data['FunctionalStatus']['funct_date'];
+					$functArray['CognitiveFunction']['cog_date'] = $this->DateFormat->formatDate2STD($cog_date,Configure::read('date_format'));
+					$functArray['CognitiveFunction']['cog_snomed_code'] = $this->request->data['FunctionalStatus']['funct_snomed_code'];
+					$functArray['CognitiveFunction']['created_by'] = $this->Session->read('userid');
+					$functArray['CognitiveFunction']['create_time'] = date("Y-m-d H:i:s");
+					$functArray['CognitiveFunction']['is_cognitive'] = 0;
+					$this->CognitiveFunction->save($functArray);
+				}
+				$this->Session->setFlash(__('Patient Note Added Successfully' ),true,array('class'=>'message'));
+				$this->redirect("/patients/listExtraNotes/".$patientId);
+			}else{
+				$this->Session->setFlash(__('Please Try Again' ),true,array('class'=>'error'));
+			}
+		}
+		$this->set(Compact('patientId'));
+	}
+
+	public function listExtraNotes($patientId=null) {
+		$this->layout = 'advance';
+		$this->uses =array('Note');
+		$this->patient_info($patientId);
+		$this->paginate = array(
+				'limit' => Configure::read('number_of_rows'),
+				'order' => array('Note.id' => 'desc'),
+				'fields'=> array('Note.id','Note.sign_note','note_date'),
+				'conditions'=>array('Note.patient_id'=>$patientId,'Note.note_type'=>'extra note'),
+		);
+		$this->set('patientId',$patientId);
+		$this->set('noteList',$this->paginate('Note'));
+	}
+
+	public function viewExtraNotes($patientId=null, $noteId =null) {
+		$this->layout = 'advance';
+		$this->uses =array('Note','CognitiveFunction');
+		$this->Note->bindModel( array(
+				'hasMany' => array(
+						'CognitFunction'=>array('className'=>'CognitiveFunction','foreignKey'=>'note_id','conditions'=>array('is_cognitive'=>1),
+								'fields'=>array('CognitFunction.id','CognitFunction.cog_name','CognitFunction.cog_date','CognitFunction.cog_snomed_code')),
+
+						'FunctionalStatus'=>array('className'=>'CognitiveFunction','foreignKey'=>'note_id','conditions'=>array('is_cognitive'=>0),
+								'fields'=>array('FunctionalStatus.id','FunctionalStatus.cog_name','FunctionalStatus.cog_date',
+										'FunctionalStatus.cog_snomed_code')),
+
+						/*'RiskCategory'=>array('className'=>'RiskCategory','foreignKey'=>'note_id','conditions'=>array('is_cognitive'=>1),
+						 'fields'=>array('RiskCategory.*')),
+
+		'FunctionalResult'=>array('className'=>'FunctionalResult','foreignKey'=>'note_id','conditions'=>array('is_cognitive'=>1),
+				'fields'=>array('FunctionalResult.*')),
+
+		'Intervention'=>array('className'=>'Intervention','foreignKey'=>'note_id','conditions'=>array('is_cognitive'=>1),
+				'fields'=>array('CognitFunction.id','CognitFunction.cog_name','CognitFunction.cog_date','CognitFunction.cog_snomed_code')),*/
+				)));
+		$viewData = $this->Note->find('first',array('fields'=>array('Note.id','Note.event_note','Note.ht','Note.wt','Note.bmi','Note.finalization_date',
+				'Note.final','Note.patient_character_snomed','Note.patient_char_date','Note.note','Note.decision_aids'),'conditions'=>array('Note.id'=>$noteId)));
+		$this->set(compact('patientId','viewData'));
+	}
+
+	function dischargePatientMd($patientId){
+
+	}
+
+	//BOF pankaj for permissinos for patient portal
+	function patient_permissions($id){
+
+		$this->layout = 'ajax' ;
+		$patient_permission =  implode('|',$this->request->data['Patient']['XmlNote']);
+
+		if($this->request->data)
+		{
+			$this->Patient->updateAll(array('Patient.permissions'=>"'$patient_permission'"),array('Patient.id'=>$this->request->data['Patient']['id']));
+			$this->Session->setFlash(__('Permissions Updated Successfully ', true),'default',array('class'=>'message'));
+			$this->set('status','success') ;
+			//$this->redirect($this->referer());
+		}
+		$permit=$this->Patient->find('first',array('fields'=>array('permissions'),'conditions'=>array('Patient.id'=>$id)));
+		$this->set('patientRegistered',true);
+		$this->set(compact('id','permit'));
+
+	}
+
+	function updatePharmacy(){
+		if($this->request->data){
+			$pharmacy=$this->request->data['Patient']['preferred_pharmacy'];
+			$pharmacy_master=$this->request->data['Patient']['pharmacy_master_id'];
+			$updateArray=array('Patient.preferred_pharmacy'=>"'$pharmacy'",'Patient.pharmacy_master_id'=>"'$pharmacy_master'");
+			$res = $this->Patient->updateAll($updateArray,array('id'=>$this->request->data['Patient']['id']));
+			//$this->redirect(array('controller'=>'Diagnoses','action'=>'initialAssessment',$this->request->data['Patient']['id']));
+		}
+		exit;
+	}
+	
+	//Developmental Age milestone (Initial Assesment)-- Amit
+	function age_milestone(){
+
+	}
+	
+	/*function lastDoseTaken($patient_id=null){
+		$this->autoRender = false ;
+	if($this->request->data){
+	$date=$this->DateFormat->formatDate2STD($this->request->data['Patient']['last_dose'],Configure::read('date_format'));
+	$result = $this->Patient->updateAll(array('Patient.last_dose'=>"'$date'"),array('id'=>$patient_id));
+	}
+	exit;
+	}  */
+
+	function verifyOrderMedication($patientId=null,$appId=null,$newCropId=null,$Id=null){
+		$this->uses=array('NewCropPrescription','VerifyMedicationOrder','Appointment','User');
+		$this->patient_info($patientId);
+		$this->set('appId',$appId);
+		$this->NewCropPrescription->bindModel(array('belongsTo' => array(
+				'Patient' =>array('foreignKey'=>false, 'conditions' => array('Patient.id=NewCropPrescription.patient_uniqueid')),
+		)),false);
+		$getMedicationData=$this->NewCropPrescription->find('first',array('fields'=>array('Patient.lookup_name','NewCropPrescription.drug_name','NewCropPrescription.description','NewCropPrescription.dose','NewCropPrescription.route','NewCropPrescription.frequency','NewCropPrescription.strength'),'conditions'=>array('NewCropPrescription.id'=>$newCropId)));
+		$this->set('getMedicationData',$getMedicationData);
+		$getVerifyMedicationOrder=$this->VerifyMedicationOrder->find('first',array('conditions'=>array('VerifyMedicationOrder.newcrop_id'=>$newCropId)));
+		$getAppointment=$this->Appointment->find('first',array('fields'=>array('id','doctor_id','nurse_id','patient_id'),'conditions'=>array('Appointment.patient_id'=>$patientId)));
+		$this->set('getAppointment',$getAppointment);
+		$route_admin=Configure :: read('route_administration');
+		$route_admin[$getMedicationData['NewCropPrescription']['route']];
+		$this->set('route_inject_intramuscular',$route_admin[$getMedicationData['NewCropPrescription']['route']]);
+		$nurses  = $this->User->getUsersByRoleName(Configure::read('nurseLabel')) ;
+		$this->set('nurses',$nurses);
+		//debug($this->request->data);exit;
+		if(!empty($this->request->data['VerifyMedicationOrder']['id'])){
+			$medication_crushed=$this->request->data['VerifyMedicationOrder']['medication_crushed'];
+			$medication_crushed_txt=$this->request->data['VerifyMedicationOrder']['medication_crushed_txt'];
+			$patient_vomited=$this->request->data['VerifyMedicationOrder']['patient_vomited'];
+			$snack_given=$this->request->data['VerifyMedicationOrder']['snack_given'];
+			$mouth_check_performed=$this->request->data['VerifyMedicationOrder']['mouth_check_performed'];
+			$correct_medication=$this->request->data['VerifyMedicationOrder']['correct_medication'];
+			$side_effects_prior=$this->request->data['VerifyMedicationOrder']['side_effects_prior'];
+			$allergies_confirmed=$this->request->data['VerifyMedicationOrder']['allergies_confirmed'];
+			$site=$this->request->data['VerifyMedicationOrder']['site'];
+			$tolerated_procedure=$this->request->data['VerifyMedicationOrder']['tolerated_procedure'];
+			$family_member_bedside=$this->request->data['VerifyMedicationOrder']['family_member_bedside'];
+			$applied_band=$this->request->data['VerifyMedicationOrder']['applied_band'];
+			$site_reassesment=$this->request->data['VerifyMedicationOrder']['site_reassesment'];
+			$additional_staff=$this->request->data['VerifyMedicationOrder']['additional_staff'];
+			$tolerated_procedure_other=$this->request->data['VerifyMedicationOrder']['tolerated_procedure_other'];
+			$this->request->data['VerifyMedicationOrder']['modify_by']=$this->Session->read('userid');
+			$this->request->data['VerifyMedicationOrder']['modified_time']=date('Y-m-d H:i:s');
+			$getModifyBy=$this->request->data['VerifyMedicationOrder']['modify_by'];
+			$getModifiedTime=$this->request->data['VerifyMedicationOrder']['modified_time'];
+			$updateArray=array('VerifyMedicationOrder.medication_crushed'=>"'$medication_crushed'",'VerifyMedicationOrder.medication_crushed_txt'=>"'$medication_crushed_txt'",'VerifyMedicationOrder.patient_vomited'=>"'$patient_vomited'",
+					'VerifyMedicationOrder.snack_given'=>"'$snack_given'",'VerifyMedicationOrder.mouth_check_performed'=>"'$mouth_check_performed'",
+					'VerifyMedicationOrder.correct_medication'=>"'$correct_medication'",'VerifyMedicationOrder.side_effects_prior'=>"'$side_effects_prior'",
+					'VerifyMedicationOrder.allergies_confirmed'=>"'$allergies_confirmed'",'VerifyMedicationOrder.site'=>"'$site'",
+					'VerifyMedicationOrder.tolerated_procedure'=>"'$tolerated_procedure'",
+					'VerifyMedicationOrder.additional_staff'=>"'$additional_staff'",
+					'VerifyMedicationOrder.tolerated_procedure_other'=>"'$tolerated_procedure_other'",'VerifyMedicationOrder.modify_by'=>"'$getModifyBy'",
+					'VerifyMedicationOrder.modified_time'=>"'$getModifiedTime'",'VerifyMedicationOrder.family_member_bedside'=>"'$family_member_bedside'",'VerifyMedicationOrder.applied_band'=>"'$applied_band'",'VerifyMedicationOrder.site_reassesment'=>"'$site_reassesment'");
+			$res = $this->VerifyMedicationOrder->updateAll($updateArray,array('VerifyMedicationOrder.id'=>$this->request->data['VerifyMedicationOrder']['id']));
+			$this->redirect(array("controller" => "appointments", "action" => "appointments_management"));
+		}else if($this->request->data){
+			$this->request->data['VerifyMedicationOrder']['created_by']=$this->Session->read('userid');
+			$this->request->data['VerifyMedicationOrder']['create_time']=date('Y-m-d H:i:s');
+			$this->VerifyMedicationOrder->saveAll($this->request->data);
+			$this->redirect(array("controller" => "appointments", "action" => "appointments_management"));
+		}
+		$this->set('patientId',$patientId);
+		$this->set('newCropId',$newCropId);
+		$this->set('getVerifyMedicationOrder',$getVerifyMedicationOrder);
+		$this->set('getVerifyMedicationOrderverified_chk',$getVerifyMedicationOrder['VerifyMedicationOrder']['verified_chk']);
+	}
+	public function saveVerifiedMedication(){
+		$this->uses=array('VerifyMedicationOrder');
+		if(!empty($this->request->data['verify_id'])){
+			$newCropId=$this->request->data['newcrop_id'];
+			$patientId=$this->request->data['patient_id'];
+			$verified_chk=$this->request->data['value'];
+			$updateArray=array('VerifyMedicationOrder.newcrop_id'=>"'$newCropId'",'VerifyMedicationOrder.patient_id'=>"'$patientId'",
+					'VerifyMedicationOrder.verified_chk'=>"'$verified_chk'");
+			$res = $this->VerifyMedicationOrder->updateAll($updateArray,array('VerifyMedicationOrder.id'=>$this->request->data['verify_id']));
+		}else{
+			$this->request->data['VerifyMedicationOrder']['newcrop_id']=$this->request->data['newcrop_id'];
+			$this->request->data['VerifyMedicationOrder']['patient_id']=$this->request->data['patient_id'];
+			$this->request->data['VerifyMedicationOrder']['verified_chk']=$this->request->data['value'];
+			$this->request->data['VerifyMedicationOrder']['created_by']=$this->request->data['created_by'];
+			$this->request->data['VerifyMedicationOrder']['create_time']=date('Y-m-d H:i:s');
+			$this->VerifyMedicationOrder->saveAll($this->request->data);
+		}
+		exit;
+	}
+	public function saveCosignChk(){
+		$this->uses=array('VerifyMedicationOrder');
+		if(!empty($this->request->data['verify_id'])){
+			$newCropId=$this->request->data['newcrop_id'];
+			$patientId=$this->request->data['patient_id'];
+			$cosign_chk_sign=$this->request->data['cosign_chk_sign'];
+			$updateArray=array('VerifyMedicationOrder.newcrop_id'=>"'$newCropId'",'VerifyMedicationOrder.patient_id'=>"'$patientId'",
+					'VerifyMedicationOrder.cosign_chk_sign'=>"'$cosign_chk_sign'");
+			$res = $this->VerifyMedicationOrder->updateAll($updateArray,array('VerifyMedicationOrder.id'=>$this->request->data['verify_id']));
+		}else{
+			$this->request->data['VerifyMedicationOrder']['newcrop_id']=$this->request->data['newcrop_id'];
+			$this->request->data['VerifyMedicationOrder']['patient_id']=$this->request->data['patient_id'];
+			$this->request->data['VerifyMedicationOrder']['cosign_chk_sign']=$this->request->data['cosign_chk_sign'];
+			$this->request->data['VerifyMedicationOrder']['created_by']=$this->request->data['created_by'];
+			$this->request->data['VerifyMedicationOrder']['create_time']=date('Y-m-d H:i:s');
+			$this->VerifyMedicationOrder->saveAll($this->request->data);
+		}
+		exit;
+	}
+
+	/*
+	 * A function for slecting selfpay and updating the data in appropriate table
+	* location : Eligibility check : patient list
+	* Pooja
+	*/
+
+	Public function eligible_insurance(){
+
+
+	}
+
+
+	// by amit jain registration charges and first consultation charges for jv
+	/* public function getRegistrationCharges($hospitalType,$tariffStandardId){
+		$this->loadModel('Billing') ;
+	return $this->Billing->getRegistrationCharges($hospitalType,$tariffStandardId);
+	}
+
+	public function getDoctorRate($days,$hospitalType,$tariffStandardId,$patientType='',$treatment_type=null){
+	$this->loadModel('Billing') ;
+	return $this->Billing->getDoctorRate($days,$hospitalType,$tariffStandardId,$patientType,$treatment_type);
+	} */
+
+	public function sendToPatientBdayWish(){
+		$this->loadModel('Patient');
+		/******BOF-Mahalaxmi-After patient reg to  get sms alert for Patient Bday Wish......  ***/
+		$getEnableFeatureChk=$this->Session->read('sms_feature_chk');
+		if($getEnableFeatureChk=='1'){
+			$this->Patient->sendToSmsPatientBdayWish('Bday');
+		}
+		$this->redirect(array("controller" => "Landings", "action" => "index"));
+		/******EOF-Mahalaxmi-After patient reg to  get sms alert for Patient Bday Wish......  ***/
+	}
+
+	public function template_format($noteId=null){
+
+		$this->layout="print_without_header";
+		$this->uses=array('Note');
+		/** for note template_full_text **/
+
+		$viewdata = $this->Note->find("first",array('fields'=>array('template_full_text'),
+				'conditions'=>array('Note.id'=>$noteId)));
+		$this->set('viewdata',$viewdata);
+		//debug($viewdata);
+
+		/** **/
+	}
+
+	public function getReferralPercent($id=NULL){
+		if(!empty($id)){
+			$this->loadModel('Consultant');
+			$consultantRef=$this->Consultant->find('first',array('fields'=>('profit_percentage'),'conditions'=>array('Consultant.id'=>$id)));
+			echo $consultantRef['Consultant']['profit_percentage'];
+		}
+		exit;
+	}
+
+	function getDoctorByDepartmentWise($dept_id){
+		$this->layout  = 'ajax';
+		$this->autoRender= false;
+		$this->loadModel('DoctorProfile');
+		$docList = $this->DoctorProfile->getDoctorByDepartmentWise($dept_id);
+		echo json_encode($docList);
+			
+	}
+	
+	/**
+	 * AutoComplete Search on patient id and name combine
+	 * @param unknown_type $type
+	 * @param string $condition "is_discharge=0&is_deleted=0"
+	 * Pooja Gupta
+	 */
+	public function admissionComplete($type=NULL,$excondition=NULL){
+		$this->layout = 'ajax';
+		$this->loadModel('Patient');
+		$conditions =array();
+		$condition=array();
+		$searchKey = $this->params->query['term'] ;
+		//Vadodara search will be for name and Patient UID / for other instance its Name and Patient MRN
+		if($this->Session->read('website.instance')=='vadodara'){
+			$conditions["Patient.patient_id like"] = $searchKey.'%';
+		}else{
+			$conditions["Patient.admission_id like"] = $searchKey.'%';
+		}
+		$conditions["Patient.lookup_name like"] = '%'.$searchKey.'%';
+		
+		if(!empty($type) && $type !='no'){
+			$condition["Patient.admission_type"]=$type;
+		}else{
+			$condition["Patient.admission_type"]=array('IPD','OPD','LAB','RAD','emergency');
+		}
+		if($excondition) 
+			$excondition= explode("&",$excondition); 
+		
+		$testArray = $this->Patient->find('all', array(
+				'fields'=> array('Patient.id','Patient.lookup_name','Patient.patient_id',
+						'Patient.form_received_on' ,'Patient.admission_id','Patient.person_id'),
+				'conditions'=>array('OR'=>($conditions),
+				$condition,$excondition,'Patient.is_deleted=0'),
+				'order'=>array("Patient.lookup_name ASC"),
+				/* 'group'=>array("Patient.patient_id"), commented by pankajw */
+				'limit'=>Configure::read('number_of_rows')));
+		
+		if($this->Session->read('website.instance')=='vadodara'){
+			foreach ($testArray as $key=>$value) {
+				$addDate=$this->DateFormat->formatDate2Local($value['Patient']['form_received_on'],Configure::read('date_format'));
+				$returnArray[]=array('id'=>$value['Patient']['id'],'person_id'=>$value['Patient']['person_id'],'value'=>ucwords(strtolower($value['Patient']['lookup_name'])).'-'.$value['Patient']['patient_id'].' ( '.$addDate.' )');
+				//echo "$value   $key|$key\n";
+			}
+		}else{
+			foreach ($testArray as $key=>$value) {	
+				$returnArray[]=array('id'=>$value['Patient']['id'],'person_id'=>$value['Patient']['person_id'],'value'=>ucwords(strtolower($value['Patient']['lookup_name'])).'-'.$value['Patient']['admission_id']);
+				//echo "$value   $key|$key\n";
+			}
+		}
+		echo json_encode($returnArray);
+		exit;
+			
+	}
+	
+	/**
+	 * AutoComplete Search on patient_uid and name combine
+	 * @param string $condition "admission_type='prospect'"
+	 * Gaurav Chauriya
+	 */
+	public function personComplete(){
+		$this->layout = 'ajax';
+		$this->loadModel('Person');
+		$condition=array();
+		$searchKey = $this->params->query['term'] ;
+		$condition['OR']["Person.patient_uid like"] = $searchKey.'%';
+		
+		$condition['OR']["Person.first_name like"] = $searchKey.'%';
+		$condition['OR']["Person.last_name like"] = $searchKey.'%';
+		$condition["Person.admission_type"] = 'prospect';
+	
+		$testArray = $this->Person->find('all', array(
+				'fields'=> array('Person.id','Person.first_name','Person.last_name','Person.patient_uid'),
+				'conditions'=>array($condition,'Person.is_deleted'=>0,'location_id'=>$this->Session->read('locationid')),
+				'order'=>array("Person.first_name ASC"),
+				/* 'group'=>array("Patient.patient_id"), commented by pankajw */
+				'limit'=>Configure::read('number_of_rows')));
+		
+		foreach ($testArray as $key=>$value) {
+			$returnArray[]=array('id'=>$value['Person']['id'],'person_id'=>$value['Person']['id'],'value'=>ucwords(strtolower($value['Person']['first_name'])).' '.ucwords(strtolower($value['Person']['last_name'])).'-'.$value['Person']['patient_uid']);
+			//echo "$value   $key|$key\n";
+		}
+		echo json_encode($returnArray);
+		exit;
+			
+	}
+	/**
+	 * function for billing entry from reg page for "VADODARA" instance
+	 * @param unknown_type $billData
+	 * Pooja Gupta
+	 */
+
+	function payBilling($billData){
+		$this->loadModel('Billing');
+		$date=date('Y-m-d H:i:s');
+		$this->loadModel('ServiceCategory');
+		$serviceCategory=$this->ServiceCategory->getServiceGroupId(Configure::read('mandatoryservices'));
+		$this->Billing->save(array(
+				'patient_id'=>$billData['Patient']['patient_id'],
+				'location_id'=>$billData['Person']['location_id'],
+				'amount'=>$billData['Person']['visit_charge'],
+				'payment_category'=>$serviceCategory,
+				'date'=>$date,
+				'tariff_list_id'=>$billData['Patient']['tariff_list_id'],
+				'mode_of_payment'=>'Cash',
+				'total_amount'=>$billData['Person']['visit_charge'],
+				'amount_pending'=>'0',
+				'amount_paid'=>'0',
+				'created_by'=>$this->Session->read('userid'),
+		));
+
+		$billID=$this->Billing->getLastInsertID();
+		//Billing Array
+		$billArray['Billing']['id']=$billID;
+		$billArray['Billing']['mode_of_payment']='Cash';
+		$billArray['Billing']['date']=$date;
+		$billArray['Billing']['created_by']=$this->Session->read('userid');
+		$billArray['Billing']['amount']=$billData["Person"]['visit_charge'];
+		$patientId=$billData["Patient"]['patient_id'];
+		$this->Billing->receiptVoucherCreate($billArray,$patientId);
+
+		return $billID;
+
+	}
+	/**
+	 * function for coupon validations by swati
+	 */ 
+function couponValidate($val,$serviceId = null){
+	$this->uses = array('ServiceCategory');
+	
+		$countCoupon = $this->Patient->find('count',array('conditions'=>array('Patient.coupon_name'=>$val))); 
+		if($countCoupon)
+			$error = 'Coupon is used</br>';
+		else
+			$msg = 'Coupon Available';
+		$this->loadModel('Coupon');
+		
+		$couponData = $this->Coupon->find('first',array('fields'=>array('Coupon.id','Coupon.valid_date_from','Coupon.valid_date_to','Coupon.coupon_amount','Coupon.sevices_available','Coupon.type'),
+				'conditions'=>array('Coupon.is_deleted = 0',"BINARY Coupon.batch_name = '$val'",'Coupon.branch'=>$this->Session->read('locationid'),'Coupon.type !='=>'Privilege Card','Coupon.status'=>0,'Coupon.parent_id !='=>0)));
+		$seviceAvailable = explode(',',$couponData['Coupon']['sevices_available']); 
+		$couponDataId = true;
+		$serviceCategoryID = $this->ServiceCategory->getServiceGroupId(Configure::read('mandatoryservices'));
+		if(!empty($serviceId)){
+			$couponDataId = in_array($serviceId,$seviceAvailable) ? true : false; 
+		}
+                if($couponData && $couponDataId){ 
+                    if( strtotime($couponData['Coupon']['valid_date_from']) <= strtotime(date('Y-m-d')) && strtotime(date('Y-m-d')) <= strtotime($couponData['Coupon']['valid_date_to']))
+                    	$msg = 'Coupon Available';
+                    else
+                            $error = $error.'Coupon Expired';
+                }else{
+                    $error = $error.'Invalid Coupon';
+                }
+                if(!empty($couponData) && in_array($serviceCategoryID,$seviceAvailable)){
+                	$couponAMT = unserialize($couponData['Coupon']['coupon_amount']); 
+                	$couponAMTType = $couponAMT[$serviceCategoryID]['type'];
+                	$couponAMTValue = $couponAMT[$serviceCategoryID]['value'];
+                		$amt = ($couponAMTType =='Percentage') ? $couponAMTValue.'%' : $couponAMTValue.'.00' ;
+                	}   
+		if($error)
+			echo json_encode(array($error));
+		else
+			echo json_encode(array($msg,$amt));
+		exit;
+	}
+	
+    function couponsave(){
+		//debug($this->request->data['id']);exit;
+		$this->uses=array('CouponTransaction','Patient');
+		$this->CouponTransaction->setCouponTransaction($this->request->data['id'],$this->request->data['coupon_name']);
+		$this->Patient->save($this->request->data);
+                exit;
+	}
+	/**
+	 * function for to print OPD Sheet for vadodara- Atul
+	 */
+	
+	function opd_print_sheet($patient_id=null,$doctorID=null){
+		$this->layout = false;
+	    $this->uses=array('Appointment','User');
+		$this->patient_info($patient_id);
+		
+        $doctorName=$this->User->getDoctorByID($doctorID);
+        $this->set('doctorName',$doctorName);
+		$this->render('/elements/opd_print_sheet');
+	}
+	
+	
+	
+	/**
+	 *
+	 * @param unknown_type $type
+	 * @param string $condition "is_discharge=0&is_deleted=0"
+	 * pooja gupta
+	 */
+	public function OTAutoComplete(){
+		$this->layout = 'ajax';
+		$this->loadModel('Patient');
+		$conditions =array();$condition=array();
+		$searchKey = $this->params->query['q'] ;
+		//Vadodara search will be for name and Patient UID / for other instance its Name and Patient MRN
+		if($this->Session->read('website.instance')=='vadodara'){
+			$conditions["Patient.patient_id like"] = '%'.$searchKey.'%';
+		}else{
+			$conditions["Patient.admission_id like"] = '%'.$searchKey.'%';
+		}
+		$conditions["Patient.lookup_name like"] = '%'.$searchKey.'%';
+	
+		if(!empty($type) && $type !='no'){
+			$condition["Patient.admission_type"]=$type;
+		}else{
+			$condition["Patient.admission_type"]=array('IPD','OPD');
+		}
+		if($excondition)
+			$excondition= explode("&",$excondition);	
+	
+		$testArray = $this->Patient->find('all', array('fields'=> array('Patient.id','Patient.lookup_name','Patient.patient_id','Patient.form_received_on' ,'Patient.admission_id'),'conditions'=>array('OR'=>($conditions),
+				$condition,$excondition,'Patient.is_deleted=0'),'order'=>array("Patient.lookup_name ASC"),'limit'=>Configure::read('number_of_rows')));
+			
+			foreach ($testArray as $key=>$value) {
+				$addDate=$this->DateFormat->formatDate2Local($value['Patient']['form_received_on'],Configure::read('date_format'));
+				$returnArray[]=array('id'=>$value['Patient']['id'],'value'=>$value['Patient']['lookup_name'].'-'.$value['Patient']['patient_id'].' ( '.$addDate.' )');
+				$lookup=$value['Patient']['lookup_name'];
+				$uid=$value['Patient']['patient_id'];
+				$patientId=$value['Patient']['id'];
+				echo "$lookup - $uid ($addDate)   $patientId|$patientId\n";
+			}
+		
+		exit;
+			
+	}
+
+	
+	/**
+	 new opt appointment patient search
+	 */
+	
+	public function newOTAutoComplete($type=null,$flagOT=null){
+		$this->layout = 'ajax';
+		$this->loadModel('Patient');
+		$conditions =array();$condition=array();
+		//$searchKey = $this->params->query['q'] ;
+		$searchKey = $this->params->query['term'] ;
+		//Vadodara search will be for name and Patient UID / for other instance its Name and Patient MRN
+		if($this->Session->read('website.instance')=='vadodara'){
+			$conditions["Patient.patient_id like"] = '%'.$searchKey.'%';
+		}else{
+			$conditions["Patient.admission_id like"] = '%'.$searchKey.'%';
+		}
+		$conditions["Patient.lookup_name like"] = '%'.$searchKey.'%';
+	
+		if(!empty($type) && $type !='no'){
+			$condition["Patient.admission_type"]=$type;
+		}else{
+			$condition["Patient.admission_type"]=array('IPD','OPD');
+		}
+		if($excondition)
+			$excondition= explode("&",$excondition);
+	
+		$this->Patient->bindModel(array(
+				'belongsTo' => array(
+						'TariffStandard'=>array('foreignKey' => false,'conditions'=>array('TariffStandard.id=Patient.tariff_standard_id')),						
+				)));
+		$testArray = $this->Patient->find('all', array(
+				'fields'=> array('TariffStandard.name','Patient.id','Patient.lookup_name','Patient.patient_id','Patient.admission_id','Patient.form_received_on' ,'Patient.admission_id','Patient.admission_type'),
+				'conditions'=>array('OR'=>($conditions),
+				$condition,$excondition,'Patient.is_deleted=0'),'order'=>array("Patient.id Desc"),'limit'=>Configure::read('number_of_rows')));
+			
+		foreach ($testArray as $key=>$value) {
+			$addDate=$this->DateFormat->formatDate2Local($value['Patient']['form_received_on'],Configure::read('date_format'));
+			$lookup=$value['Patient']['lookup_name'];
+			$uid=$value['Patient']['patient_id'];
+			$patientId=$value['Patient']['id'];
+			$admmiType=$value['Patient']['admission_type'];
+			if($flagOT=='OT'){
+			$returnArray[]=array('id'=>$value['Patient']['id'],'name'=>$value['Patient']['lookup_name'],
+					'value'=>$value['Patient']['lookup_name'].'-'.$value['Patient']['patient_id'].'('.$addDate.')'.$value['Patient']['admission_type'].'-'.$value['TariffStandard']['name'],
+					'admission_id'=>$value['Patient']['admission_id']);
+			}else{
+			$returnArray[]=array('id'=>$value['Patient']['id'],'name'=>$value['Patient']['lookup_name'],
+					'value'=>$value['Patient']['lookup_name'].'-'.$value['Patient']['patient_id'].'('.$addDate.')'.$value['Patient']['admission_type'],
+					'admission_id'=>$value['Patient']['admission_id']);
+			}
+			//echo "$lookup - $uid ($addDate)- $admmiType   $patientId|$patientId\n";
+		}
+		echo json_encode($returnArray);
+		exit;
+	}
+        
+       //function to return the package of patient by Swapnil - 07.11.2015
+       public function getPatientPackageAmount($patient_id){
+           $this->uses = array('EstimateConsultantBilling');
+           $this->EstimateConsultantBilling->bindModel(array('belongsTo'=>array(
+               'Patient'=>array(
+                   'foreignKey'=>false,
+                   'type'=>'inner',
+                   'conditions'=>array('EstimateConsultantBilling.patient_id = Patient.is_packaged')
+               )
+           )));
+           $data =  $this->EstimateConsultantBilling->find('first',array('fields'=>array('EstimateConsultantBilling.total_amount'),'conditions'=>array('Patient.id'=>$patient_id,'Patient.is_deleted'=>'0')));
+           return $data['EstimateConsultantBilling']['total_amount'];
+       }
+       
+    //function to update card number of corporated by Swapnil - 09.11.2015
+    public function getCardNo($patientId,$cardNo){
+        $this->layout = false;
+        $this->autoRender = false;
+        $this->Patient->id = $patientId;
+        $this->Patient->saveField('card_no',$cardNo);
+        return true; 
+    }
+    
+    //function to update claim ID of corporated by Swapnil - 09.11.2015
+    public function getClaimID($patientId,$claimID){
+        $this->layout = false;
+        $this->autoRender = false;
+        $this->Patient->id = $patientId;
+        $this->Patient->saveField('claim_id',$claimID);
+        return true; 
+    }
+    
+    //function to update sanction number of corporated by Swapnil - 09.11.2015
+    public function updateSanctionNo($patientId,$sanctionNo){
+        $this->layout = false;
+        $this->autoRender = false;
+        $this->Patient->id = $patientId;
+        $this->Patient->saveField('sanction_no',$sanctionNo);
+        return true; 
+    }
+     
+    //function for corporates patients by Swapnil - 10.11.2015
+    public function autoSearchCorporatePatient($tariffStdID,$admissionType){
+        $this->autoRender = false;
+        $this->layout = false; 
+        $term = $this->request->query['term'];
+        $patientsData = $this->Patient->find('list',array(
+            'fields'=>array('Patient.id', 'Patient.lookup_name'),
+            'limit'=>'10',
+            'conditions'=>array('Patient.is_deleted'=>'0','Patient.is_hidden_from_report'=>'0','Patient.tariff_standard_id'=>$tariffStdID,
+                'Patient.lookup_name LIKE'=>$term."%",'Patient.admission_type'=>$admissionType),
+            'group'=>array('Patient.id')));
+        
+        foreach($patientsData as $key => $data){ 
+            $returnArray[] = array('id'=>$key,'value'=>$data);
+        }
+        echo json_encode($returnArray);
+        exit;
+    } 
+
+    /**
+     * New Patient Hub
+     * @param unknown_type $patientid
+     * @param unknown_type $personId
+     * Pooja Gupta
+     */
+    function new_patient_hub($patientId,$personId){
+    	$this->layout='advance';
+    	$this->uses=array('Person','Patient','Disposition');
+    	 $this->loadModel('Disposition');
+        $this->set('Disposition', $data);
+        
+        
+           // Load the surgery model and fetch the surgeries list
+            $this->loadModel('Surgery');
+            $surgeries = $this->Surgery->find('list', [
+                'fields' => ['Surgery.name'], // Get Surgery name
+                'conditions' => [
+                    'Surgery.is_deleted' => 0,
+                    'Surgery.location_id' => $this->Session->read('locationid') // Filter by location
+                ],
+                'order' => 'Surgery.name ASC' // Sort alphabetically
+            ]);
+    
+    // Pass surgeries to the view
+    $this->set('surgeries', $surgeries);
+        
+    	
+    // 		$db_connection->makeConnection($this->Disposition);
+    	 if(!empty($patientId)){
+    		$sessionPatient=$this->Session->read('hub.patientid');
+    		if($patientId!=$sessionPatient || empty($sessionPatient))
+    			$this->Patient->getSessionPatId($patientId);
+    	}
+                //  code by dinesh tawade
+                       App::import('Vendor', 'DrmhopeDB');
+	
+            		$hopeDB = new DrmhopeDB('db_HopeHospital');
+            		$ayushmanDB = new DrmhopeDB('db_Ayushman');
+            		$hopeDB->makeConnection($this->Disposition);
+            		$ayushmanDB->makeConnection($this->Disposition);
+            		$hopeDB = new DrmhopeDB('db_HopeHospital');
+            		$hopeDB->makeConnection($this->Disposition);
+            		$hopeData = $this->Disposition->find('all', array(
+            			'fields' => array(
+            				'Disposition.id',
+            				'DispositionList.name AS disposition_name',
+            				'SubDispositionList.id',
+            				'SubDispositionList.name AS sub_disposition_name',
+            				'Disposition.sub_disposition',
+            				'Disposition.outcome',
+            				'Disposition.admission_type',
+            				'Disposition.follow_up_date',
+            				'Disposition.follow_up_action',
+            				'Disposition.call_assigned_to',
+            				'Disposition.call_timestamp',
+            				'Disposition.remark',
+            				'Disposition.created_at',
+            				'Disposition.patien_name',
+            				'Disposition.doctor',
+            				'Disposition.department',
+            				'Disposition.queue_date',
+            				'Disposition.review_date',
+            				'Disposition.diagnosis',
+            				'Disposition.budget_amount'
+            			),
+            			'joins' => array(
+            				array(
+            					'table' => 'disposition_list',
+            					'alias' => 'DispositionList',
+            					'type' => 'LEFT',
+            					'conditions' => array('Disposition.disposition = DispositionList.id')
+            				),
+            				array(
+            					'table' => 'sub_disposition_list',
+            					'alias' => 'SubDispositionList',
+            					'type' => 'LEFT',
+            					'conditions' => array('Disposition.sub_disposition = SubDispositionList.id')
+            				)
+            			),
+            			'conditions' => array('Disposition.person_id' => $personId), // Add condition for specific person
+            			'order' => array('Disposition.id' => 'DESC')
+            		));
+            
+            		
+            		$ayushmanDB = new DrmhopeDB('db_Ayushman');
+            		$ayushmanDB->makeConnection($this->Disposition);
+            		$ayushmanData = $this->Disposition->find('all', array(
+            			'fields' => array(
+            				'Disposition.id',
+            				'DispositionList.name AS disposition_name',
+            				'SubDispositionList.id',
+            				'SubDispositionList.name AS sub_disposition_name',
+            				'Disposition.sub_disposition',
+            				'Disposition.outcome',
+            				'Disposition.admission_type',
+            				'Disposition.follow_up_date',
+            				'Disposition.follow_up_action',
+            				'Disposition.call_assigned_to',
+            				'Disposition.call_timestamp',
+            				'Disposition.remark',
+            				'Disposition.created_at',
+            				'Disposition.patien_name',
+            				'Disposition.doctor',
+            				'Disposition.department',
+            				'Disposition.queue_date',
+            				'Disposition.review_date',
+            				'Disposition.diagnosis',
+            				'Disposition.budget_amount'
+            			),
+            			'joins' => array(
+            				array(
+            					'table' => 'disposition_list',
+            					'alias' => 'DispositionList',
+            					'type' => 'LEFT',
+            					'conditions' => array('Disposition.disposition = DispositionList.id')
+            				),
+            				array(
+            					'table' => 'sub_disposition_list',
+            					'alias' => 'SubDispositionList',
+            					'type' => 'LEFT',
+            					'conditions' => array('Disposition.sub_disposition = SubDispositionList.id')
+            				)
+            			),
+            			'conditions' => array('Disposition.person_id' => $personId), 
+            			'order' => array('Disposition.id' => 'DESC')
+            		));
+            		
+        			$dbhopeDB = new DrmhopeDB('db_hope');
+            		$dbhopeDB->makeConnection($this->Disposition);
+            		$dbhopeDB = $this->Disposition->find('all', array(
+            			'fields' => array(
+            				'Disposition.id',
+            				'DispositionList.name AS disposition_name',
+            				'SubDispositionList.id',
+            				'SubDispositionList.name AS sub_disposition_name',
+            				'Disposition.sub_disposition',
+            				'Disposition.outcome',
+            				'Disposition.admission_type',
+            				'Disposition.follow_up_date',
+            				'Disposition.follow_up_action',
+            				'Disposition.call_assigned_to',
+            				'Disposition.call_timestamp',
+            				'Disposition.remark',
+            				'Disposition.created_at',
+            				'Disposition.patien_name',
+            				'Disposition.doctor',
+            				'Disposition.department',
+            				'Disposition.queue_date',
+            				'Disposition.review_date',
+            				'Disposition.diagnosis',
+            				'Disposition.budget_amount'
+            			),
+            			'joins' => array(
+            				array(
+            					'table' => 'disposition_list',
+            					'alias' => 'DispositionList',
+            					'type' => 'LEFT',
+            					'conditions' => array('Disposition.disposition = DispositionList.id')
+            				),
+            				array(
+            					'table' => 'sub_disposition_list',
+            					'alias' => 'SubDispositionList',
+            					'type' => 'LEFT',
+            					'conditions' => array('Disposition.sub_disposition = SubDispositionList.id')
+            				)
+            			),
+            			'conditions' => array('Disposition.person_id' => $personId), 
+            			'order' => array('Disposition.id' => 'DESC')
+            		));
+            
+            		$desposition_data = array_merge($hopeData, $ayushmanData, $dbhopeDB);
+            		$this->set('dispositions', $desposition_data);
+    // 	end by dinesh tawade
+                	if(!empty($this->request->data)){//debug($this->request->data);exit;
+    	        	if($this->request->data['hub']){
+    	        		if($this->request->data['hub']['photo']['name']){
+    				//creating runtime image name
+    				$original_image_extension  = explode(".",$this->request->data['hub']['photo']['name']);
+    				if(!isset($original_image_extension[1])){
+    					$imagename= "person_".mktime().'.'.$original_image_extension[0];
+    				}else{
+    					$imagename= "person_".mktime().'.'.$original_image_extension[1];
+    				}
+    				if($this->request->data['hub']['photo']['error']){
+    					if($this->request->data['hub']['photo']['error']==1 ||
+    							$this->request->data['hub']['photo']['error'] ==2){
+    						$session->setFlash(__('Max file size 2MB exceeded,Please try again', true),array('class'=>'error'));
+    					}else{
+    						$session->setFlash(__('There is problem while uplaoding image,Please try again', true),array('class'=>'error'));
+    					}
+    				}else{
+    
+    					if($this->request->data['hub']['prev_photo']){
+    						$this->ImageUpload->removeFile($this->request->data['hub']['prev_photo'],'uploads/patient_images');
+    						$this->ImageUpload->removeFile($this->request->data['hub']['prev_photo'],'uploads/patient_images/thumbnail');
+    					}
+    						
+    					$showError = $this->ImageUpload->uploadFile($this->params,'photo','uploads/patient_images',$imagename);
+    				    					
+    					if(empty($showError)) {
+    						// making thumbnail of 100X100
+    						$this->ImageUpload->load($this->request->data['hub']['photo']['tmp_name']);
+    						$height=$width='100';
+    						$this->ImageUpload->resize($width,$height);
+    						$this->ImageUpload->save("uploads/patient_images/thumbnail/".$imagename);
+    						//set new image name to DB
+    						$person['photo']  = "'".$imagename."'" ;
+    						$patient['photo']  = "'".$imagename."'" ;
+    					}
+    				}
+    				if($patient){
+    					$this->Patient->updateAll($patient,array('Patient.id'=>$patientId));
+    				}
+    
+    				if($person){
+    					$this->Person->updateAll($person,array('Person.id'=>$personId));
+    				}
+    			}
+    		}
+    		/***************************While edit personal info**********************************/
+    		if($this->request->data['editInfo']){
+    		    $editData = [
+                                'Patient' => [
+                                    'id' => $patientId, // यदि अपडेट करना हो तो ID पास करें
+                                    'second_next_of_kin_name' => $this->request->data['editInfo']['second_next_of_kin_name'],
+                                    'second_next_of_kin_mobile' => $this->request->data['editInfo']['second_next_of_kin_mobile'],
+                                    'allergy' => $this->request->data['editInfo']['allergy'],
+                                    'diagnosis' => $this->request->data['editInfo']['diagnosis'],
+                                    'plot_no' => $this->request->data['editInfo']['plot_no'],
+                                    'landmark' => $this->request->data['editInfo']['landmark'],
+                                    'chronic_conditions' => $this->request->data['editInfo']['chronic_conditions'],
+                                    'email' => $this->request->data['editInfo']['email'],
+                                    'current_medication' => $this->request->data['editInfo']['current_medication'],
+                                    'known_medical_conditions' => $this->request->data['editInfo']['known_medical_conditions'],
+                                    'share_info' => $this->request->data['editInfo']['share_info'],
+                                    'insurance_information' => $this->request->data['editInfo']['insurance_information'],
+                                    'preferred_hospital' => $this->request->data['editInfo']['preferred_hospital'],
+                                    'language_preference' => $this->request->data['editInfo']['language_preference'],
+                                    'organ_donor_status' => $this->request->data['editInfo']['organ_donor_status'],
+                                    'dnr_order' => $this->request->data['editInfo']['dnr_order'],
+                                ],
+                                'Person' => [
+                                    'id' => $personId, // अगर Person डेटा भी अपडेट करना हो
+                                      'second_next_of_kin_name' => $this->request->data['editInfo']['second_next_of_kin_name'],
+                                    'second_next_of_kin_mobile' => $this->request->data['editInfo']['second_next_of_kin_mobile'],
+                                    'allergy' => $this->request->data['editInfo']['allergy'],
+                                    'diagnosis' => $this->request->data['editInfo']['diagnosis'],
+                                    'plot_no' => $this->request->data['editInfo']['plot_no'],
+                                    'landmark' => $this->request->data['editInfo']['landmark'],
+                                    'chronic_conditions' => $this->request->data['editInfo']['chronic_conditions'],
+                                    'email' => $this->request->data['editInfo']['email'],
+                                    'current_medication' => $this->request->data['editInfo']['current_medication'],
+                                    'known_medical_conditions' => $this->request->data['editInfo']['known_medical_conditions'],
+                                    'share_info' => $this->request->data['editInfo']['share_info'],
+                                    'insurence_information' => $this->request->data['editInfo']['insurence_information'],
+                                    'preferred_hospital' => $this->request->data['editInfo']['preferred_hospital'],
+                                    'language_preference' => $this->request->data['editInfo']['language_preference'],
+                                    'organ_donor_status' => $this->request->data['editInfo']['organ_donor'],
+                                    'dnr_order' => $this->request->data['editInfo']['dnr'],ें
+                                ],
+                            ];
+    		  $this->Person->saveAll($editData);
+    		  //debug(($editData));exit;
+    			if($this->Patient->editInfo($this->request->data['editInfo'],$patientId,$personId)){
+    			 //   debug($this->Patient->editInfo);exit;
+    				$this->Session->setFlash(__('Details updated!', true),true);
+    				$this->redirect(array('action'=>'new_patient_hub',$patientId,$personId));
+    			}else{
+    				$this->Session->setFlash(__('There is problem while saving data,Please try again', true),true,array('class'=>'error'));
+    				$this->redirect(array('action'=>'new_patient_hub',$patientId,$personId));
+    			}
+    		}
+    		/*******EOF Info edit*****************************************************************/
+    	}
+    	if(empty($personId) && !empty($patientId)){
+    		$personId=$this->Patient->getPatientPersonId($patientId);
+    		$this->redirect(array('action'=>'new_patient_hub',$patientId,$personId));
+    	}
+    	
+    	
+    	
+    	
+        if($patientId){        	
+        	$this->loadModel('TariffStandard');
+	    	$this->set('tariffStandard',$this->TariffStandard->getAllTariffStandard());
+	    	$this->loadModel('Patient');
+	    	$personVist=$this->Patient->visitInfo($personId,$patientId);
+	    
+	    	$getPatientDetails  = $this->Person->getPersonDetailsByID($personId);
+	    	$this->set('getPatientDetails',$getPatientDetails);
+	    	$formatted_address = $this->Patient->setAddressFormat($getPatientDetails['Person']);
+	    	$this->set('formatted_address',$formatted_address);
+	    	$this->patient_info($patientId);
+	    	$this->set('personVisits',$personVist);
+	    	$this->loadModel('User');
+	    	$this->set('doctors',$this->User->getDoctorsByLocation());
+        }
+    
+    }
+    
+    /**
+     * Function that redirect to patient hub with its latest encounter id
+     * @param unknown_type $patient_id
+     * @param unknown_type $personId
+     */
+    function getLatestEncounter($patient_id,$personId){
+    	$this->loadModel('Patient');
+    	$patientId=$this->Patient->getPersonLastEncounter($personId);
+    	$this->redirect(array('action'=>'new_patient_hub',$patientId,$personId));
+    }
+    
+    /**
+     * function to get sticker admission ID
+     * @param unknown_type $patientId
+     * Mrunal Matey
+     */
+    public function patient_sticker_id($patientId){
+    	$this->layout = false;
+    	$this->uses = array('Patient');
+    	$patient_admission_id = $this->Patient->find('first',array(
+    			'fields'=>array('Patient.id','Patient.file_number','Patient.admission_id','Patient.lookup_name','Patient.admission_id_qrcode'),
+    			'conditions'=>array('Patient.id'=>$patientId)
+    	));
+    	$this->set('getAdmissionQr',$patient_admission_id);
+    }      
+    /*
+    * function to update the flag use_duplicate_sales on patient
+    *  used to use the charges of original pharmacy sales bill or duplicate sales bills on billing and invoices
+    */
+    public function updateUseDuplicateCharges($patientId,$status){
+        $this->autoRender = false; 
+        $this->loadModel('Patient');
+        $this->Patient->id = $patientId;
+        $this->Patient->saveField('use_duplicate_sales',$status); 
+        exit;
+    }
+    
+    //function to return search data of lab,radiology and services
+    // function getRefferalDoctor($doctorType=null){
+    // 	$this->layout = 'ajax' ;
+    // 	$this->loadModel('Consultant');
+    // 	$this->loadModel('DoctorProfile');
+    // 	$searchKey = $this->params->query['term'] ;
+    // 	$conditions["Consultant.first_name like"] = $searchKey.'%';
+    	
+    // 	$doctorlist=array();
+    // 	$mergeArray=array();
+    // 	if($doctorType == 4) {
+    // 		$doctorlist=$this->DoctorProfile->getRegistrar();
+    // 		$mergeArray = array('None'=>'None')+$doctorlist;
+    // 	} else if($doctorType==7){
+    // 			$CampDate= $this->Consultant->find('list', array('fields'=> array('id', 'camp_date'),'conditions' => array('Consultant.is_deleted' => 0, 'Consultant.refferer_doctor_id' => $doctorType, 'Consultant.location_id' => $this->Session->read('locationid')),'order'=>array('Consultant.id'),'limit'=>Configure::read('number_of_rows')));
+    // 			foreach($CampDate as $key => $val){
+    // 				$doctorlist[$key] = $this->DateFormat->formatDate2Local($val,Configure::read('date_format'),false);
+    // 				}
+    // 		$mergeArray = array('None'=>'None')+$doctorlist;
+    // 	}else{
+    // 		$doctorlist= $this->Consultant->find('list', array('fields'=> array('id', 'full_name'),'conditions' => array($conditions,'Consultant.is_deleted' => 0, 'Consultant.refferer_doctor_id' => $doctorType, 'Consultant.location_id' => $this->Session->read('locationid')),'order'=>array('Consultant.full_name'),'limit'=>Configure::read('number_of_rows')));
+    // 		$mergeArray = array('None'=>'None')+$doctorlist;
+    // 	} 
+    // 	foreach ($mergeArray as $key=>$value) {
+    // 		$returnArray[] = array('id'=>$key,'value'=>$value) ;
+    // 	}
+    // 	echo json_encode($returnArray) ;
+    // 	exit;
+    // }
+    
+    function getRefferalDoctor($doctorType = null) {
+		$this->layout = 'ajax';
+		$this->loadModel('Consultant');
+		$this->loadModel('DoctorProfile');
+	
+		$searchKey = $this->params->query['term'];
+		$conditions["Consultant.first_name like"] = $searchKey . '%';
+	
+		$doctorlist = array();
+		$mergeArray = array();
+	
+		if ($doctorType == 4) {
+			$doctorlist = $this->DoctorProfile->getRegistrar();
+			$mergeArray = array('None' => ['id' => 'None', 'value' => 'None', 'market_team' => '']);
+		} else {
+			$doctorlist = $this->Consultant->find('all', array(
+				'fields' => array('id', 'full_name', 'market_team'),
+				'conditions' => array(
+					$conditions,
+					'Consultant.is_deleted' => 0,
+					'Consultant.refferer_doctor_id' => $doctorType,
+					'Consultant.location_id' => $this->Session->read('locationid')
+				),
+				'order' => array('Consultant.full_name'),
+				'limit' => Configure::read('number_of_rows')
+			));
+	
+			foreach ($doctorlist as $doctor) {
+				$mergeArray[$doctor['Consultant']['id']] = [
+					'id' => $doctor['Consultant']['id'],
+					'value' => $doctor['Consultant']['full_name'],
+					'market_team' => $doctor['Consultant']['market_team']
+				];
+			}
+		}
+	
+		echo json_encode(array_values($mergeArray));
+		exit;
+	}
+// 	code add by dinesh tawade
+    
+    function getAssigenedRefferalDoctor($patientId,$reffeType){
+    	$this->layout = 'ajax' ;
+    	$this->autoRender = false;
+    	$this->loadModel('Consultant');
+    	$this->loadModel('Patient');
+    	$consultantId = $this->Patient->find('first',array('fields'=>array('Patient.id','Patient.consultant_id'),'conditions'=>array('Patient.id'=>$patientId,'Patient.is_deleted'=>0)));
+    	$consuIdarr = unserialize($consultantId['Patient']['consultant_id']);
+    	if($reffeType == '7'){ // 7 for camp details
+    		$CampDate = $this->Consultant->find('list',array('fields'=>array('Consultant.id','Consultant.camp_date'),'conditions'=>array('Consultant.id'=>$consuIdarr,'Consultant.refferer_doctor_id'=>$reffeType,'Consultant.is_deleted'=>0)));
+    		foreach($CampDate as $key => $val){
+    			$consultantDetails[$key] = $this->DateFormat->formatDate2Local($val,Configure::read('date_format'),false);
+    		}
+    	}else{
+    		$consultantDetails = $this->Consultant->find('list',array('fields'=>array('id','full_name'),'conditions'=>array('Consultant.id'=>$consuIdarr,'Consultant.refferer_doctor_id'=>$reffeType,'Consultant.is_deleted'=>0)));
+    	}
+    	echo json_encode($consultantDetails) ;
+    	exit;
+    }
+    public function progressNotes($patientID,$Id=null){
+		$this->uses  = array('Appointment','TariffAmount','Patient','Progresstbl','ServiceCategory');
+		$this->layout = 'advance_ajax' ;
+		$rgjayPackage = $this->ServiceCategory->getServiceGroupIdFromAlias('RGJAY Package');
+		$this->Patient->unBindModel(array(
+				'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+		$this->Patient->bindModel(array(
+				'belongsTo' => array(
+						'Diagnosis' =>array('foreignKey'=>false,'conditions'=>array('Patient.id=Diagnosis.patient_id')),
+						'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+						'Room' =>array('foreignKey' => false,'conditions'=>array('Room.id=Patient.room_id' )),
+						'Ward' =>array('foreignKey' => false,'conditions'=>array('Ward.id=Patient.ward_id' )),
+						'TariffStandard' =>array('foreignKey' => false,'conditions'=>array('TariffStandard.id =Patient.tariff_standard_id')),
+							'ServiceBill' =>array('foreignKey' => false,'conditions'=>array('ServiceBill.patient_id =Patient.id','ServiceBill.service_id='.$rgjayPackage)),
+							'TariffList' =>array('foreignKey' => false,'conditions'=>array('TariffList.id =ServiceBill.tariff_list_id')),
+
+				)));
+		$result = $this->Patient->find('first',array('fields'=>array('Patient.id','Patient.age','Patient.sex','Patient.lookup_name','Patient.admission_id','Patient.remark','Patient.treatment_type','Patient.tariff_standard_id','Diagnosis.final_diagnosis','Room.name','Ward.name','TariffList.name'),'conditions'=>array('Patient.id'=>$patientID))) ;
+		$this->set('result',$result);
+		$this->set('patientID',$patientID);
+
+		$noteList=$this->Progresstbl->find('list',array('fields'=>array('id','date_of_seen'),'conditions'=>array('patient_id'=>$patientID),'order'=>array('id DESC')));
+		$this->set('noteList',$noteList);
+
+		if(!empty($Id)){
+			$noteData=$this->Progresstbl->find('first',array('conditions'=>array('id'=>$Id),'order'=>array('id DESC')));
+			$this->set('noteData',$noteData);
+		}
+
+		
+		if(isset($this->request->data) && !empty($this->request->data)){
+			$datetimeExp=explode(' ',$this->request->data['date_of_seen']);
+			$expDateData=explode('/',$datetimeExp['0']);
+			$dateOfSeen=$expDateData['2']."-".$expDateData['1']."-".$expDateData['0']." ".$datetimeExp['1'];
+			
+			$arry['Progresstbl']=$this->request->data;
+			$arry['Progresstbl']['patient_id']=$patientID;
+			$arry['Progresstbl']['date_of_seen']=$dateOfSeen;
+			
+			if($this->Progresstbl->save($arry['Progresstbl'])){
+				unset($this->request->data);
+				$this->Session->setFlash(__('Record Saved Successfully..', true));
+				$this->redirect(array("controller" => "Patients", "action" => "progressNotes",$patientID));
+			}else{
+				$this->Session->setFlash(__('Failed...', true));
+			}
+			
+		}
+    }
+
+    public function ajaxProgressView($patientID,$id){
+		$this->uses  = array('Appointment','TariffAmount','Patient','Progresstbl','ServiceCategory');
+		$this->layout = 'advance_ajax' ;
+		$rgjayPackage = $this->ServiceCategory->getServiceGroupIdFromAlias('RGJAY Package');
+		$this->Patient->unBindModel(array(
+				'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+		$this->Patient->bindModel(array(
+				'belongsTo' => array(
+						'Diagnosis' =>array('foreignKey'=>false,'conditions'=>array('Patient.id=Diagnosis.patient_id')),
+						'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id' )),
+						'Room' =>array('foreignKey' => false,'conditions'=>array('Room.id=Patient.room_id' )),
+						'Ward' =>array('foreignKey' => false,'conditions'=>array('Ward.id=Patient.ward_id' )),
+						'TariffStandard' =>array('foreignKey' => false,'conditions'=>array('TariffStandard.id =Patient.tariff_standard_id')),
+							'ServiceBill' =>array('foreignKey' => false,'conditions'=>array('ServiceBill.patient_id =Patient.id','ServiceBill.service_id='.$rgjayPackage)),
+							'TariffList' =>array('foreignKey' => false,'conditions'=>array('TariffList.id =ServiceBill.tariff_list_id')),
+
+				)));
+		$result = $this->Patient->find('first',array('fields'=>array('Patient.id','Patient.age','Patient.sex','Patient.lookup_name','Patient.admission_id','Patient.remark','Patient.treatment_type','Patient.tariff_standard_id','Diagnosis.final_diagnosis','Room.name','Ward.name','TariffList.name'),'conditions'=>array('Patient.id'=>$patientID))) ;
+		$this->set('result',$result);
+		$this->set('patientID',$patientID);
+
+		$noteData=$this->Progresstbl->find('first',array('conditions'=>array('id'=>$id),'order'=>array('id DESC')));
+		$this->set('noteData',$noteData);
+    }
+
+    public function admissionNotes($patientID,$noteID){
+    	$this->uses=array('Note','Admissionnote','Patient');
+    	$this->layout="advance";
+    	if(isset($this->request->data) && !empty($this->request->data)){
+    		$data['Admissionnote']=$this->request->data['admissionNote'];
+    		if($this->Admissionnote->save($data)){
+    			$this->Session->setFlash(__('Note Added Successfully...', true),true,array('class'=>'message'));
+    		}else{
+    			$this->Session->setFlash(__('Note Not Added...', true),true,array('class'=>'error'));
+			}
+    		$this->redirect($this->referer());
+    	}else{
+    		$this->Patient->unBindModel(array(
+							'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+			$this->Patient->bindModel(array(
+				'belongsTo' => array(
+						'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id')),
+						'Appointment' =>array('foreignKey' => false,'conditions'=>array('Appointment.patient_id=Patient.id')),
+			)));
+			
+			$getElement=$this->Patient->find('first',array('fields'=>array('Appointment.date','Appointment.start_time','Person.id','Person.create_time','Person.sex','Person.age','Person.preferred_language','Person.language','Person.email','Person.photo','Person.phvs_visit_id','Patient.person_id','Appointment.visit_type','Patient.patient_id','Patient.id','Patient.tariff_standard_id','Patient.lock','Patient.form_received_on','Person.patient_uid','Patient.admission_id','Patient.lookup_name','Person.dob','Patient.doctor_id','Patient.admission_type','Patient.tariff_standard_id'),'conditions'=>array('Patient.id'=>$patientID)));
+    		
+    		$data=$this->Admissionnote->find('first',array('conditions'=>array('patient_id'=>$patientID,'note_id'=>$noteID)));
+    		$this->set('getElement',$getElement);
+    		$this->set('dataNote',$data);
+    		$this->set('patientID',$patientID);
+    		$this->set('noteID',$noteID);
+    	}
+    }
+
+    public function admissionNotesPrint($patientID,$noteID){
+    	$this->uses=array('Note','Admissionnote','Patient');
+    	$this->Patient->unBindModel(array(
+							'hasMany' => array('PharmacySalesBill','InventoryPharmacySalesReturn')));
+			$this->Patient->bindModel(array(
+				'belongsTo' => array(
+						'Person' =>array('foreignKey' => false,'conditions'=>array('Person.id=Patient.person_id')),
+						'Appointment' =>array('foreignKey' => false,'conditions'=>array('Appointment.patient_id=Patient.id')),
+			)));
+			
+			$getElement=$this->Patient->find('first',array('fields'=>array('Appointment.date','Appointment.start_time','Person.id','Person.create_time','Person.sex','Person.age','Person.preferred_language','Person.language','Person.email','Person.photo','Person.phvs_visit_id','Patient.person_id','Appointment.visit_type','Patient.patient_id','Patient.id','Patient.tariff_standard_id','Patient.lock','Patient.form_received_on','Person.patient_uid','Patient.admission_id','Patient.lookup_name','Person.dob','Patient.doctor_id','Patient.admission_type','Patient.tariff_standard_id'),'conditions'=>array('Patient.id'=>$patientID)));
+    		
+    		$data=$this->Admissionnote->find('first',array('conditions'=>array('patient_id'=>$patientID,'note_id'=>$noteID)));
+    		$this->set('getElement',$getElement);
+    		$this->set('dataNote',$data);
+    		$this->set('patientID',$patientID);
+    		$this->set('noteID',$noteID);
+
+    }
+
+    function addCovidPackages($patientId){
+    	$this->uses=array('Patient','User','PatientCovidPackage');
+    	$this->layout="advance";
+
+    	if(isset($this->request->data) && !empty($this->request->data)){
+    		$requestData = $this->request->data['PatientCovidPackage'];
+    		$requestData['package_start_date'] = $this->DateFormat->formatDate2STD($requestData['package_start_date'],Configure::read('date_format'));
+    		$requestData['package_end_date'] = $this->DateFormat->formatDate2STD($requestData['package_end_date'],Configure::read('date_format'));
+    		$requestData['package_days'] = $this->DateFormat->getNoOfDays($requestData['package_start_date'],$requestData['package_end_date']);
+    		$requestData['radiology_investigation'] = implode("|",$requestData['radiology_investigation']);
+    		$requestData['create_time'] = date('Y-m-d H:i:s');
+
+    		if($this->PatientCovidPackage->save($requestData)){
+    			$this->Session->setFlash(__('Package Added Successfully...', true),true,array('class'=>'message'));
+    		}else{
+    			$this->Session->setFlash(__('Something Went Wrong ! Please Try Again', true),true,array('class'=>'error'));
+			}
+    		$this->redirect($this->referer());
+    	}else{
+	    	$patientData=$this->Patient->find('first',array('fields'=>array('Patient.id','Patient.person_id','Patient.age','Patient.sex','Patient.dob','Patient.lookup_name','Patient.patient_id','Patient.admission_id','Patient.admission_type','Patient.form_received_on'),'conditions'=>array('Patient.id'=>$patientId)));
+
+	    	$doctorList = $this->User->getAllDoctorList();
+
+	    	$packageList = $this->PatientCovidPackage->find('all',array('conditions'=>array('PatientCovidPackage.patient_id'=>$patientId),'order'=>array('PatientCovidPackage.create_time'=>'ASC')));
+
+	    	$this->set(array('patientData'=>$patientData,'doctorList'=>$doctorList,'packageList'=>$packageList));
+    	}
+    }
+
+    function delete_covid_package($id){
+    	$this->uses=array('PatientCovidPackage');
+    	if (!$id) {
+			$this->Session->setFlash(__('Invalid ID'),'default',array('class'=>'error'));
+			$this->redirect($this->referer());
+		}
+		if ($this->PatientCovidPackage->delete($id)) {
+			$this->Session->setFlash(__('Record deleted successfully'),'default',array('class'=>'message'));
+			$this->redirect($this->referer());
+		}
+
+    }
+    function claim_submission_checklist($patientId,$type=null){
+
+    	$this->uses=array('Patient','User','ClaimSubmissionChecklist');
+    	$this->layout="advance";
+
+    	if(isset($this->request->data) && !empty($this->request->data)){
+    		
+    		$requestData = $this->request->data['ClaimSubmissionChecklist'];
+    		$requestData['admission_date'] = $this->DateFormat->formatDate2STD($requestData['admission_date'],Configure::read('date_format'));
+    		$requestData['discharge_date'] = $this->DateFormat->formatDate2STD($requestData['discharge_date'],Configure::read('date_format'));
+
+    		$requestData['checklist'] = serialize($requestData['checklist']);
+    		$requestData['created_by'] = $this->Session->read('userid');;
+    		$requestData['create_time'] = date('Y-m-d H:i:s');
+    		
+    		if($this->ClaimSubmissionChecklist->save($requestData)){
+    			$this->Session->setFlash(__('Record Added Successfully...', true),true,array('class'=>'message'));
+    		}else{
+    			$this->Session->setFlash(__('Something Went Wrong ! Please Try Again', true),true,array('class'=>'error'));
+			}
+    		$this->redirect($this->referer());
+    	}else{
+	    	$patientData=$this->Patient->find('first',array('fields'=>array('Patient.id','Patient.person_id','Patient.age','Patient.sex','Patient.dob','Patient.lookup_name','Patient.patient_id','Patient.admission_id','Patient.admission_type','Patient.form_received_on'),'conditions'=>array('Patient.id'=>$patientId)));
+
+	    
+	    	$checkList = $this->ClaimSubmissionChecklist->find('first',array('conditions'=>array('ClaimSubmissionChecklist.patient_id'=>$patientId)));
+
+
+	    	$this->set(array('patientData'=>$patientData,'checkList'=>$checkList));
+
+	    	if($type=='print'){
+	    		$this->layout = 'print' ;
+	    		$this->render('claim_submission_checklist_print');
+	    	}
+    	}
+    }
+
+    function niv_treatment_sheet($patientId,$type=null){
+
+    	$this->uses=array('Patient','NivTreatmentSheet');
+    	$this->layout="advance";
+
+    	if(isset($this->request->data) && !empty($this->request->data)){
+
+    		$requestData = $this->request->data['NivTreatmentSheet'];
+    		$requestData['admission_date'] = $this->DateFormat->formatDate2STD($requestData['admission_date'],Configure::read('date_format'));
+    		$requestData['report_date'] = $this->DateFormat->formatDate2STD($requestData['report_date'],Configure::read('date_format'));
+
+    		$requestData['niv_details'] = serialize($requestData['niv_details']);
+    		$requestData['created_by'] = $this->Session->read('userid');;
+    		$requestData['create_time'] = date('Y-m-d H:i:s');
+    		
+    		if($this->NivTreatmentSheet->save($requestData)){
+    			$this->Session->setFlash(__('Record Added Successfully...', true),true,array('class'=>'message'));
+    		}else{
+    			$this->Session->setFlash(__('Something Went Wrong ! Please Try Again', true),true,array('class'=>'error'));
+			}
+    		$this->redirect($this->referer());
+    	}else{
+	    	$patientData=$this->Patient->find('first',array('fields'=>array('Patient.id','Patient.person_id','Patient.age','Patient.sex','Patient.dob','Patient.lookup_name','Patient.patient_id','Patient.admission_id','Patient.admission_type','Patient.form_received_on','Patient.discharge_date'),'conditions'=>array('Patient.id'=>$patientId)));
+
+	    
+	    	$nivDetails = $this->NivTreatmentSheet->find('all',array('conditions'=>array('NivTreatmentSheet.patient_id'=>$patientId)));
+
+	    	$this->set(array('patientData'=>$patientData,'nivDetails'=>$nivDetails));
+
+	    	if($type=='print'){
+	    		$this->layout = 'print' ;
+	    		$this->render('claim_submission_checklist_print');
+	    	}
+    	}
+    	
+    }
+
+      function delete_niv_treatment_sheet($id){
+    	$this->uses=array('NivTreatmentSheet');
+    	if (!$id) {
+			$this->Session->setFlash(__('Invalid ID'),'default',array('class'=>'error'));
+			$this->redirect($this->referer());
+		}
+		if ($this->NivTreatmentSheet->delete($id)) {
+			$this->Session->setFlash(__('Record deleted successfully'),'default',array('class'=>'message'));
+			$this->redirect($this->referer());
+		}
+
+    }
+
+    function print_niv_treatment_sheet($id){
+    	$this->layout= 'print';
+    	$this->uses=array('NivTreatmentSheet','Patient');
+
+    
+
+    	$this->NivTreatmentSheet->bindModel(array(
+				'belongsTo' => array(
+						'Patient' =>array('foreignKey' => false,'conditions'=>array('Patient.id=NivTreatmentSheet.patient_id')),
+						
+			)));
+			
+
+    	$nivDetails = $this->NivTreatmentSheet->find('first',array('fields'=>array('NivTreatmentSheet.*','Patient.id','Patient.person_id','Patient.age','Patient.sex','Patient.dob','Patient.lookup_name','Patient.patient_id','Patient.admission_id','Patient.admission_type','Patient.form_received_on'),'conditions'=>array('NivTreatmentSheet.id'=>$id)));
+
+    	$this->set(array('nivDetails'=>$nivDetails));
+    }
+
+    function hospital_stay_certificate($patientId,$type=null){
+    	$this->uses=array('Patient','User','HospitalStayCertificate','PatientCovidPackage');
+    	$this->layout="advance";
+
+    	if(isset($this->request->data) && !empty($this->request->data)){
+    		
+    		$requestData = $this->request->data['HospitalStayCertificate'];
+    		
+    		$requestData['patient_id'] = $requestData['patient_id'] ;
+    		$requestData['stay_info'] = serialize($this->request->data['StayInfo']);
+    		$requestData['created_by'] = $this->Session->read('userid');;
+    		$requestData['create_time'] = date('Y-m-d H:i:s');
+
+    		
+    		if($this->HospitalStayCertificate->save($requestData)){
+    			$this->Session->setFlash(__('Record Added Successfully...', true),true,array('class'=>'message'));
+    		}else{
+    			$this->Session->setFlash(__('Something Went Wrong ! Please Try Again', true),true,array('class'=>'error'));
+			}
+    		$this->redirect($this->referer());
+    	}else{
+	    	$this->patient_info($patientId);
+
+	    	$personId = $this->Patient->find('first',array('fields'=>array('Patient.person_id'),'conditions'=>array('Patient.id'=>$patientId)));
+	    	$patient_details  = $this->Person->getPersonDetailsByID($personId['Patient']['person_id']);
+	    	$formatted_address = $this->Patient->setAddressFormat($patient_details['Person']);
+	    	
+	    	$stayData = $this->HospitalStayCertificate->find('first',array('conditions'=>array('HospitalStayCertificate.patient_id'=>$patientId)));
+
+	    	$packageList = $this->PatientCovidPackage->find('all',array('conditions'=>array('PatientCovidPackage.patient_id'=>$patientId),'order'=>array('PatientCovidPackage.create_time'=>'ASC')));
+	    	
+	    	$customArray = array();
+	    	foreach ($packageList as $key => $value) {
+	    		$customArray[$value['PatientCovidPackage']['package_cost']]['rate'] = $value['PatientCovidPackage']['package_cost'] ;
+	    		$customArray[$value['PatientCovidPackage']['package_cost']]['qty'] += $value['PatientCovidPackage']['package_days'] ;
+	    	}
+
+
+	    	$this->set(array('stayData'=>$stayData,'customArray'=>$customArray,'formatted_address'=>$formatted_address));
+
+	    	if($type=='print'){
+	    		$this->layout = 'print' ;
+	    		$this->render('hospital_stay_certificate_print');
+	    	}
+    	}
+    }
+
+
+     function annexure_b($patientId,$type=null){
+    	$this->uses=array('Patient','User','AnnexureBDetail');
+    	$this->layout="advance";
+
+    	if(isset($this->request->data) && !empty($this->request->data)){
+    		#debug($this->request->data);exit;
+    		$requestData = $this->request->data['AnnexureBDetail'];
+    		
+    		$requestData['patient_id'] = $requestData['patient_id'] ;
+    		$requestData['annexure_detail'] = serialize($this->request->data['Annexure']);
+    		$requestData['created_by'] = $this->Session->read('userid');;
+    		$requestData['create_time'] = date('Y-m-d H:i:s');
+
+    		
+    		if($this->AnnexureBDetail->save($requestData)){
+    			$this->Session->setFlash(__('Record Added Successfully...', true),true,array('class'=>'message'));
+    		}else{
+    			$this->Session->setFlash(__('Something Went Wrong ! Please Try Again', true),true,array('class'=>'error'));
+			}
+    		$this->redirect($this->referer());
+    	}else{
+	    	$this->patient_info($patientId);
+
+	    
+	    	$stayData = $this->AnnexureBDetail->find('first',array('conditions'=>array('AnnexureBDetail.patient_id'=>$patientId)));
+
+
+	    	$this->set(array('stayData'=>$stayData));
+
+	    	if($type=='print'){
+	    		$this->layout = 'print' ;
+	    		$this->render('annexure_b_print');
+	    	}
+    	}
+    }
+
+    function annexure_cd_form($patientId,$type=null){
+    	$this->uses=array('Patient','User','AnnexureCDDetail','PatientCovidPackage','LaboratoryTestOrder','RadiologyTestOrder','Servicebill','PharmacySalesBill');
+    	$this->layout="advance";
+
+    	if(isset($this->request->data) && !empty($this->request->data)){
+    		#debug($this->request->data);exit;
+    		$requestData = $this->request->data['AnnexureCDDetail'];
+    		
+    		$requestData['patient_id'] = $requestData['patient_id'] ;
+    		$requestData['annexure_c_detail'] = serialize($this->request->data['AnnexureC']);
+    		$requestData['annexure_d_detail'] = serialize($this->request->data['AnnexureD']);
+    		$requestData['created_by'] = $this->Session->read('userid');;
+    		$requestData['create_time'] = date('Y-m-d H:i:s');
+
+    		
+    		if($this->AnnexureCDDetail->save($requestData)){
+    			$this->Session->setFlash(__('Record Added Successfully...', true),true,array('class'=>'message'));
+    		}else{
+    			$this->Session->setFlash(__('Something Went Wrong ! Please Try Again', true),true,array('class'=>'error'));
+			}
+    		$this->redirect($this->referer());
+    	}else{
+	    	$this->patient_info($patientId);
+
+	    	$personId = $this->Patient->find('first',array('fields'=>array('Patient.person_id'),'conditions'=>array('Patient.id'=>$patientId)));
+	    	$patient_details  = $this->Person->getPersonDetailsByID($personId['Patient']['person_id']);
+	    	$formatted_address = $this->Patient->setAddressFormat($patient_details['Person']);
+	    	$stayData = $this->AnnexureCDDetail->find('first',array('conditions'=>array('AnnexureCDDetail.patient_id'=>$patientId)));
+
+
+
+			$this->PatientCovidPackage->bindModel(array(
+						'belongsTo' => array(
+								'User' =>array('foreignKey' => false,'conditions'=>array('User.id=PatientCovidPackage.doctor_id' )),
+						)),false);
+
+			$packageList = $this->PatientCovidPackage->find('all',array('fields'=>array('PatientCovidPackage.*','User.first_name','User.last_name'),'conditions'=>array('PatientCovidPackage.patient_id'=>$patientId),'order'=>array('PatientCovidPackage.package_cost'=>'ASC')));
+
+			$firstArr= current($packageList);
+			$lastArr = end($packageList);
+
+			$firstDate = $firstArr['PatientCovidPackage']['package_start_date'] ;
+			$lastDate = $lastArr['PatientCovidPackage']['package_end_date'] ;
+
+			
+			$customArray = array();
+			$ppeCount = 0;
+
+			foreach ($packageList as $key => $value) {
+				$customArray[$value['PatientCovidPackage']['package_cost']] = $value ;
+				$ppeCount+= $value['PatientCovidPackage']['ppe_count'];
+			}
+			
+
+			$this->PharmacySalesBill->unBindModel(array('hasMany' => array('PharmacySalesBillDetail')));
+			
+			$this->recursive = -1 ;
+			$pharmacySaleData= $this->PharmacySalesBill->find('all',array(
+					'fields'=> array('PharmacySalesBill.patient_id','PharmacySalesBill.corporate_super_bill_id','SUM(PharmacySalesBill.total) as pharmacyTotal',
+							'SUM(PharmacySalesBill.discount) as discount','SUM(PharmacySalesBill.paid_amnt) as paidAmt'),
+					'conditions'=>array('PharmacySalesBill.patient_id'=>$patientId,'PharmacySalesBill.is_deleted'=>0),
+					'group'=>array('PharmacySalesBill.patient_id')));
+
+			/*get lab details*/
+			
+			$labTestDetails = $this->LaboratoryTestOrder->getPatientWiseCharges($patientId);
+		
+			$radTestDetails = $this->RadiologyTestOrder->getPatientWiseCharges($patientId);
+			
+			$clinicalServices = $this->Servicebill->getPatientWiseCharges($patientId);
+
+
+	    	$this->set(array('stayData'=>$stayData,'formatted_address'=>$formatted_address,'firstDate'=>$firstDate,'lastDate'=>$lastDate,'customArray'=>$customArray,'ppeCount'=>$ppeCount,'labDataArray'=>$labTestDetails,'pharmacySaleData'=>$pharmacySaleData,'radDataArray'=>$radTestDetails,'clinicalServices'=>$clinicalServices));
+
+	    	if($type=='print'){
+	    		$this->layout = 'print' ;
+	    		$this->render('annexure_cd_print');
+	    	}
+		}
+    }
+    
+    public function callApi() {
+    $this->autoRender = false; // Disable view rendering
+
+    if ($this->request->is('post')) { // Only handle POST requests
+        $mobile = $this->request->data['mobile']; // Get mobile number from POST data
+
+        // Agent list
+        $agents = ['emer02', 'emer01', 'emer03', 'emer04', 'emer05'];
+        $url = 'http://117.247.52.42/smart/api/remote_action.php';
+        $params = [
+            'ACTION' => 'DIAL',
+            'campaign' => 'EMERGENCYSEVA',
+            'client_id' => '3455',
+            'phone' => $mobile,
+        ];
+
+        // Logging parameters for debugging
+        CakeLog::write('info', 'Parameters: ' . json_encode($params));
+
+        // Initialize agent status
+        $agentStatus = array_fill_keys($agents, false);
+        CakeLog::write('info', 'Initial Agent Statuses: ' . json_encode($agentStatus));
+
+        $successfulResponse = null;
+        $selectedAgent = null;
+
+        foreach ($agents as $agent) {
+            if (in_array(true, $agentStatus)) {
+                CakeLog::write('info', 'An agent is already busy. Skipping further calls.');
+                break;
+            }
+
+            if (!$agentStatus[$agent]) {
+                $agentStatus[$agent] = true; // Mark agent as busy
+                $params['agent'] = $agent;
+
+                CakeLog::write('info', "Attempting to call agent $agent.");
+
+                // API call using cURL
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url . '?' . http_build_query($params));
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                CakeLog::write('info', "Agent: $agent - Status Code: $httpCode");
+                CakeLog::write('info', "Agent: $agent - Response Body: $response");
+
+                if ($httpCode === 200 && trim($response) === 'Success to dial') {
+                    $successfulResponse = $response;
+                    $selectedAgent = $agent;
+                    CakeLog::write('info', "Call initiated successfully with agent $agent.");
+                    break;
+                } else {
+                    CakeLog::write('warning', "Failed to dial agent $agent. Response did not indicate success.");
+                    $agentStatus[$agent] = false; // Reset agent status
+                }
+            } else {
+                CakeLog::write('info', "Agent $agent is currently busy and was skipped.");
+            }
+        }
+
+        CakeLog::write('info', 'Final Agent Statuses: ' . json_encode($agentStatus));
+
+        // Send response back
+        if ($successfulResponse) {
+            echo json_encode([
+                'status' => 'success',
+                'message' => "Call has been initiated successfully with agent $selectedAgent",
+                'response' => $successfulResponse,
+            ]);
+        } else {
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'All agents are currently busy or unavailable.',
+            ]);
+        }
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
+    }
+}
+
+
+
+// public function ready_to_discharge($id)
+// {
+//     $this->loadModel('Person'); // Load the `persons` table model
+
+//     if ($this->request->is('post')) {
+//         $data = $this->request->data; // Fetch form data
+
+//         // Ensure `person_id` is provided
+//         if (!empty($data['Person']['id'])) {
+//             $personId = $data['Person']['id'];
+
+//             // Start a transaction
+//             $this->Person->begin();
+
+//             // Find the record in the `persons` table by ID
+//             $person = $this->Person->find('first', ['conditions' => ['Person.id' => $personId]]);
+
+//             if (!empty($person)) {
+//                 $person['Person']['next_visite_date'] = $data['Person']['next_visite_date'];
+//                 $person['Person']['next_visite_type'] = $data['Person']['next_visite_type'];
+//                 $person['Person']['purpose_of_visite'] = $data['Person']['purpose_of_visite'];
+//                 $person['Person']['budget'] = $data['Person']['budget'];
+//                 $person['Person']['ready_to_fetch'] = 1;
+//                 if ($this->Person->save($person)) {
+                
+                
+//                     $this->Person->commit(); 
+//                     $this->Session->setFlash(__('Data saved successfully.'), 'default', ['class' => 'success']);
+
+//                     return $this->redirect($this->referer());
+//                 } else {
+//                     $this->Person->rollback(); 
+//                     $this->Session->setFlash(__('Failed to save data. Please try again.'), 'default', ['class' => 'error']);
+//                 }
+//             } else {
+//                 $this->Session->setFlash(__('Person not found. Please try again.'), 'default', ['class' => 'error']);
+//             }
+//         } else {
+//             $this->Session->setFlash(__('Person ID is missing. Please try again.'), 'default', ['class' => 'error']);
+//         }
+//     }
+
+//     // No view file will be rendered
+//     return $this->redirect($this->referer());
+// }
+// code by dinesh tawade Sr. Developer
+
+    public function ready_to_discharge($id)
+    {
+    	$this->uses = array('Person','Disposition');
+        $this->loadModel('Person'); 
+    	App::import('Vendor', 'DrmhopeDB', array('file' => 'DrmhopeDB.php'));
+    
+            if ($this->Session->read('db_name')) {
+                $db_connection = new DrmhopeDB($this->Session->read('db_name'));
+            } else {
+                $db_connection = new DrmhopeDB('db_hope');
+            }
+    
+            $db_connection->makeConnection($this->Disposition);
+    		$db_connection->makeConnection($this->Person);
+    
+        if ($this->request->is('post')) {
+            $data = $this->request->data; 
+            if (!empty($data['Person']['id'])) {
+                $personId = $data['Person']['id'];
+                $this->Person->begin();
+    
+                $person = $this->Person->find('first', ['conditions' => ['Person.id' => $personId]]);
+    
+                if (!empty($person)) {
+                    $person['Person']['next_visite_date'] = $data['Person']['next_visite_date'];
+                    $person['Person']['next_visite_type'] = $data['Person']['next_visite_type'];
+                    $person['Person']['purpose_of_visite'] = $data['Person']['purpose_of_visite'];
+                    $person['Person']['budget'] = $data['Person']['budget'];
+                    $person['Person']['ready_to_fetch'] = 1;
+    
+    				$disposition = [
+    					'Disposition' => [
+    						'person_id' => $data['Person']['id'],
+    						'patient_id' => isset($this->request->data['Disposition']['patient_id']) ? 
+                                $this->request->data['Disposition']['patient_id'] : 'Not Set',
+    						'queue_date' => $data['Person']['next_visite_date'],
+    						'admission_type' => $data['Person']['next_visite_type'],
+    						'budget_amount' => $data['Person']['budget']
+    					]
+    				];
+    				
+    				// debug($disposition);exit;
+    				if ($this->Disposition->save($disposition) && $this->Person->save($person)) {
+                    // debug($disposition);
+    				// debug($person);exit;
+                    
+                        $this->Person->commit(); 
+                        $this->Session->setFlash(__('Data saved successfully.'), 'default', ['class' => 'success']);
+    
+                        return $this->redirect($this->referer());
+                    } else {
+                        $this->Person->rollback(); 
+                        $this->Session->setFlash(__('Failed to save data. Please try again.'), 'default', ['class' => 'error']);
+                    }
+                } else {
+                    $this->Session->setFlash(__('Person not found. Please try again.'), 'default', ['class' => 'error']);
+                }
+            } else {
+                $this->Session->setFlash(__('Person ID is missing. Please try again.'), 'default', ['class' => 'error']);
+            }
+        }
+    
+        // No view file will be rendered
+        return $this->redirect($this->referer());
+    }
+
+	public function surgery_text($id = null) {
+				$this->autoRender = false;					
+				if ($this->request->is('post')) {
+					$receivedData = $this->request->data; 
+					$surgeryText = isset($receivedData['surgery_text']) ? trim($receivedData['surgery_text']) : '';
+					$loggedInDatabase = $this->Session->read('db_name');				
+			
+					if (!$loggedInDatabase) {
+						echo json_encode(['status' => 'error', 'message' => 'No database selected.']);
+						exit;
+					}			
+					$this->loadModel('Patient'); 
+					$this->Patient->useDbConfig = $loggedInDatabase;
+					$this->Patient->id = $id;
+			
+					if ($this->Patient->exists() && !empty($surgeryText)) {
+						if ($this->Patient->saveField('surgery_text', $surgeryText)) {
+							echo json_encode(['status' => 'success', 'message' => 'Surgery text updated.']);
+						} else {
+							echo json_encode(['status' => 'error', 'message' => 'Update failed.']);
+						}
+					}
+				}
+				exit;
+			}
+
+
+ 
+}

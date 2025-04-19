@@ -1,0 +1,10 @@
+.filetree li.expandable span.folder {
+    background: url("../img/icons/external_folder.png") no-repeat scroll 0 0 rgba(0, 0, 0, 0);
+}
+.filetree span.file {
+    background: url("../img/icons/internal_folder.png") no-repeat scroll 0 0 rgba(0, 0, 0, 0);
+}
+
+.filetree span.folder {
+    background: url("../img/icons/external_folder.png") no-repeat scroll 0 0 rgba(0, 0, 0, 0);
+}

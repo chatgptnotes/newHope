@@ -1,0 +1,80 @@
+@media screen and (min-width: 1601px) and (max-width: 2560px) {
+    .dashboardDiv {
+        width: 1530px;
+        overflow-x: auto;
+    }
+    .PatientAddsubmitDivTop{
+        margin-right: 0; padding: 17px 0 19px 851px !important;
+    }
+    .patientAddTable{width: 70%;float:left;}
+}
+@media screen and (min-width: 1441px) and (max-width: 1600px) {
+    .dashboardDiv {
+        width: 1530px;
+        overflow-x: auto;
+    }
+    .PatientAddsubmitDivTop{
+        margin-right: 0; padding: 17px 0 19px 851px !important;
+    }
+    .patientAddTable{width: 70%;float:left;}
+}
+@media screen and (min-width: 1367px) and (max-width: 1440px) {
+    .dashboardDiv {
+        width: 1374px;
+        overflow-x: auto;
+    }
+    .PatientAddsubmitDivTop{
+        margin-right: 0; padding: 17px 0 19px 851px !important;
+    }
+    .patientAddTable{width: 70%;float:left;}
+}
+@media screen and (min-width: 1361px) and (max-width: 1366px) {
+    .dashboardDiv {
+        width: 1250px;
+        overflow-x: auto;
+    }
+    .PatientAddsubmitDivTop{
+        margin-right: 0; padding: 17px 0 19px 800px !important;
+    }
+    .patientAddTable{width: 70%;float:left;}
+}
+@media screen and (min-width: 1081px) and (max-width: 1360px) {
+    .dashboardDiv {
+        width: 1295px;
+        overflow-x: auto;
+    }
+    .PatientAddsubmitDivTop{
+        margin-right: 0; padding: 17px 0 19px 796px !important;
+    }
+    .patientAddTable{width: 70%;float:left;}
+}
+@media screen and (min-width: 1153px) and (max-width: 1280px) {
+    .dashboardDiv {
+        width: 1215px;
+        overflow-x: auto;
+    }
+    .PatientAddsubmitDivTop{
+        margin-right: 0; padding: 17px 0 19px 730px !important;
+    }
+    .patientAddTable{width: 70%;float:left;}
+}
+@media screen and (min-width: 1025px) and (max-width: 1152px) {
+    .dashboardDiv {
+        width: 1087px;
+        overflow-x: auto;
+    }
+    .PatientAddsubmitDivTop{
+        margin-right: 0; padding: 17px 0 19px 639px !important;
+    }
+    .patientAddTable{width: 70%;float:left;}
+}
+@media screen and (min-width: 768px) and (max-width: 1024px) {
+    .dashboardDiv {
+        width: 959px;
+        overflow-x: auto;
+    }
+    .PatientAddsubmitDivTop{
+        margin-right: 0; padding: 17px 0 19px 550px !important;
+    }
+    .patientAddTable{width: 90%;float:left;}
+}

@@ -1,0 +1,28 @@
+[17-Jan-2025 11:58:29 Asia/Calcutta] PHP Fatal error:  Class 'AppShell' not found in /home/olh9vcykd20h/public_html/app/Console/Command/BackupShell.php on line 7
+[17-Jan-2025 12:02:55 Asia/Calcutta] PHP Fatal error:  Class 'AppShell' not found in /home/olh9vcykd20h/public_html/app/Console/Command/BackupShell.php on line 7
+[17-Jan-2025 12:04:33 Asia/Calcutta] PHP Fatal error:  Class 'AppShell' not found in /home/olh9vcykd20h/public_html/app/Console/Command/BackupShell.php on line 7
+[17-Jan-2025 12:08:26 Asia/Calcutta] PHP Fatal error:  Class 'AppShell' not found in /home/olh9vcykd20h/public_html/app/Console/Command/BackupShell.php on line 7
+[17-Jan-2025 12:10:09 Asia/Calcutta] PHP Fatal error:  Class 'AppShell' not found in /home/olh9vcykd20h/public_html/app/Console/Command/BackupShell.php on line 7
+[17-Jan-2025 12:10:52 Asia/Calcutta] PHP Fatal error:  Class 'AppShell' not found in /home/olh9vcykd20h/public_html/app/Console/Command/BackupShell.php on line 7
+[17-Jan-2025 12:13:13 Asia/Calcutta] PHP Fatal error:  Class 'AppShell' not found in /home/olh9vcykd20h/public_html/app/Console/Command/BackupShell.php on line 7
+[17-Jan-2025 12:23:49 Asia/Calcutta] PHP Fatal error:  Class 'ZipArchive' not found in /home/olh9vcykd20h/public_html/app/Console/Command/BackupShell.php on line 58
+[17-Jan-2025 12:28:19 Asia/Calcutta] PHP Fatal error:  Class 'ZipArchive' not found in /home/olh9vcykd20h/public_html/app/Console/Command/BackupShell.php on line 65
+[17-Jan-2025 10:01:21 UTC] PHP Warning:  require_once(/home/olh9vcykd20h/public_html/app/webroot/../../vendor/autoload.php): failed to open stream: No such file or directory in /home/olh9vcykd20h/public_html/app/webroot/initGoogleDrive.php on line 2
+[17-Jan-2025 10:01:21 UTC] PHP Fatal error:  require_once(): Failed opening required '/home/olh9vcykd20h/public_html/app/webroot/../../vendor/autoload.php' (include_path='.:/opt/alt/php56/usr/share/pear:/opt/alt/php56/usr/share/php') in /home/olh9vcykd20h/public_html/app/webroot/initGoogleDrive.php on line 2
+[17-Jan-2025 10:02:08 UTC] PHP Warning:  require_once(/home/olh9vcykd20h/public_html/app/webroot/../../vendor/autoload.php): failed to open stream: No such file or directory in /home/olh9vcykd20h/public_html/app/webroot/initGoogleDrive.php on line 2
+[17-Jan-2025 10:02:08 UTC] PHP Fatal error:  require_once(): Failed opening required '/home/olh9vcykd20h/public_html/app/webroot/../../vendor/autoload.php' (include_path='.:/opt/alt/php56/usr/share/pear:/opt/alt/php56/usr/share/php') in /home/olh9vcykd20h/public_html/app/webroot/initGoogleDrive.php on line 2
+[17-Jan-2025 10:04:03 UTC] PHP Warning:  require_once(/home/olh9vcykd20h/public_html/app/webroot/../../vendor/autoload.php): failed to open stream: No such file or directory in /home/olh9vcykd20h/public_html/app/webroot/initGoogleDrive.php on line 2
+[17-Jan-2025 10:04:03 UTC] PHP Fatal error:  require_once(): Failed opening required '/home/olh9vcykd20h/public_html/app/webroot/../../vendor/autoload.php' (include_path='.:/opt/alt/php56/usr/share/pear:/opt/alt/php56/usr/share/php') in /home/olh9vcykd20h/public_html/app/webroot/initGoogleDrive.php on line 2
+[17-Jan-2025 10:07:28 UTC] PHP Fatal error:  Uncaught exception 'InvalidArgumentException' with message 'missing the required redirect URI' in /home/olh9vcykd20h/public_html/app/vendor/google/auth/src/OAuth2.php:685
+Stack trace:
+#0 /home/olh9vcykd20h/public_html/app/vendor/google/apiclient/src/Client.php(405): Google\Auth\OAuth2->buildFullAuthorizationUri(Array)
+#1 /home/olh9vcykd20h/public_html/app/webroot/initGoogleDrive.php(28): Google\Client->createAuthUrl()
+#2 {main}
+  thrown in /home/olh9vcykd20h/public_html/app/vendor/google/auth/src/OAuth2.php on line 685
+[17-Jan-2025 10:08:43 UTC] PHP Fatal error:  Uncaught exception 'InvalidArgumentException' with message 'missing the required redirect URI' in /home/olh9vcykd20h/public_html/app/vendor/google/auth/src/OAuth2.php:685
+Stack trace:
+#0 /home/olh9vcykd20h/public_html/app/vendor/google/apiclient/src/Client.php(405): Google\Auth\OAuth2->buildFullAuthorizationUri(Array)
+#1 /home/olh9vcykd20h/public_html/app/webroot/initGoogleDrive.php(28): Google\Client->createAuthUrl()
+#2 {main}
+  thrown in /home/olh9vcykd20h/public_html/app/vendor/google/auth/src/OAuth2.php on line 685
+[17-Jan-2025 10:33:54 UTC] PHP Warning:  file_get_contents(/path/to/your/backup.zip): failed to open stream: No such file or directory in /home/olh9vcykd20h/public_html/app/webroot/uploadToGoogleDrive.php on line 39

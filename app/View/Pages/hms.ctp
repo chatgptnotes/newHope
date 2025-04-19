@@ -1,0 +1,77 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<title>Hospital Management Software System Development with Cloud Computing  In India</title>
+<meta
+	name="description"
+	content="  DrMHope - India First Cloud based Hospital Management Software. Cloud / Saas Application For Hospital Management software to maintain the healthcare records of patient ,Hospital Management system Software In india ,Hospital Information system software India ,Hospital management Applications in the Cloud india,Web
+	 application for Hospital management systems in India,Innovation in Indian healthcare , Erp software for healthcare industry in india  " />
+<meta
+	name="keywords"
+	content=" Cloud / Saas Application For Hospital Management software to maintain the healthcare records of patient ,Hospital Management system Software In india ,Hospital Information system software India ,Hospital management Applications in the Cloud india,Web application for Hospital management systems in India,Innovation in Indian healthcare , Erp software for healthcare industry in india  " />
+
+
+
+<style>
+p, li {
+text-align: justify;
+font-size: 14px;
+line-height: 25px;
+}
+h1{color:#0a8cc4; font-family:Arial, Helvetica, sans-serif; font-size:22px; font-weight:400; margin:0 0 10px 0; padding:0;}
+
+</style>
+<div style="padding: 30px;">
+<h1>Hospital Management System</h1>
+<p><b>What is DrMHope?</b>
+  </p>
+</p>
+<p>
+DrMHope is software as a service (SaaS) company that distributes business software on a subscription basis. It is completely a cloud based application, It hosts the applications offsite. It is best known for its Hospital management products. DrMHope is completely integrated system having no. of modules to manage various specilites in a hospital. The software is userfriendly and very costeffective. It  is a SAAS based hospital mangement system.This turn key application works on a pay as you go subscription basis,and has been voted the most cost effective hospital management system available.  It is an easy to use detailed hospital management application created by a doctor and hospital owner to overcome the frustrations of legacy hospital management software that is available in the market. It connects your hospital to the latest emerging technology and systems creating a quality based business system. 
+<p><b>What is GetNABH?</b></p>
+<p>GetNABH is the codename of  version 2.0 of DrMHope. It incorporated features to fast track a hospital to acquire the NABH accreditation. This is a value addition to the Hospital management system. The built in indicators and benchmark are according to the NABH requirements, making it a n easy run for your hospital and staff to engage in the process.
+  the cost effectiveness and totality of the hospital administration will make your journey to acquiring NABH an affordable and efficient execrcise. </p>
+<p><b>Key features of DrMHope : -</b>
+<ol tyle="1">
+        <li><b>User friendly</b><br />
+        This application is very user-friendly, the Nurses and the doctors can operate, without any technical support. Specially designed nursing and doctor's module to manage the IP processes.</li>
+        <li><b>Cost-effective</b><br />
+        The application does not require any server, It eliminates the need to buy software or upgrades regularly. Monthly subscriptions are easier to manage than the outright costs of new software. Major programs have mobile versions as well. it also saves the cost of IT professionals ,as the modification can be done by the company itself.</li>
+        <li><b>Full integration</b><br />
+        The system is fully integrated with all the specilies provides the real time management , micromanagement and transparency in billing.</li>
+        <li><b>Security</b><br  />
+        DrMHope has potentially unlimited storage. You don't have to worry about losing data due to system crashes or virus attacks, as its backed up in the cloud. Online Documents allows saving automatically.
+Every module is password protected; the pages of the modules can be shared with officially allowed users.
+The application sends a notification to the management or the owner if there is any change in the system.</li>
+        <li><b>Patient Relationship Management</b><br />
+                DrMHope has specially designed module for OP and IP patient management, which allows Enquiry, appointments, registrations, feedback, complaint handling and coordinating with the other specilities.</li>
+ </ol></p>
+ <p>
+DrMHope was innovated and designed by  a joint replacement surgeon Dr B K Murali, who has more than 14 yrs of experience in healthcare.<br />
+DrMHope is a collection of resources which are managed dynamically and can be provisioned, de-provisioned, monitored and maintained at any point of time that is why it has proven to be the best choice among all hospital management systems. </p>
+
+<p><b>Dr MHope's Key strengths are as follows:</b>
+<ul>
+        <li>Unique blend of medical and IT professionals.</li>
+    <li>innovative project management methodologies.</li>
+    <li>Extensive experience of developing and implementing software.</li>
+    <li>Suitable  for small and large hospitals in India.</li>
+    <li>Software development including Quality integration</li>
+    <li>Immediacy of access</li>
+    <li>No server just need a basic hardware</li>
+    <li>No software or hardware conflicts</li>
+    <li>No bugs ,no IT hassles</li>
+    <li>Mail management and security</li>
+</ul>
+
+<p><b>DrMHope Custom Business System Development. DrMHope customises your current business system to deliver innovative solutions to your business processes.</b></p>
+ 
+<p><b>DrMHope Web Based Work Management system. DrMHope daily work management system gives you the ability to conduct and manage the day-to-day operations of your specilities, its functions and processes.</b></p>
+ 
+<p><b>DrMHope Web Based Quality Management system. DrMHope QMS system gives you the ability to identify, standardise, control, and manage quality processes.</b></p>
+
+<p>
+ <b>DrMHope</b> is a revolutionary product developed by an Orthopedic Surgeon using cloud computing.
+It is a web-based system that hosts the entire Hospital's function 24/7, accessible from any location,
+Via a computer, smart phone-ipad. <b>DrMHope</b> is easy to use, cost effective, quality based, patient centric
+No Installation, and can be custom designed to suit all environments including large, medium or small hospital. It has been designed to improve the quality and management of clinical care and health management. <b>DrMHope</b> web based messaging and collaboration apps require no hardware or software and need minimal administration, creating tremendous time and cost saving for the business. And users can use familiar Microsoft outlook interface for email, contacts and calendar as there is no transition to gmail and Google calendar. With several options for accessing their information while on the go, employees can be productive with <b>DrMHope</b> system even when they are not at their desks. At no extra charge, <b>DrMHope</b>'s system support over the-air mobile access on blackberry devices, iphone , windows mobile, Ipad , android and many less powerful phones. Assists in quality improvement efforts in hospitals</p>
+ </div>

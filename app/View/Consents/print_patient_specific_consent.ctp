@@ -1,0 +1,393 @@
+  <style>
+.print_form{
+	background:none;
+	font-color:black;
+	color:#000000;
+}
+.formFull td{
+	color:#000000;
+}
+</style>
+  
+  <div style="float:right" id="printButton">
+					<?php echo $this->Html->link('Print','#',array('onclick'=>'window.print();','class'=>'blueBtn','escape'=>false));?>
+				  </div>&nbsp;<div>
+				  </div>
+  <div class="inner_title">
+	<h3 style="color:black;text-align:center;">&nbsp; <?php echo __('Consent Form', true); ?></h3>
+	</div>
+	<p class="ht5"></p>
+<!-- two column table start here -->
+                   <table width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tbody><tr>
+                        <td width="49%" valign="top" align="left">
+                            <table width="100%" cellspacing="0" cellpadding="0" border="0"  class="formFull">
+                              <tbody><tr>
+                              	<th colspan="2"><?php echo __('Patient Information'); ?></th>
+                              </tr>
+                              <tr>
+                                <td width="140" valign="middle" id="boxSpace" ><?php echo __('Name'); ?>:</td>
+                                <td align="left">
+								<?php echo $consentData['PatientInitial']['name']." ".$consentData['Patient']['lookup_name']; ?>
+								</td>
+                              </tr>
+                              <tr>
+                                <td valign="middle" id="boxSpace" ><?php echo __('Sex'); ?>:</td>
+                                <td align="left">
+                                <?php echo ucfirst($consentData['Patient']['sex']); ?>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td valign="middle" id="boxSpace" ><?php echo __('Age'); ?>: </td>
+                                <td align="left">
+<?php echo $consentData['Patient']['age']; ?>
+</td>
+                              </tr>
+                              
+                              <tr>
+                                <td valign="middle" id="boxSpace" ><?php echo __('MRN'); ?>:</td>
+                                <td align="left">
+<?php echo $consentData['Patient']['admission_id']; ?>
+</td>
+                              </tr>
+                              <tr>
+                                <td valign="middle" id="boxSpace" >&nbsp;</td>
+                                <td align="left">
+&nbsp;
+</td>
+                              </tr>
+                              <tr>
+                                <td valign="middle" id="boxSpace" >&nbsp;</td>
+                                <td align="left">
+&nbsp;
+</td>
+                              </tr>
+                            </tbody></table>
+                        </td>
+                        <td width="" valign="top" align="left">&nbsp;</td>
+                        <td width="49%" valign="top" align="left"><table width="100%" cellspacing="0" cellpadding="0" border="0"  class="formFull">
+                          <tbody><tr>
+                            <th colspan="2">Relative's Information</th>
+                          </tr>
+                          <tr>
+                            <td width="160" valign="middle" id="boxSpace" ><?php echo __('Name'); ?>:</td>
+                            <td align="left">
+<?php echo $consentData['Consent']['relative_name']; ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" ><?php echo __('Sex'); ?>:</td>
+                            <td align="left">
+                            <?php echo $consentData['Consent']['relative_sex']; ?>                      
+                            </td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" ><?php echo __('Age'); ?>:</td>
+                            <td align="left">
+<?php echo $consentData['Consent']['relative_age']; ?>
+</td>
+                          </tr>
+                          
+
+                          <tr>
+                            <td valign="middle" id="boxSpace" ><?php echo __('Address1'); ?>:</td>
+                            <td align="left">
+<?php echo $consentData['Consent']['relative_address1']; ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" ><?php echo __('Address2'); ?>:</td>
+                            <td align="left">
+<?php echo $consentData['Consent']['relative_address2']; ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" ><?php echo __('Relation with the Patient');?>:</td>
+                            <td align="left">
+<?php echo $consentData['Consent']['relation_with_patient']; ?>
+</td>
+                          </tr>
+                        </tbody></table></td>
+                      </tr>
+                      <tr>
+                        <td valign="top" align="left">&nbsp;</td>
+                        <td valign="top" align="left">&nbsp;</td>
+                        <td valign="top" align="left">&nbsp;</td>
+                      </tr>
+                    </tbody></table>
+					<!-- two column table end here -->
+                    
+                    <!--single column table start here -->
+                    <table width="100%" cellspacing="0" cellpadding="0" border="0" style="border: 0pt none;padding-left:5px;" class="formFull">
+                    	<tbody><tr>
+                        	<td colspan="2">
+                    			<table width="100%" cellspacing="0" cellpadding="0" border="0">
+                                	<tbody>
+                                	<tr>
+                                <td width="140"><?php echo __('Surgery'); ?>:</td>
+                                <td align="left"><?php  echo $consentData['Surgery']['name']; ?>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td  ><?php echo __('Operation Title'); ?>:</td>
+                                <td align="left">
+<?php echo $consentData['Consent']['patient_operation_title']; ?>
+</td>
+                              </tr>
+                                	<tr>
+                                   	  	<td width="140">I the undersigned</td>
+                                        <td>
+<?php echo $consentData['Consent']['consent_owner']; ?>
+</td>
+                                    </tr>
+                                    <tr>
+                                    <td>&nbsp;</td>
+                                    </tr>
+                                    <tr>
+                                    	<td style="padding-bottom: 7px;" colspan="2">GIVE CONSENT FOR 
+                                   	    
+<?php 
+/*if($consentData['Consent']['consent_for1'] == 1){
+echo $this->Form->checkbox('consent_for1', array('checked' => 'checked', 'disabled' => 'disabled'));
+}else{
+	echo $this->Form->checkbox('consent_for1', array('disabled' => 'disabled'));
+}
+ 	?>
+                                   	    MY OWN / 
+<?php 
+if($consentData['Consent']['consent_for2'] == 1){
+echo $this->Form->checkbox('consent_for2', array('checked' => 'checked', 'disabled' => 'disabled'));
+}else{
+	echo $this->Form->checkbox('consent_for2', array('disabled' => 'disabled'));
+}*/
+   if($consentData['Consent']['consent_for_type'] == 'mo'){
+      echo __('MY OWN');
+   }else{
+	  echo __('AFOREMENTIONED PATIENT\'S');
+   }
+ ?>
+ 
+                                   	     abovementioned operation and / or medication / investigation / anaesthesia / therapy / procedure etc.</td>
+                                    </tr>
+                                </tbody></table>                            </td>
+                        </tr>
+                        <tr>
+                       	  <td width="30" valign="top" align="left">1.</td>
+                            <td style="padding-bottom: 7px;">The necessity of this medication / investigation / anaesthesia / operation / therapy / procuder, the ill effect if this is not performed, hazards and complications in the therapeutic modalities other than operation, have been explained to me by Dr. 
+
+<?php echo $consentData[0]['doctorfullname']; ?>
+</td>
+                        </tr>
+                        <tr>
+                          <td valign="top" align="left">2. </td>
+                          <td style="padding-bottom: 7px;">I have expalined clearly that any medication / investigation / operation / therapy is not totally safe and that such procedure or anaesthesia can be a risk to life of an otherwise healthy person also.</td>
+                        </tr>
+                        <tr>
+                          <td valign="top" align="left">3.</td>
+                          <td style="padding-bottom: 7px;">Doctors have expalined to me that excessive bleeding, infection, cardiac arrest, pulmonary embolism and complications like this can aries suddenly and unexpectedly while undergoing medication / investigation / operation therapy / procedure or anaesthesia.</td>
+                        </tr>
+                        <tr>
+                          <td valign="top" align="left">4.</td>
+                          <td style="padding-bottom: 7px;">I give consent for any change in the anaesthesia or operative procedure as well as fo removal of any organ as deemed necessary by the Doctors at the time of medication / investigation / operation / therapy/ procedure.</td>
+                        </tr>
+                        <tr>
+                          <td valign="top" align="left">5. </td>
+                          <td style="padding-bottom: 7px;">I have been made aware that after the above operation / medication / investigation / therapy / procedure and anaesthesia, instead of desired benefit, some complications may arise e.g.
+     <?php echo $consentData['Consent']['complications_arise']; ?> 
+                          <br>
+                          and I believe that to avoid such complications, if any, appropriate care shall be taken by<br>
+                          <div class="ht5"></div>
+                          <table width="100%" cellspacing="0" cellpadding="0" border="0">
+                              <tbody><tr>
+                                <td width="120">Dr. (Treating Doctor):</td>
+                                <td width="200">
+<?php echo $consentData[0]['userfullname']; ?>
+</td>
+   
+<td width="50">Sign.</td>
+<td width="80">________________</td>
+   <td>&nbsp;</td>   
+              
+                                      </tr>
+                              <tr>
+                                <td>Dr. (Anaesthetist):</td>
+                                <td>
+<?php echo $consentData['DoctorProfile']['doctor_name']; ?>
+</td>
+<td width="50">Sign.</td>
+<td width="80">________________</td>
+   <td>&nbsp;</td>   
+                              </tr>
+                            </tbody></table>
+							<div class="ht5"></div>
+                            or any other doctors suggested by them.                         </td>
+                        </tr>
+                        <tr>
+                          <td valign="top" align="left">6.</td>
+                          <td style="padding-bottom: 7px;">On receipt of bill as and when and at the time of discharge, expenses of this hospital will be paid by me.</td>
+                        </tr>
+                        <tr>
+                          <td valign="top" align="left">7.</td>
+                          <td style="padding-bottom: 7px;">I am aware of the facilities available and facilities not available in this hospital and still willing for being admitted and treated, in this Hospital.</td>
+                        </tr>
+                        <tr>
+                          <td align="center" style="padding-bottom: 7px; line-height: 23px;" colspan="2">
+                          <strong>
+ <?php 
+ //if($consentData['Consent']['terms_conditions_1'] == 1){
+ //	echo $this->Form->checkbox('terms_conditions_1',array('checked'=>'checked', 'disabled' => 'disabled'));
+ //}else{
+ //	echo $this->Form->checkbox('terms_conditions_1',array('disabled' => 'disabled'));
+ //}
+  	?>
+                          I have read the above writing / 
+<?php 
+ 	
+ //if($consentData['Consent']['terms_conditions_2'] == 1){
+ //	echo $this->Form->checkbox('terms_conditions_2',array('checked'=>'checked', 'disabled' => 'disabled'));
+  //}else{
+ //	echo $this->Form->checkbox('terms_conditions_2',array('disabled' => 'disabled'));
+ //}
+
+?>
+                          The above writing has been read out to me.<br> I have understood the aforesaid and I am giving my consent willingly.</strong>                          </td>
+                        </tr>
+                        <tr>
+                          <td align="center" colspan="2">&nbsp;</td>
+                        </tr>
+                    </tbody></table>
+                    <!--single column table end here -->
+                    
+                    <!--three column table start here -->
+                    <table width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tbody><tr>
+                        <td><table width="100%" cellspacing="0" cellpadding="0" border="0" class="formFull" >
+                          <tbody><tr>
+                            <th colspan="2"><?php echo __('Witness'); ?></th>
+                          </tr>
+                          <tr>
+                            <td width="90" valign="middle" id="boxSpace" ><?php echo __('Sign.'); ?>:</td>
+                            <td align="left">
+<?php echo $consentData['Consent']['witness1_sign']; ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" ><?php echo __('Name'); ?>:</td>
+                            <td align="left">
+<?php echo $consentData['Consent']['witness1_name']; ?>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" ><?php echo __('Address1'); ?>: </td>
+                            <td align="left">
+<?php echo $consentData['Consent']['witness1_address1']; ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" ><?php echo __('Address2'); ?>: </td>
+                            <td align="left">
+<?php echo $consentData['Consent']['witness1_address2']; ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" ><?php echo __('Age'); ?>: </td>
+                            <td align="left">
+<?php echo $consentData['Consent']['witness1_age']; ?>
+</td>
+                          </tr>
+                         
+                          <tr>
+                            <td valign="middle" id="boxSpace" ><?php echo __('Date'); ?>: </td>
+                            <td align="left">
+<?php //echo $consentData['Consent']['witness1_date']; ?>
+
+</td>
+                          </tr>
+                        </tbody></table></td>
+                        <td width="30">&nbsp;</td>
+                        <td><table width="100%" cellspacing="0" cellpadding="0" border="0" class="formFull">
+                          <tbody><tr>
+                            <th colspan="2"><?php echo __('Witness'); ?></th>
+                          </tr>
+                          <tr>
+                            <td width="90" valign="middle" id="boxSpace2" ><?php echo __('Sign.'); ?>:</td>
+                            <td align="left">
+<?php echo $consentData['Consent']['witness2_sign']; ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace2" ><?php echo __('Name'); ?>:</td>
+                            <td align="left">
+<?php echo $consentData['Consent']['witness2_name']; ?>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace2" ><?php echo __('Address1'); ?>: </td>
+                            <td align="left">
+<?php echo $consentData['Consent']['witness2_address1']; ?> 
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace2" ><?php echo __('Address2'); ?>:</td>
+                            <td align="left">
+                            <?php echo $consentData['Consent']['witness2_address2']; ?>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace2" ><?php echo __('Age'); ?>:</td>
+                            <td align="left">
+<?php echo $consentData['Consent']['witness2_age']; ?>
+</td>
+                          </tr>
+                          
+                          <tr>
+                            <td valign="middle" id="boxSpace2" ><?php echo __('Date'); ?>:</td>
+                            <td align="left">
+<?php //echo $consentData['Consent']['witness2_date']; ?>
+</td>
+                          </tr>
+                        </tbody></table></td>
+                        <td width="30">&nbsp;</td>
+                        <td valign="top" align="left">
+                        <table width="100%" cellspacing="0" cellpadding="0" border="0" class="formFull">
+                          <tbody><tr>
+                            <th colspan="2"><?php echo __('Patient / Relative'); ?></th>
+                          </tr>
+                          <tr>
+                            <td valign="top" align="left" style="text-align: left; padding-left: 10px; padding-top: 5px; height: 175px;"  colspan="2">
+                            	Sign. and / or L.H.T.I
+                                <div style="width:120px;">
+                                <?php 
+                                     if($consentData['Consent']['signpad_file'] != "") { 
+                            	       echo $this->Html->image('/signpad/'.$consentData['Consent']['signpad_file'], array('alt' => 'Signature', 'title' => 'Signature', 'width' => '250', 'height' => '150'));
+                            		 }
+                                ?>
+                                </div>
+                            </td>
+                          </tr>
+
+                          <tr>
+                            <td width="90" valign="middle" id="boxSpace" ><?php echo __('Date'); ?>:</td>
+                            <td align="left">
+<?php //echo $consentData['Consent']['relative_date']; ?>
+</td>
+                          </tr>
+                          <tr>
+                            <td valign="middle" id="boxSpace" ><?php echo __('Title'); ?>:</td>
+                            <td align="left">
+<?php echo $consentData['Consent']['relative_title']; ?>
+</td>
+                          </tr>
+                        </tbody></table></td>
+                      </tr>
+                      <tr>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                      </tr>
+                    </tbody></table>
+
+
+
+                   

@@ -1,0 +1,168 @@
+body {
+	/*padding-top: 80px;
+	padding-bottom: 40px;*/
+	user-select: none;
+	-webkit-user-select: none;
+	-o-user-select: none;
+	-moz-user-select: none;
+	/*background-color: rgb(207, 206, 201);*/
+}
+
+.container {
+	margin-right: auto;
+	margin-left: auto;
+	/*background-image: url("../images/stripes_tab.png");*/
+}
+
+h2 {
+	color: white;
+	font-size: 31.5px;
+	text-align: center;
+}
+
+h5 {
+	font-size: 16px;
+	text-align: center;
+}
+
+.size {
+	float: right;
+	margin: -7px -9px;
+	width: 0px;
+	font-size: 16px;
+}
+
+.span2 {
+	/*	background-color:#444444;*/
+	
+}
+
+.span9 {
+	/*	background-color: maroon;*/
+	
+}
+
+.span7 {
+	width: 600px;
+	margin: 0px;
+}
+
+/* 	border: 2px groove white;
+	border-radius: 10px;
+	-o-border-radius: 10px;
+	-moz-border-radius: 10px;
+	-web-border-radius: 10px;
+ 	 background: #f6e6b4; /* Old browsers */
+/* IE9 SVG, needs conditional override of 'filter' to 'none' */
+background: url  (data:image /svg+xml  ;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA
+	/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2Y2ZTZiNCIgc3RvcC1vcGFjaXR5PSIxIi8+CiAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNlZDkwMTciIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+
+	); background: -moz-linear-gradient  (top,#f6e6b4   0%, #ed9017  
+	100%);
+	/* FF3.6+ */ background: -webkit-gradient  (linear,left top,left bottom,color-stop
+	 (0%,#f6e6b4  ),color-stop  (100%,#ed9017  )); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient  (top,#f6e6b4   0%,#ed9017   100%);
+	/* Chrome10+,Safari5.1+ */ background: -o-linear-gradient  (top,#f6e6b4 
+	 0%,#ed9017   100%); /* Opera 11.10+ */ background: -ms-linear-gradient
+	 (top,#f6e6b4   0%,#ed9017   100%); /* IE10+ */ background: linear-gradient
+	 (to bottom,#f6e6b4   0%,#ed9017   100%); /* W3C */ filter: progid:DXImageTransform.Microsoft.gradient
+	 ( startColorstr  ='#f6e6b4  ',endColorstr  ='#ed9017  ',GradientType 
+	=0 );
+	/* IE6-8 */ * /
+.well {
+	/*background-image: url("images/stripes_tab.png");*/
+	background-repeat: repeat;
+	-webkit-border-radius: 6px;
+	-moz-border-radius: 6px;
+	border-radius: 6px;
+	background-color: rgba(231, 73, 12, 0.69);
+}
+
+.canvo {
+	/*width: 600px;
+	height: 500px;*/
+	background-color: white;
+}
+
+.navbar-inner {
+	padding-left: 20px;
+	padding-right: 20px;
+	background-color: #2c2c2c;
+	background-image: -moz-linear-gradient(top, #333333, #222222);
+	background-image: -ms-linear-gradient(top, #333333, #222222);
+	background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#333333),
+		to(#222222));
+	background-image: -webkit-linear-gradient(top, #333333, #222222);
+	background-image: -o-linear-gradient(top, #333333, #222222);
+	background-image: linear-gradient(top, #333333, #222222);
+	background-repeat: repeat-x;
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#333333',
+		endColorstr='#222222', GradientType=0);
+	-webkit-border-radius: 4px;
+	-moz-border-radius: 4px;
+	border-radius: 4px;
+	-webkit-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), inset 0 -1px 0
+		rgba(0, 0, 0, 0.1);
+	-moz-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), inset 0 -1px 0
+		rgba(0, 0, 0, 0.1);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), inset 0 -1px 0
+		rgba(0, 0, 0, 0.1);
+}
+
+.btn-navbar {
+	display: none;
+	float: right;
+	padding: 7px 10px;
+	margin-left: 5px;
+	margin-right: 5px;
+	background-color: #2c2c2c;
+	background-image: -moz-linear-gradient(top, #333333, #222222);
+	background-image: -ms-linear-gradient(top, #333333, #222222);
+	background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#333333),
+		to(#222222));
+	background-image: -webkit-linear-gradient(top, #333333, #222222);
+	background-image: -o-linear-gradient(top, #333333, #222222);
+	background-image: linear-gradient(top, #333333, #222222);
+	background-repeat: repeat-x;
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#333333',
+		endColorstr='#222222', GradientType=0);
+	border-color: #222222 #222222 #000000;
+	border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
+	filter: progid:DXImageTransform.Microsoft.gradient(enabled=   false);
+	-webkit-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 0
+		rgba(255, 255, 255, 0.075);
+	-moz-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 0
+		rgba(255, 255, 255, 0.075);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 0
+		rgba(255, 255, 255, 0.075);
+}
+
+.btn-group {
+	float: left;
+	/*position: relative;*/
+	display: inline-block;
+	font-size: 0;
+	white-space: nowrap;
+	vertical-align: middle;
+	padding: 10px 0px;
+	/*margin: 0px -50px;*/
+}
+
+.btn-group>.btn+.btn {
+	margin-left: -1px;
+}
+
+.btn-group>.btn-small {
+	font-size: 11.9px;
+}
+
+.btn-success {
+	float: left;
+	
+	
+	
+	background:#3691c7;
+		background: -moz-linear-gradient(top, #3691c7, #076ba9);
+		background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#3691c7), to(#076ba9));
+		border:0px;
+		padding:5px 8px; font-family:Arial, Helvetica, sans-serif; font-size:13px; font-weight:bold; text-transform:uppercase; color:#FFFFFF; text-shadow:1px 1px #025284; letter-spacing:0px; cursor:pointer; overflow:visible;
+}

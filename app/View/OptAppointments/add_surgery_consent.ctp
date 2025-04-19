@@ -1,0 +1,173 @@
+<div class="inner_title">
+	<h3>
+		<?php if($patientConsentDetails['SurgeryConsentForm']['id']) echo __('Edit Consent Form'); else echo __('Add Consent Form'); ?>
+	</h3>
+</div>
+<div class="patient_info">
+	<?php echo $this->element('patient_information');?>
+</div>
+<div class="clr"></div>
+<div
+	style="text-align: right;" class="clr inner_title"></div>
+<?php 
+if(!empty($errors)) {
+?>
+<table border="0" cellpadding="0" cellspacing="0" width="100%"
+	align="center">
+	<tr>
+		<td colspan="2" align="left" class="error"><?php 
+		foreach($errors as $errorsval){
+         echo $errorsval[0];
+         echo "<br />";
+     }
+     ?>
+		</td>
+	</tr>
+</table>
+<?php } ?>
+<p class="ht5"></p>
+<form name="surgeryconsentfrm" id="surgeryconsentfrm"
+	action="<?php echo $this->Html->url(array("controller" => "opt_appointments", "action" => "saveSurgeryConsent")); ?>"
+	method="post">
+	<?php 
+	echo $this->Form->input('SurgeryConsentForm.patient_id', array('type' => 'hidden', 'value'=> $patient_id, 'id' => 'patient_id'));
+	echo $this->Form->input('SurgeryConsentForm.id', array('type' => 'hidden', 'value'=> $patientConsentDetails['SurgeryConsentForm']['id'], 'id' => 'surgery_consent_id'));
+
+	echo $this->Form->hidden('SurgeryConsentForm.opt_appointment_id', array('id' => 'opt_appointment_id', 'label'=> false, 'div' => false, 'error' => false,'autocomplete'=>'off', 'style' => 'width:400px;', 'value'=> $optId));
+	?>
+	<p style="font-size: 13px;">
+		&#2361;&#2350;&#2375;&#2306;
+		&#2337;&#2377;&#2325;&#2381;&#2335;&#2352; &#2344;&#2375;
+		&#2348;&#2340;&#2366;&#2351;&#2366; &#2361;&#2376; &#2325;&#2368;
+		&#2361;&#2350;&#2366;&#2352;&#2375; &#2350;&#2352;&#2368;&#2332;
+		<?php echo "&nbsp;".$patient['Patient']['lookup_name']. "&nbsp;"; ?>
+		&#2325;&#2368; <input type="text"
+			name="data[SurgeryConsentForm][surgery_body_part]"
+			id="surgery_body_part"
+			value="<?php echo $patientConsentDetails['SurgeryConsentForm']['surgery_body_part']; ?>"
+			class="validate[required,custom[mandatory-enter-only]]" />
+		&#2361;&#2337;&#2381;&#2337;&#2368; &#2335;&#2370;&#2335;&#2368;
+		&#2361;&#2376; &#2404; &#2311;&#2360;&#2325;&#2375;
+		&#2354;&#2367;&#2319; &#2321;&#2346;&#2352;&#2375;&#2358;&#2344;
+		&#2325;&#2352;&#2344;&#2366; &#2332;&#2352;&#2369;&#2352;&#2368;
+		&#2361;&#2376; &#2404;
+		<?php 
+		echo $this->Form->input('SurgeryConsentForm.surgery_id', array('empty'=>__('Select Surgery'),'options'=>$surgeries,'id' => 'surgeryname', 'selected' => $patientConsentDetails['SurgeryConsentForm']['surgery_id'], 'label'=> false, 'div' => false, 'error' => false,'autocomplete'=>'off', 'style' => 'width:400px;'));
+		?>
+
+
+
+		&#2321;&#2346;&#2352;&#2375;&#2358;&#2344; &#2325;&#2375;
+		&#2342;&#2380;&#2352;&#2366;&#2344; &#2324;&#2352;
+		&#2348;&#2366;&#2342; &#2350;&#2375;&#2306;
+		&#2361;&#2379;&#2344;&#2375; &#2357;&#2366;&#2354;&#2375;
+		&#2344;&#2367;&#2350;&#2381;&#2344;&#2354;&#2367;&#2326;&#2367;&#2340;
+		&#2360;&#2306;&#2349;&#2366;&#2357;&#2367;&#2325;
+		&#2343;&#2379;&#2325;&#2375; &#2361;&#2350;&#2375;&#2306;
+		&#2360;&#2350;&#2333;&#2366;&#2319; &#2327;&#2319; &#2361;&#2376;
+		&#2404; <br> <br> &#2407;. &#2350;&#2352;&#2368;&#2332; &#2325;&#2368;
+		&#2361;&#2381;&#2352;&#2342;&#2351; &#2327;&#2340;&#2367;
+		&#2348;&#2306;&#2342; &#2346;&#2337;&#2364;&#2344;&#2366;&#2404;
+		(Cardiac Arrest)<br> &#2408;. &#2361;&#2337;&#2381;&#2337;&#2368;
+		&#2325;&#2366; &#2344; &#2332;&#2369;&#2337;&#2364;&#2344;&#2366;
+		&#2404;(Non-uniou)<br> &#2409;. &#2361;&#2337;&#2381;&#2337;&#2368;
+		&#2325;&#2366; &#2327;&#2354;&#2340;
+		&#2332;&#2369;&#2337;&#2364;&#2344;&#2366; &#2404;(Mal-union)<br>
+		&#2410;. &#2332;&#2306;&#2340;&#2369;
+		&#2360;&#2306;&#2360;&#2352;&#2381;&#2327;
+		&#2361;&#2379;&#2344;&#2366; &#2404;(Infection)<br> &#2411;.
+		&#2343;&#2366;&#2340;&#2369; &#2325;&#2366;
+		&#2335;&#2370;&#2335;&#2344;&#2366; &#2404; (Implant Failure)<br>
+		&#2412;.
+		&#2352;&#2325;&#2381;&#2340;&#2357;&#2366;&#2361;&#2367;&#2344;&#2368;
+		&#2309;&#2341;&#2357;&#2366;
+		&#2350;&#2332;&#2381;&#2332;&#2366;&#2352;&#2332;&#2381;&#2332;&#2370;
+		&#2325;&#2379; &#2325;&#2381;&#2359;&#2340;&#2367;
+		&#2361;&#2379;&#2344;&#2366; &#2404; (Neurovascular damage)<br>
+		&#2413;. &#2332;&#2379;&#2337;&#2364;&#2379;&#2306; &#2325;&#2368;
+		&#2361;&#2354;&#2330;&#2354; &#2325;&#2350;
+		&#2361;&#2379;&#2344;&#2366; &#2404; (Stiffness)<br> &#2414;.
+		&#2321;&#2346;&#2352;&#2375;&#2358;&#2344; &#2325;&#2375;
+		&#2348;&#2366;&#2342; &#2350;&#2352;&#2368;&#2332;
+		&#2360;&#2306;&#2348;&#2343;&#2367;&#2340;
+		&#2311;&#2354;&#2366;&#2332; &#2325;&#2368;
+		&#2360;&#2370;&#2330;&#2344;&#2366; &#2325;&#2366; &#2361;&#2350;
+		&#2346;&#2366;&#2354;&#2344;
+		&#2325;&#2352;&#2375;&#2306;&#2327;&#2375; &#2404; (Compliance with
+		post operative instructions)<br> &#2311;&#2360;
+		&#2360;&#2366;&#2352;&#2368;
+		&#2332;&#2366;&#2344;&#2325;&#2366;&#2352;&#2368; &#2325;&#2375;
+		&#2361;&#2379;&#2340;&#2375; &#2361;&#2369;&#2319;
+		&#2350;&#2352;&#2368;&#2332; &#2325;&#2366;
+		&#2321;&#2346;&#2352;&#2375;&#2358;&#2344;
+		&#2351;&#2379;&#2327;&#2381;&#2351;
+		&#2360;&#2369;&#2306;&#2328;&#2344;&#2368; &#2350;&#2375;&#2306;
+		&#2325;&#2352;&#2344;&#2375; &#2325;&#2368;
+		&#2309;&#2344;&#2369;&#2350;&#2340;&#2367;
+		&#2342;&#2375;&#2340;&#2375; &#2361;&#2376; &#2404;
+		&#2325;&#2367;&#2360;&#2368;
+		&#2357;&#2367;&#2346;&#2352;&#2368;&#2340;
+		&#2328;&#2335;&#2344;&#2366; &#2325;&#2375;
+		&#2328;&#2335;&#2340;&#2375; &#2361;&#2350;
+		&#2337;&#2377;&#2325;&#2381;&#2335;&#2352;
+		&#2309;&#2341;&#2357;&#2366;
+		&#2309;&#2360;&#2381;&#2346;&#2340;&#2366;&#2354; &#2325;&#2379;
+		&#2332;&#2367;&#2350;&#2381;&#2350;&#2375;&#2342;&#2366;&#2352;
+		&#2344;&#2361;&#2368;&#2306;
+		&#2336;&#2361;&#2352;&#2366;&#2319;&#2306;&#2327;&#2375; &#2404;<br> <br>
+	</p>
+
+	<div style="font-size: 13px;">
+
+		<table border="0" cellpadding="0" cellspacing="0" width="100%">
+			<tr>
+				<td width="50%" align="left">
+					<table border="0" cellpadding="0" cellspacing="0">
+						<tr>
+							<td align="center">&#2361;&#2360;&#2381;&#2340;&#2366;&#2325;&#2381;&#2359;&#2352;
+								/ &#2309;&#2306;&#2327;&#2370;&#2336;&#2366;</td>
+						</tr>
+						<tr>
+							<td align="center" valign="middle"><?php echo $patient['Patient']['lookup_name']; ?>
+							</td>
+						</tr>
+						<tr>
+							<td align="center">&#2350;&#2352;&#2368;&#2332;</td>
+						</tr>
+					</table>
+				</td>
+				<td width="50%" align="right">
+					<table border="0" cellpadding="0" cellspacing="0">
+						<tr>
+							<td align="center">&#2361;&#2360;&#2381;&#2340;&#2366;&#2325;&#2381;&#2359;&#2352;
+								/ &#2309;&#2306;&#2327;&#2370;&#2336;&#2366;</td>
+						</tr>
+						<tr>
+							<td align="center" valign="middle"><input type="text"
+								name="data[SurgeryConsentForm][relative_name]" class="validate[required,custom[mandatory-select]]"
+								id="relative_name"
+								value="<?php echo $patientConsentDetails['SurgeryConsentForm']['relative_name']; ?>" />
+							</td>
+						</tr>
+						<tr>
+							<td align="center">&#2352;&#2367;&#2358;&#2381;&#2340;&#2375;&#2342;&#2366;&#2352;</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+
+		</table>
+	</div>
+	<p class="clr ht5"></p>
+	<div class="btns">
+		<?php echo $this->Html->link(__('Cancel', true),array('action' => 'surgery_consent', $patient_id), array('escape' => false,'class'=>'grayBtn')); ?>
+		<input type="submit" value="Submit" class="blueBtn">
+
+
+	</div>
+</form>
+<script>
+jQuery(document).ready(function(){
+      jQuery("#surgeryconsentfrm").validationEngine();
+ });
+</script>

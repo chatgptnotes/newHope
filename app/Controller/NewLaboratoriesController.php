@@ -1,0 +1,2151 @@
+
+<?php
+/**
+ * NewLaboratories controller
+ *
+ * PHP 5
+ *
+ * @copyright     Copyright 2014 DrmHope Inc.  (http://www.drmhope.com/)
+ * @link          http://www.drmhope.com/
+ * @package       NewLaboratories Model
+ * @since         CakePHP(tm) v 2.0
+ * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @author        Pawan Meshram
+ * $function 	  :AEVD
+ */
+class NewLaboratoriesController extends AppController {
+	public $name = 'NewLaboratories';
+	// public $uses = array('Laboratory','LaboratoryParameter');
+	public $helpers = array (
+			'Html',
+			'Form',
+			'Js',
+			'DateFormat',
+			'RupeesToWords',
+			'Number',
+			'General'
+	);
+	public $components = array (
+			'RequestHandler',
+			'Email',
+			'ImageUpload',
+			'General',
+			'Number'
+	);
+	function index($resetFilterFlag = false) { 
+		// on load render lab_dashboard
+		$slideArray=array('slideeight','slidenine','slideten');
+		$is_exist = in_array($this->params->query['type'], $slideArray);
+		$this->set('is_exist',$is_exist);
+		//debug($this->Session);
+		if($is_exist == "1"){
+			$this->layout = 'advance_ajax';
+		}else{
+			$this->layout = "advance";
+		}
+		if($this->params->query['type']=='null'){
+			$resetFilterFlag = $this->params->query['type'];
+		}
+		if($resetFilterFlag == 'clear'){
+			$this->Session->delete ( 'laboratory_dashboard_filters');
+		}
+		$this->uses = array (
+				"LaboratoryCategory",
+				"DoctorProfile","LaboratoryTestOrder","LaboratoryResult",
+				'TestGroup'
+		);
+		$this->set ( 'category', $this->LaboratoryCategory->find ( 'list', array (
+				'conditions' => array (
+						'is_active' => 1
+				),
+				'fields' => array (
+						'category_name'
+				)
+		) ) );
+		//$r = $this->LaboratoryTestOrder->find('all',array('fields'=>array("count('showEdit') as showEdit,count('sample_received') as 'sample_received',count('completed') as copleted")));
+		$this->set ( 'doctors', $this->DoctorProfile->getDoctors () );
+		$this->set ( 'resetFilterFlag', $resetFilterFlag );
+
+
+		$statastics =$this->LaboratoryTestOrder->find('first',array('fields'=>array('sum(LaboratoryTestOrder.showEdit) AS showEdit',
+				'sum(LaboratoryTestOrder.is_print) AS is_print',
+				'sum(LaboratoryTestOrder.received) AS received',
+				'sum(LaboratoryTestOrder.completed) AS completed',
+				'count(LaboratoryTestOrder.id) - sum(LaboratoryTestOrder.showEdit) AS pending'),
+				'conditions'=>array('LaboratoryTestOrder.location_id'=>$this->Session->read ( "locationid" ))));
+		$this->set ( 'statastics', $statastics );
+		$isAuthenticate =$this->LaboratoryResult->find('first',array('fields'=>array('sum(LaboratoryResult.is_authenticate) AS is_authenticate')));
+		$this->set ( 'isAuthenticate', $isAuthenticate );
+
+	}
+		
+	/*
+	 * Laboratory Test Dashboard
+	* Swapnil
+	*/
+	public function lab_dashboard($resetFilterFlag = false) {
+		
+		 
+		ob_end_clean();
+		ob_start("ob_gzhandler");
+		#$this->autoRender = false;
+		$this->uses = array (
+				'Patient',
+				'User',
+				'LaboratoryTestOrder',
+				'LaboratoryResult',
+				'Configuration',
+				'NoteDiagnosis',
+				'LaboratoryHl7Result'
+		);
+		if($resetFilterFlag == 'clear'){
+			$this->Session->write ( 'laboratory_dashboard_filters', '');
+		}
+		$conditions = array ();
+		if ($this->request->query) {
+			//debug($this->request->query);exit;
+			$conditions ['LaboratoryTestOrder.location_id'] = $this->Session->read ( "locationid" );
+			if (! empty ( $this->request->query ['bar_code'] )) {
+				$conditions ['LaboratoryTestOrder.req_no'] = $this->request->query ['bar_code'];
+			}
+			if (! empty ( $this->request->query ['from'] )) {
+				$conditions ['LaboratoryTestOrder.start_date >='] = $this->DateFormat->formatDate2STD ( $this->request->query ['from'], Configure::read ( 'date_format' ) ) . " 00:00:00";
+			}
+			if (! empty ( $this->request->query ['to'] )) {
+				$conditions ['LaboratoryTestOrder.start_date <='] = $this->DateFormat->formatDate2STD ( $this->request->query ['to'], Configure::read ( 'date_format' ) ) . " 23:59:59";
+			}
+				
+			if (! empty ( $this->request->query ['status'] )) {
+				$status = $this->request->query ['status'];
+				if ($status == "Pending") {
+					$conditions ['LaboratoryTestOrder.showEdit'] = null;
+				}
+				if ($status == "SampleTaken") {
+					$conditions = array (
+							'AND' => array (
+									'LaboratoryTestOrder.showEdit' => 1,
+									'LaboratoryTestOrder.received' => NULL,
+									'LaboratoryTestOrder.completed' => NULL
+							)
+					);
+				}
+				if ($status == "Recieved") {
+					$conditions = array (
+							'AND' => array (
+									'LaboratoryTestOrder.received' => 1,
+									'LaboratoryTestOrder.completed' => NULL
+							)
+					);
+				}
+				if ($status == "Completed") {
+					$conditions ['LaboratoryTestOrder.completed'] = 1;
+				}
+				if ($status == "PrintTaken") {
+					$conditions ['LaboratoryTestOrder.is_print'] = 1;
+				}
+				if ($status == "Authenticated") {
+					$conditions ['LaboratoryResult.is_authenticate'] = 1;
+				}
+				if ($status == "Provisional") {
+					(($conditions1 ['LaboratoryResult.is_authenticate'] = 0) && ($conditions1 ['Laboratory.lab_type'] = 2));
+					$conditions = $conditions1;
+				}
+			}
+				
+			if (! empty ( $this->request->query ['consultant'] )) {
+				$conditions ['Patient.doctor_id'] = $this->request->query ['consultant'];
+			}
+			if (! empty ( $this->request->query ['visit'] )) {
+				$conditions ['Patient.admission_type'] = $this->request->query ['visit'];
+			}
+			if (! empty ( $this->request->query ['req_no'] )) {
+				$conditions ['LaboratoryTestOrder.req_no'] = $this->request->query ['req_no'];
+			}
+			if (! empty ( $this->request->query ['patient_id'] )) {
+				$conditions ['LaboratoryTestOrder.patient_id'] = $this->request->query ['patient_id'];
+			}
+			if (! empty ( $this->request->query ['ward_id'] )) {
+				$conditions ['Ward.id'] = $this->request->query ['ward_id'];
+			}
+			if (! empty ( $this->request->query ['bed_id'] )) {
+				$conditions ['Bed.id'] = $this->request->query ['bed_id'];
+			}
+			if (! empty ( $this->request->query ['category_id'] )) {
+				$conditions ['TestGroup.id'] = $this->request->query ['category_id'];
+			}
+			if (! empty ( $this->request->query ['service_id'] )) {
+				$conditions ['Laboratory.id'] = $this->request->query ['service_id'];
+			}
+			//cond added by w
+			
+			 
+			/* if(strtolower($this->Session->read('role'))==strtolower(Configure::read('Senior_RGJAY'))){
+				$conditions ['Laboratory.lab_type'] = 2; 
+			}*/
+			//EOF histo lab
+						
+					
+					
+			if (($this->request->query ['is_discharge'] == '1')) {
+				$conditions ['Patient.is_discharge'] = $this->request->query ['is_discharge'];
+			}
+			if (($this->request->query ['is_discharge'] == '0')) {
+				$conditions ['Patient.is_discharge'] = $this->request->query ['is_discharge'];
+			}
+		} else {
+			if($resetFilterFlag == 'null') {
+				$conditions ['Patient.is_discharge'] = 0;
+				$conditions ['LaboratoryTestOrder.start_date LIKE']= date("Y-m-d")."%";
+				$conditions ['LaboratoryTestOrder.location_id'] = $this->Session->read ( "locationid" );
+				$this->Session->write ( 'laboratory_dashboard_filters', '');
+			}else if ($resetFilterFlag !=1){
+				$conditions = $this->Session->read ( 'laboratory_dashboard_filters' );
+			}
+			
+			
+		}
+		$discFlag = $conditions ['Patient.is_discharge'];
+		 
+		//unset($conditions ['Patient.is_discharge']);
+		if (count ( $conditions ) > 0) {
+			$conditions ['Patient.is_discharge'] = $discFlag;
+			$this->Session->write ( 'laboratory_dashboard_filters', $conditions );
+		} else {
+			if ($resetFilterFlag)
+				$conditions = $this->Session->read ( 'laboratory_dashboard_filters' );
+		}
+
+		$this->LaboratoryTestOrder->bindModel ( array (
+				'belongsTo' => array (
+						'Patient' => array (
+								'type'=>'inner',
+								'foreignKey' => false,
+								'conditions' => array (
+										'LaboratoryTestOrder.patient_id = Patient.id'
+								)/* ,'order' => 'Patient.id DESC' */),
+						'TariffStandard' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'TariffStandard.id = Patient.tariff_standard_id'
+								)
+						),
+						'Bed' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'Bed.id = Patient.bed_id'
+								)
+						),
+						'Ward' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'Ward.id = Patient.ward_id'
+								)
+						),
+						'Room' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'Room.id = Patient.room_id'
+								)
+						),
+						'User' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+								'User.id = Patient.doctor_id'
+										),
+										'fields' => array (
+										'User.first_name',
+										'User.last_name'
+												)
+						),
+
+						// 'Laboratory'=>array('foreignKey'=>'laboratory_id'),
+						'Laboratory' => array (
+							'type'=>"inner",
+							'foreignKey' => false,
+							'conditions' => array (
+							'Laboratory.id = LaboratoryTestOrder.laboratory_id'
+									)
+						),
+						'TestGroup' => array (
+							'foreignKey' => false,
+							'conditions' => array (
+							'TestGroup.id = Laboratory.test_group_id'
+								)
+						),
+						'LaboratoryResult' => array (
+							'foreignKey' => false,
+							'conditions' => array (
+							'LaboratoryResult.laboratory_test_order_id = LaboratoryTestOrder.id'
+									)
+						)
+				)
+		), false );
+		// $order['LaboratoryTestOrder.sample_received'] = 'DESC';
+		// $order['LaboratoryTestOrder.patient_id'] = 'DESC';
+
+		$this->paginate = array(
+				/*$testOrdered = $this->LaboratoryTestOrder->find('all',array(*/
+				'limit' => Configure::read ( 'number_of_rows' ),
+
+				// 'order'=>array('LaboratoryTestOrder.sample_received'=>'DESC'),
+				'fields' => array (
+						'Patient.sex',
+						'Patient.age',
+						'Patient.admission_type',
+						'Patient.admission_id',
+						'Patient.person_id',
+						'Patient.admission_type',
+						'Patient.id',
+						'Patient.lookup_name,CONCAT(User.first_name," ",User.last_name) as name',
+						'Patient.admission_type',
+						'TariffStandard.name',
+						'TariffStandard.id',
+						'Bed.bedno',
+						'Bed.bedno',
+						'Ward.name',
+						'Ward.name',
+						'Room.name',
+						'Room.bed_prefix',
+						'Laboratory.id',
+						'Laboratory.name',
+						'Laboratory.lab_type',
+						'LaboratoryTestOrder.id',
+						'LaboratoryTestOrder.start_date',
+						'LaboratoryTestOrder.start_date',
+						'LaboratoryTestOrder.paid_amount',
+						'LaboratoryTestOrder.showEdit',
+						'LaboratoryTestOrder.received',
+						'LaboratoryTestOrder.completed',
+						'LaboratoryTestOrder.req_no',
+						'LaboratoryTestOrder.is_retest',
+						'LaboratoryTestOrder.amount',
+						'LaboratoryTestOrder.patient_id',
+						'LaboratoryResult.id',
+						'LaboratoryResult.is_authenticate',
+						'LaboratoryResult.laboratory_test_order_id'
+								),
+								'order' => array (
+								'LaboratoryTestOrder.patient_id' => 'DESC'
+										),
+										'group' => array (
+										'LaboratoryTestOrder.id DESC'
+												),
+												'conditions' => $conditions
+		);
+
+		$testOrdered = $this->paginate ( 'LaboratoryTestOrder' );
+
+		foreach($testOrdered as $patientKey => $patientValue){
+			$ids[] = $patientValue['Patient']['id'] ;
+		}
+
+		//$dataNoteDiagnosis = $this->NoteDiagnosis->find('all',array('fields'=>array('diagnoses_name','patient_id'),'conditions'=>array('NoteDiagnosis.patient_id'=>$ids)));
+		//debug($dataNoteDiagnosis);
+		// debug($testOrdered);exit;
+		$this->set (array ('testOrdered' => $testOrdered/* ,'dataNoteDiagnosis'=>$dataNoteDiagnosis */));
+
+		/* $prefix = $this->Configuration->find ( 'first', array (
+		 'conditions' => array (
+		 		'Configuration.name' => 'Laboratory Results',
+		 		'Configuration.category' => 1
+		 )
+		) );
+		$authenticated = unserialize ( $prefix ['Configuration'] ['value'] );
+		$this->set ( 'authenticated', $authenticated ); */
+
+		 $this->render ( "lab_dashboard", false );
+	}
+	
+	//FOR dashboard slide show
+	public function index_slide_four($resetFilterFlag = false){
+		
+		// $this->layout = "ajax";
+		ob_end_clean();
+		ob_start("ob_gzhandler");
+		$this->autoRender = false;
+		$this->uses = array (
+				'Patient',
+				'User',
+				'LaboratoryTestOrder',
+				'LaboratoryResult',
+				'Configuration',
+				'NoteDiagnosis',
+				'LaboratoryHl7Result'
+		);
+		if($resetFilterFlag == 'clear'){
+			//$this->Session->write ( 'laboratory_dashboard_filters', '');
+		}
+		$conditions = array ();
+		if($resetFilterFlag == 'null') {
+			$conditions ['Patient.is_discharge'] = 0;
+			$conditions ['LaboratoryTestOrder.start_date LIKE']= date("Y-m-d")."%";
+			$conditions ['LaboratoryTestOrder.location_id'] = $this->Session->read ( "locationid" );
+		}else if ($resetFilterFlag !=1){
+			//$conditions = $this->Session->read ( 'laboratory_dashboard_filters' );
+		}
+		if($resetFilterFlag == 'LAB'){
+			$conditions['Patient.admission_type']='LAB';
+		}
+		if($resetFilterFlag == 'IPD'){
+		 	$conditions['Patient.admission_type']='IPD';
+		} 
+		if($resetFilterFlag == 'OPD'){
+			$conditions['Patient.admission_type']='OPD';
+		}
+		$conditions ['Patient.is_discharge'] = 0;
+		$discFlag = $conditions ['Patient.is_discharge'];
+		if (count ( $conditions ) > 0) {
+			$conditions ['Patient.is_discharge'] = $discFlag;
+			//$this->Session->write ( 'laboratory_dashboard_filters', $conditions );
+		} else {
+			//if ($resetFilterFlag)
+				//$conditions = $this->Session->read ( 'laboratory_dashboard_filters' );
+		}
+
+		$this->LaboratoryTestOrder->bindModel ( array (
+				'belongsTo' => array (
+						'Patient' => array (
+								'type'=>'inner',
+								'foreignKey' => false,
+								'conditions' => array (
+										'LaboratoryTestOrder.patient_id = Patient.id'
+								)/* ,'order' => 'Patient.id DESC' */),
+						'TariffStandard' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'TariffStandard.id = Patient.tariff_standard_id'
+								)
+						),
+						'Bed' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'Bed.id = Patient.bed_id'
+								)
+						),
+						'Ward' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'Ward.id = Patient.ward_id'
+								)
+						),
+						'Room' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'Room.id = Patient.room_id'
+								)
+						),
+						'User' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+								'User.id = Patient.doctor_id'
+										),
+										'fields' => array (
+										'User.first_name',
+										'User.last_name'
+												)
+						),
+
+						// 'Laboratory'=>array('foreignKey'=>'laboratory_id'),
+						'Laboratory' => array (
+							'type'=>"inner",
+							'foreignKey' => false,
+							'conditions' => array (
+							'Laboratory.id = LaboratoryTestOrder.laboratory_id'
+									)
+						),
+						'TestGroup' => array (
+							'foreignKey' => false,
+							'conditions' => array (
+							'TestGroup.id = Laboratory.test_group_id'
+								)
+						),
+						'LaboratoryResult' => array (
+							'foreignKey' => false,
+							'conditions' => array (
+							'LaboratoryResult.laboratory_test_order_id = LaboratoryTestOrder.id'
+									)
+						)
+				)
+		), false );
+		
+		$this->paginate = array(
+				/*$testOrdered = $this->LaboratoryTestOrder->find('all',array(*/
+				'limit' => Configure::read ( 'number_of_rows' ),
+
+				'fields' => array (
+						'Patient.sex',
+						'Patient.age',
+						'Patient.admission_type',
+						'Patient.admission_id',
+						'Patient.person_id',
+						'Patient.admission_type',
+						'Patient.id',
+						'Patient.lookup_name,CONCAT(User.first_name," ",User.last_name) as name',
+						'Patient.admission_type',
+						'TariffStandard.name',
+						'TariffStandard.id',
+						'Bed.bedno',
+						'Bed.bedno',
+						'Ward.name',
+						'Ward.name',
+						'Room.name',
+						'Room.bed_prefix',
+						'Laboratory.id',
+						'Laboratory.name',
+						'Laboratory.lab_type',
+						'LaboratoryTestOrder.id',
+						'LaboratoryTestOrder.start_date',
+						'LaboratoryTestOrder.start_date',
+						'LaboratoryTestOrder.paid_amount',
+						'LaboratoryTestOrder.showEdit',
+						'LaboratoryTestOrder.received',
+						'LaboratoryTestOrder.completed',
+						'LaboratoryTestOrder.req_no',
+						'LaboratoryTestOrder.is_retest',
+						'LaboratoryTestOrder.amount',
+						'LaboratoryTestOrder.patient_id',
+						'LaboratoryResult.id',
+						'LaboratoryResult.is_authenticate',
+						'LaboratoryResult.laboratory_test_order_id'
+								),
+								'order' => array (
+								'LaboratoryTestOrder.patient_id' => 'DESC'
+										),
+										'group' => array (
+										'LaboratoryTestOrder.patient_id DESC'
+												),
+												'conditions' => $conditions
+		);
+
+		$testOrdered = $this->paginate ( 'LaboratoryTestOrder' );
+		foreach($testOrdered as $patientKey => $patientValue){
+			$ids[] = $patientValue['Patient']['id'] ;
+		}
+		$this->set (array ('testOrdered' => $testOrdered/* ,'dataNoteDiagnosis'=>$dataNoteDiagnosis */));
+		$this->render ( "index_slide_four", false );
+	}//END of Slide Four
+	
+	//added by pankaj
+	public function histoEntryMode(){
+		$this->entryMode() ;
+	}
+	//eof histo entry mode added by pankaj 
+	
+// 	public function entryMode() {
+// 	   // debug($this->request->data);exit;
+// 		$this->layout = advance;
+
+// 		$this->uses = array (
+// 				'Laboratory',
+// 				'PanelMapping',
+// 				// 'LaboratoryHl7Result',
+// 				'LaboratoryParameter',
+// 				'Patient',
+// 				'User',
+// 				'Hl7Unit',
+// 				'ObservationResultStatus0085',
+// 				'LaboratoryResult',
+// 				'Configuration',
+// 				'LaboratoryTestOrder',
+// 				'LaboratoryCategory',
+// 				'Ucums',
+// 				'PatientDocument'
+// 		);
+// // 			App::import('Vendor', 'DrmhopeDB');
+// // 			$db_connection = new DrmhopeDB($this->Session->read('db_name'));
+
+// 		$orderId = $this->params->query ['testOrderId'];
+// 		$laboratoryTestOrderIds = explode ( "_", $orderId );
+// 		// $laboratoryTestOrderIds = explode(",", $this->request->data['NewLaboratory']['labPostData']);
+// 		$this->Patient->bindModel ( array (
+// 				'hasOne' => array (
+// 						'Person' => array (
+// 								'foreignKey' => false,
+// 								'conditions' => array (
+// 										'Person.patient_uid=Patient.patient_id'
+// 								)
+// 						),
+// 						'TariffStandard' => array (
+// 								'foreignKey' => false,
+// 								'conditions' => array (
+// 										'TariffStandard.id=Patient.tariff_standard_id'
+// 								)
+// 						),
+// 						'LaboratoryTestOrder' => array (
+// 								'foreignKey' => false,
+// 								'conditions' => array (
+// 										'LaboratoryTestOrder.patient_id=Patient.id'
+// 								)
+// 						),
+// 						'Note' => array (
+// 								'foreignKey' => false,
+// 								'conditions' => array (
+// 										'Note.patient_id=Patient.id'
+// 								),
+// 								'fields' => array (
+// 										'cc'
+// 								)
+// 						)
+// 				)
+					
+// 		), false );
+// 		$optUcums = $this->Ucums->find ( 'list', array (
+// 				'fields' => array (
+// 						'code',
+// 						'display_name'
+// 				)
+// 		) );
+// 		$this->Patient->unbindModel ( array (
+// 				'hasMany' => array (
+// 						'PharmacySalesBill',
+// 						'InventoryPharmacySalesReturn'
+// 				)
+// 		) );
+
+// 		$patientData = $this->Patient->find ( 'first', array (
+// 				'fields' => array (
+// 						'Patient.admission_type',
+// 						'Patient.patient_id',
+// 						'LaboratoryTestOrder.req_no',
+// 						'TariffStandard.name',
+// 						'Patient.age',
+// 						'Patient.lookup_name',
+// 						'Patient.id',
+// 						'Person.first_name',
+// 						'Person.last_name',
+// 						'Person.dob',
+// 						'Person.sex',
+// 						'Person.race',
+// 						'LaboratoryTestOrder.id',
+// 						'LaboratoryTestOrder.order_id',
+// 						'LaboratoryTestOrder.laboratory_id',
+// 						'LaboratoryTestOrder.start_date',
+// 						'Patient.doctor_id',
+// 						'Note.cc'
+// 				),
+// 				'conditions' => array (
+// 						'LaboratoryTestOrder.id' => $laboratoryTestOrderIds
+// 				)
+// 		) );
+// 		$this->set ( 'patientData', $patientData );
+
+// 		$doctorData = $this->User->find ( 'first', array (
+// 				'type' => 'inner',
+// 				'fields' => array (
+// 						'User.id',
+// 						'User.first_name',
+// 						'User.last_name'
+// 				),
+// 				'conditions' => array (
+// 						'User.id' => $patientData ['Patient'] ['doctor_id']
+// 				)
+// 		) );
+// 		$this->set ( 'doctorData', $doctorData );
+// 		$this->Laboratory->bindModel ( array (
+// 				'belongsTo' => array (
+// 						'LaboratoryTestOrder' => array (
+// 								'foreignKey' => false,
+// 								'conditions' => array (
+// 										'LaboratoryTestOrder.laboratory_id=Laboratory.id'
+// 								)
+// 						),
+// 						'DoctorTemplate' => array (
+// 								'foreignKey' => false,
+// 								'conditions' => array (
+// 										'Laboratory.name=DoctorTemplate.template_name'
+// 								)
+// 						),
+// 						'TestGroup' => array (
+// 								'foreignKey' => false,
+// 								'conditions' => array (
+// 										'TestGroup.id=Laboratory.test_group_id'
+// 								)
+// 						),
+
+// 						// 'LaboratoryCategory' =>array('foreignKey' => 'laboratory_id'/* ,'conditions'=>array('Laboratory.id=LaboratoryCategory.laboratory_id' ) */),
+// 						'LaboratoryResult' => array (
+// 								'foreignKey' => false,
+// 								'fields' => array (
+// 										'LaboratoryResult.id',
+// 										'LaboratoryResult.patient_id',
+// 										'LaboratoryResult.laboratory_test_order_id',
+// 										'LaboratoryResult.laboratory_id',
+// 										'LaboratoryResult.is_authenticate'
+// 								),
+// 								'conditions' => array (
+// 										'LaboratoryResult.laboratory_test_order_id=LaboratoryTestOrder.id',
+// 										'LaboratoryResult.laboratory_test_order_id' => $laboratoryTestOrderIds
+// 								)
+// 						)
+// 				),
+// 				'hasMany' => array (
+
+// 						// 'LaboratoryCategory' =>array('foreignKey' => 'laboratory_id'),
+// 						'LaboratoryCategory' => array (
+// 								'foreignKey' => 'laboratory_id',
+// 								//'order' => 'LaboratoryCategory.sort ASC',
+// 						),
+// 						'LaboratoryParameter' => array (
+// 								'foreignKey' => 'laboratory_id'
+// 						),
+// 						'LaboratoryHl7Result' => array (
+// 								'foreignKey' => 'laboratory_id',
+// 								'conditions' => array (
+// 										'LaboratoryHl7Result.laboratory_test_order_id' => $laboratoryTestOrderIds
+// 								)
+// 						)
+// 				)
+// 				// 'conditions'=>array('LaboratoryHl7Result.laboratory_result_id'=>'LaboratoryResult.id'))
+
+					
+// 		), false );
+
+// 		$getPanelSubLab = $this->Laboratory->find ( 'all', array (
+// 				'fields' => array (
+// 						'DoctorTemplate.id',
+// 						'LaboratoryResult.is_authenticate',
+// 						'LaboratoryResult.text',
+// 						'Laboratory.notes_display_text',
+// 						'Laboratory.histo_sub_categories',
+// 						'Laboratory.notes',
+// 						'TestGroup.id',
+// 						'TestGroup.name',
+// 						'Laboratory.default_result',
+// 						'LaboratoryResult.id',
+// 						'LaboratoryResult.laboratory_test_order_id',
+// 						'Laboratory.id',
+// 						'Laboratory.name',
+// 						'Laboratory.machine_name',
+// 						'Laboratory.lab_type',
+// 						'LaboratoryTestOrder.id',
+// 						'LaboratoryTestOrder.patient_id',
+// 						'LaboratoryResult.report_date'
+// 				),
+// 				'conditions' => array (
+// 						'LaboratoryTestOrder.id' => $laboratoryTestOrderIds
+// 				),
+// 		) );
+// // 		debug($this->Laboratory->find('all', array('conditions' => array(
+// //     'LaboratoryTestOrder.id' => $laboratoryTestOrderIds
+// // )))); 
+// // exit;
+// // 		debug($getPanelSubLab);exit;
+// 		$paramArr = array ();
+// 		foreach ( $getPanelSubLab as $k => $v ) {
+// 			foreach ( $v ['LaboratoryParameter'] as $key => $value ) {
+// 				array_push ( $paramArr, $value ['id'] );
+// 			}
+// 			if($v['Laboratory']['machine_name']){
+// 				$labName=explode('(',$v['Laboratory']['name']);
+// 				$labMachine[rtrim(ltrim($labName['0']))]=$v['Laboratory']['machine_name']; // lab m/c sample result search
+// 			}
+// 		}
+// 		if(!empty($labMachine)){
+// 			/*************************Sample result data collected From lab m/c - Pooja**************************/
+// 			if($this->params->query['lab_sample_id']){
+// 				$cbcResult=$this->lab_result($this->params->query['lab_sample_id']);
+// 				$this->set('cbcLabRes',$cbcResult);				
+// 			}
+// 			/*************************EOF Sample result data***********************************************************/
+// 		}
+// 		if (count ( $laboratoryTestOrderIds ) > 1)
+// 			$cond ['LaboratoryHl7Result.laboratory_test_order_id NOT '] = $laboratoryTestOrderIds;
+// 		else
+// 			$cond ['LaboratoryResult.laboratory_test_order_id !='] = array_pop ( $laboratoryTestOrderIds );
+// 		if (count ( $paramArr ) > 0) {
+// 			$conditions = array (
+// 					'LaboratoryHl7Result.laboratory_parameter_id' => $paramArr,
+// 					'LaboratoryResult.patient_id' => $patientData ['Patient'] ['id'],
+// 					$cond
+// 			);
+// 		} else {
+// 			$conditions = array (
+// 					'LaboratoryResult.patient_id' => $patientData ['Patient'] ['id'],
+// 					$cond
+// 			);
+// 		}
+
+// 		$laboratoryHl7Model = ClassRegistry::init ( 'LaboratoryHl7Result' );
+// 		$laboratoryHl7Model->bindModel ( array (
+// 				'belongsTo' => array (
+// 						'LaboratoryResult' => array (
+// 								'foreignKey' => false,
+// 								'conditions' => array (
+// 										'LaboratoryResult.id=LaboratoryHl7Result.laboratory_result_id'
+// 								),
+// 								'type'=>'INNER',
+// 						)
+// 				)
+// 		), false );
+// 		$previousResuls = $laboratoryHl7Model->find ( "all", array (
+// 				'fields' => array (
+// 						'LaboratoryHl7Result.laboratory_parameter_id',
+// 						'LaboratoryHl7Result.result'
+// 				),
+// 				'conditions' => $conditions,
+// 				'order' => array (
+// 						'LaboratoryResult.id' => 'DESC'
+// 				)
+// 		)
+// 		);		
+// 		$prevResultArray = array ();
+// 		foreach ( $previousResuls as $key => $value ) {
+// 			if (count ( $prevResultArray [$value ['LaboratoryHl7Result'] ['laboratory_parameter_id']] ) < 6) {
+// 				$prevResultArray [$value ['LaboratoryHl7Result'] ['laboratory_parameter_id']] [] = $value ['LaboratoryHl7Result'] ['result'];
+// 			}
+// 		}
+		
+// 		$dataLabImg = $this->laboratoryImage ( $patientData ['Patient'] ['id'] );
+// 		$this->set ( 'prevResultArray', $prevResultArray );
+// 		$this->set ( 'dataLabImg', $dataLabImg );
+// 		$this->set ( 'getPanelSubLab', $getPanelSubLab );
+// 		$this->set ( 'optUcums', $optUcums );
+// 		if ($this->request->data ['LaboratoryResult']) {
+// 			// image
+// 			if ($this->request->data ['PatientDocument'] ['file_name'] [0] ['name']) {
+// 				foreach ( $this->request->data ['PatientDocument'] ['file_name'] as $imgKey => $imgData ) {
+// 					$imgName = explode ( '.', $imgData ['name'] );
+// 					if (! isset ( $imgName [1] )) {
+// 						$imagename = "lab_" . $imgName [0] . mktime () . '.' . $imgName [0];
+// 					} else {
+// 						$imagename = "lab_" . $imgName [0] . mktime () . '.' . $imgName [1];
+// 					}
+// 					if (! empty ( $imgData ['name'] )) {
+// 						$showError = $this->ImageUpload->uploadFile ( $imgData, '', 'uploads/laboratory/', $imagename );
+
+// 						if (empty ( $showError )) {
+// 							$this->ImageUpload->load ( $imgData ['tmp_name'] );
+// 							// $this->ImageUpload->resize(100,100);
+// 							$this->ImageUpload->save ( "uploads/laboratory/" . $imagename );
+// 						}
+// 					}
+// 					$dataVal = array ();
+// 					$dataVal ['location_id'] = $this->Session->read ( "locationid" );
+// 					$dataVal ['create_time'] = date ( 'Y-m-d H:i:s' );
+// 					$dataVal ['created_by'] = $this->Auth->user ( 'id' );
+// 					$dataVal ['type'] = $imgData ['type'];
+// 					$dataVal ['size'] = $imgData ['size'];
+// 					$dataVal ['filename'] = $imagename;
+// 					$dataVal ['patient_id'] = $patientData ['Patient'] ['id'];
+						
+// 					$this->PatientDocument->save ( $dataVal );
+// 					$this->PatientDocument->id = '';
+// 				}
+// 			}
+// 			// EOF IMG
+// 				// debug($this->request->data);exit;
+// 			$this->NewLaboratory->insertLab ( $this->request->data );
+// // 			debug($this->request->data);exit;
+// 			$result = true;
+// 		}
+// 		/*
+// 		 * if($this->request->data['LaboratoryHl7Result']){//pr($this->request->data);echo '??';exit;
+// 		* $this->NewLaboratory->insertLab($this->request->data);
+// 		* $result=true;
+// 		* }
+// 		*/
+// 		if ($result == true && ! $this->request ['isAjax']) {
+// 			$this->Session->setFlash ( __ ( 'Record save successfully' ), 'default', array (
+// 					'class' => 'message'
+// 			) );
+// 			// $this->redirect(array('action' => 'index'));
+// 			$this->redirect ( $this->referer () );
+// 		}
+
+// 		$list = $this->Configuration->find ( 'first', array (
+// 				'conditions' => array (
+// 						'Configuration.name' => "Laboratory Results",
+// 						'Configuration.category' => 1
+// 				)
+// 		) );
+// 		$this->set ( 'authUser', unserialize ( $list ['Configuration'] ['value'] ) ); // list of authenticated users
+// 	}
+
+public function entryMode() {
+// 		debug($this->request->data);exit;
+//  if ($this->request->is('post')) {
+//         debug($this->request->data);
+//         exit;
+//     }
+		$this->layout = advance;
+
+		$this->uses = array (
+				'Laboratory',
+				'PanelMapping',
+				'PanelMapping',
+				'LaboratoryParameter',
+				'Patient',
+				'User',
+				'Hl7Unit',
+				'ObservationResultStatus0085',
+				'LaboratoryResult',
+				'Configuration',
+				'LaboratoryTestOrder',
+				'LaboratoryCategory',
+				'Ucums',
+				'PatientDocument'
+				// 'LaboratoryHl7Result'
+		);
+		// if($this->Session->read('db_name')){
+			// $db_connection = new DrmhopeDB($this->Session->read('db_name'));
+		// }else{
+		// 	$db_connection = new DrmhopeDB('db_hope');
+		// 	$db_connection_hospital = new DrmhopeDB('db_HopeHospital');
+		// }
+		
+		// $db_connection->makeConnection($this->Laboratory);
+		// $db_connection->makeConnection($this->PanelMapping);
+		// $db_connection->makeConnection($this->Patient);
+		// $db_connection->makeConnection($this->Person);
+		// $db_connection->makeConnection($this->Department);
+		// $db_connection->makeConnection($this->Configuration);
+		// $db_connection->makeConnection($this->NewCropPrescription);
+		// $db_connection->makeConnection($this->TariffStandard);
+		// $db_connection->makeConnection($this->Appointment);
+		// $db_connection->makeConnection($this->State);
+		// $db_connection->makeConnection($this->Account);
+		// $db_connection->makeConnection($this->TariffList);
+		// $db_connection->makeConnection($this->Billing);
+		// $db_connection->makeConnection($this->User);
+		// $db_connection->makeConnection($this->Location);
+		// $db_connection->makeConnection($this->ServiceBill);
+		// $db_connection->makeConnection($this->DateFormat);
+
+		$orderId = $this->params->query ['testOrderId'];
+		$laboratoryTestOrderIds = explode ( "_", $orderId );
+		// $laboratoryTestOrderIds = explode(",", $this->request->data['NewLaboratory']['labPostData']);
+
+		
+		$this->Patient->bindModel ( array (
+				'hasOne' => array (
+						'Person' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'Person.patient_uid=Patient.patient_id'
+								)
+						),
+						'TariffStandard' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'TariffStandard.id=Patient.tariff_standard_id'
+								)
+						),
+						'LaboratoryTestOrder' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'LaboratoryTestOrder.patient_id=Patient.id'
+								)
+						),
+						'Note' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'Note.patient_id=Patient.id'
+								),
+								'fields' => array (
+										'cc'
+								)
+						)
+				)
+					
+		), false );
+		$optUcums = $this->Ucums->find ( 'list', array (
+				'fields' => array (
+						'code',
+						'display_name'
+				)
+		) );
+		$this->Patient->unbindModel ( array (
+				'hasMany' => array (
+						'PharmacySalesBill',
+						'InventoryPharmacySalesReturn'
+				)
+		) );
+
+		$patientData = $this->Patient->find ( 'first', array (
+				'fields' => array (
+						'Patient.admission_type',
+						'Patient.patient_id',
+						'LaboratoryTestOrder.req_no',
+						'TariffStandard.name',
+						'Patient.age',
+						'Patient.lookup_name',
+						'Patient.id',
+						'Person.first_name',
+						'Person.last_name',
+						'Person.dob',
+						'Person.sex',
+						'Person.race',
+						'LaboratoryTestOrder.id',
+						'LaboratoryTestOrder.order_id',
+						'LaboratoryTestOrder.laboratory_id',
+						'LaboratoryTestOrder.start_date',
+						'Patient.doctor_id',
+						'Note.cc'
+				),
+				'conditions' => array (
+						'LaboratoryTestOrder.id' => $laboratoryTestOrderIds
+				)
+		) );
+		$this->set ( 'patientData', $patientData );
+
+		$doctorData = $this->User->find ( 'first', array (
+				'type' => 'inner',
+				'fields' => array (
+						'User.id',
+						'User.first_name',
+						'User.last_name'
+				),
+				'conditions' => array (
+						'User.id' => $patientData ['Patient'] ['doctor_id']
+				)
+		) );
+		$this->set ( 'doctorData', $doctorData );
+		$this->Laboratory->bindModel ( array (
+				'belongsTo' => array (
+						'LaboratoryTestOrder' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'LaboratoryTestOrder.laboratory_id=Laboratory.id'
+								)
+						),
+						'DoctorTemplate' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'Laboratory.name=DoctorTemplate.template_name'
+								)
+						),
+						'TestGroup' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'TestGroup.id=Laboratory.test_group_id'
+								)
+						),
+
+						// 'LaboratoryCategory' =>array('foreignKey' => 'laboratory_id'/* ,'conditions'=>array('Laboratory.id=LaboratoryCategory.laboratory_id' ) */),
+						'LaboratoryResult' => array (
+								'foreignKey' => false,
+								'fields' => array (
+										'LaboratoryResult.id',
+										'LaboratoryResult.patient_id',
+										'LaboratoryResult.laboratory_test_order_id',
+										'LaboratoryResult.laboratory_id',
+										'LaboratoryResult.is_authenticate'
+								),
+								'conditions' => array (
+										'LaboratoryResult.laboratory_test_order_id=LaboratoryTestOrder.id',
+										'LaboratoryResult.laboratory_test_order_id' => $laboratoryTestOrderIds
+								)
+						)
+				),
+				'hasMany' => array (
+
+						// 'LaboratoryCategory' =>array('foreignKey' => 'laboratory_id'),
+						'LaboratoryCategory' => array (
+								'foreignKey' => 'laboratory_id',
+								//'order' => 'LaboratoryCategory.sort ASC',
+						),
+						'LaboratoryParameter' => array (
+								'foreignKey' => 'laboratory_id'
+						),
+						'LaboratoryHl7Result' => array (
+								'foreignKey' => 'laboratory_id',
+								'conditions' => array (
+										'LaboratoryHl7Result.laboratory_test_order_id' => $laboratoryTestOrderIds
+								)
+						)
+				)
+				// 'conditions'=>array('LaboratoryHl7Result.laboratory_result_id'=>'LaboratoryResult.id'))
+
+					
+		), false );
+
+		$getPanelSubLab = $this->Laboratory->find ( 'all', array (
+				'fields' => array (
+						'DoctorTemplate.id',
+						'LaboratoryResult.is_authenticate',
+						'LaboratoryResult.text',
+						'Laboratory.notes_display_text',
+						'Laboratory.histo_sub_categories',
+						'Laboratory.notes',
+						'TestGroup.id',
+						'TestGroup.name',
+						'Laboratory.default_result',
+						'LaboratoryResult.id',
+						'LaboratoryResult.laboratory_test_order_id',
+						'Laboratory.id',
+						'Laboratory.name',
+						'Laboratory.machine_name',
+						'Laboratory.lab_type',
+						'LaboratoryTestOrder.id',
+						'LaboratoryTestOrder.patient_id',
+						'LaboratoryResult.report_date'
+				),
+				'conditions' => array (
+						'LaboratoryTestOrder.id' => $laboratoryTestOrderIds
+				),
+		) );
+
+		//debug($getPanelSubLab);
+				$dataLabImg = $this->laboratoryImage($patientData['Patient']['id'], $laboratoryTestOrderIds);
+
+		$paramArr = array ();
+		foreach ( $getPanelSubLab as $k => $v ) {
+			foreach ( $v ['LaboratoryParameter'] as $key => $value ) {
+				array_push ( $paramArr, $value ['id'] );
+			}
+			if($v['Laboratory']['machine_name']){
+				$labName=explode('(',$v['Laboratory']['name']);
+				$labMachine[rtrim(ltrim($labName['0']))]=$v['Laboratory']['machine_name']; // lab m/c sample result search
+			}
+		}
+			if(!empty($labMachine)){
+				/*************************Sample result data collected From lab m/c - Pooja**************************/
+				if($this->params->query['lab_sample_id']){
+					$cbcResult=$this->lab_result($this->params->query['lab_sample_id']);
+					$this->set('cbcLabRes',$cbcResult);				
+				}
+				/*************************EOF Sample result data***********************************************************/
+			}
+			if (count ( $laboratoryTestOrderIds ) > 1)
+				$cond ['LaboratoryHl7Result.laboratory_test_order_id NOT '] = $laboratoryTestOrderIds;
+			else
+				$cond ['LaboratoryResult.laboratory_test_order_id !='] = array_pop ( $laboratoryTestOrderIds );
+			if (count ( $paramArr ) > 0) {
+				$conditions = array (
+						'LaboratoryHl7Result.laboratory_parameter_id' => $paramArr,
+						'LaboratoryResult.patient_id' => $patientData ['Patient'] ['id'],
+						$cond
+				);
+			} else {
+				$conditions = array (
+						'LaboratoryResult.patient_id' => $patientData ['Patient'] ['id'],
+						$cond
+				);
+			}
+
+		$laboratoryHl7Model = ClassRegistry::init ( 'LaboratoryHl7Result' );
+		$laboratoryHl7Model->bindModel ( array (
+				'belongsTo' => array (
+						'LaboratoryResult' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'LaboratoryResult.id=LaboratoryHl7Result.laboratory_result_id'
+								),
+								'type'=>'INNER',
+						)
+				)
+		), false );
+		$previousResuls = $laboratoryHl7Model->find ( "all", array (
+				'fields' => array (
+						'LaboratoryHl7Result.laboratory_parameter_id',
+						'LaboratoryHl7Result.result'
+				),
+				'conditions' => $conditions,
+				'order' => array (
+						'LaboratoryResult.id' => 'DESC'
+				)
+		)
+		);		
+		$prevResultArray = array ();
+		foreach ( $previousResuls as $key => $value ) {
+			if (count ( $prevResultArray [$value ['LaboratoryHl7Result'] ['laboratory_parameter_id']] ) < 6) {
+				$prevResultArray [$value ['LaboratoryHl7Result'] ['laboratory_parameter_id']] [] = $value ['LaboratoryHl7Result'] ['result'];
+			}
+		}
+		
+// 		$dataLabImg = $this->laboratoryImage ( $patientData ['Patient'] ['id'] );
+// 		$dataLabImg = $this->laboratoryImage($patientData['Patient']['id'], $laboratoryTestOrderIds);
+
+		$this->set ( 'prevResultArray', $prevResultArray );
+		$this->set ( 'dataLabImg', $dataLabImg );
+		$this->set ( 'getPanelSubLab', $getPanelSubLab );
+		$this->set ( 'optUcums', $optUcums );
+		if ($this->request->data ['LaboratoryResult']) {
+			// image debug()
+			
+			if ($this->request->data ['PatientDocument'] ['file_name'] [0] ['name']) {
+				foreach ( $this->request->data ['PatientDocument'] ['file_name'] as $imgKey => $imgData ) {
+					$imgName = explode ( '.', $imgData ['name'] );
+				debug($imgName);
+					if (! isset ( $imgName [1] )) {
+						$imagename = "lab_" . $imgName [0] . mktime () . '.' . $imgName [0];
+						
+					} else {
+						$imagename = "lab_" . $imgName [0] . mktime () . '.' . $imgName [1];
+					}
+				
+					if (! empty ( $imgData ['name'] )) {
+					    
+						$showError = $this->ImageUpload->uploadFile ( $imgData, '', 'uploads/laboratory/', $imagename );
+	
+					if (empty($showError)) {
+							// फाइल का एक्सटेंशन चेक करें
+							$fileExtension = strtolower(pathinfo($imgData['name'], PATHINFO_EXTENSION));
+					
+							// केवल इमेज फाइल्स के लिए resize करें
+							if (in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif'])) {
+								$this->ImageUpload->load($imgData['tmp_name']);
+								$this->ImageUpload->resize(100, 100);
+								$this->ImageUpload->save("uploads/laboratory/" . $imagename);
+							} else {
+								// PDF और अन्य फाइल्स के लिए सीधा सेव करें
+								move_uploaded_file($imgData['tmp_name'], "uploads/laboratory/" . $imagename);
+							}
+						}
+					}
+					$dataVal = array ();
+					$dataVal ['location_id'] = $this->Session->read ( "locationid" );
+					$dataVal ['create_time'] = date ( 'Y-m-d H:i:s' );
+					$dataVal ['created_by'] = $this->Auth->user ( 'id' );
+					$dataVal ['type'] = $imgData ['type'];
+					$dataVal ['size'] = $imgData ['size'];
+					$dataVal ['filename'] = $imagename;
+					$dataVal ['patient_id'] = $patientData ['Patient'] ['id'];
+					$dataVal ['rad_test_order_id'] = $orderId;
+						
+					$this->PatientDocument->save ( $dataVal );
+					$this->PatientDocument->id = '';
+				}
+			}
+			// EOF IMG
+				
+			$this->NewLaboratory->insertLab ( $this->request->data );
+			$result = true;
+		}
+		/*
+		 * if($this->request->data['LaboratoryHl7Result']){//pr($this->request->data);echo '??';exit;
+		* $this->NewLaboratory->insertLab($this->request->data);
+		* $result=true;
+		* }
+		*/
+		if ($result == true && ! $this->request ['isAjax']) {
+			$this->Session->setFlash ( __ ( 'Record save successfully' ), 'default', array (
+					'class' => 'message'
+			) );
+			// $this->redirect(array('action' => 'index'));
+			$this->redirect ( $this->referer () );
+		}
+
+		$list = $this->Configuration->find ( 'first', array (
+				'conditions' => array (
+						'Configuration.name' => "Laboratory Results",
+						'Configuration.category' => 1
+				)
+		) );
+		$this->set ( 'authUser', unserialize ( $list ['Configuration'] ['value'] ) ); // list of authenticated users
+	}
+	
+	
+	//function printLab($labId,$labResultId) { // commented by atul 
+	function printLab() {
+		$this->layout = advance_ajax;
+		$this->uses = array (
+				'Laboratory',
+				'LaboratoryTestOrder',
+				'Patient',
+				'Ucums',
+				'User',
+				'Configuration',
+				'NoteDiagnosis',
+				'DoctorProfile'
+		);
+		//$orderId = $labId; // commented by atul
+		$orderId = $this->params->query ['testOrderId'];
+		$laboratoryTestOrderIds = explode ( "_", $orderId );
+		$optUcums = $this->Ucums->find ( 'list', array (
+				'fields' => array (
+						'code',
+						'display_name'
+				)
+		) );
+		$patientId = $this->LaboratoryTestOrder->find ( 'first', array (
+				'fields' => array (
+						'LaboratoryTestOrder.patient_id'
+				),
+				'conditions' => array (
+						'LaboratoryTestOrder.id' => $laboratoryTestOrderIds
+				)
+		) );
+		$this->Patient->unbindModel ( array (
+				'hasMany' => array (
+						'PharmacySalesBill',
+						'InventoryPharmacySalesReturn'
+				)
+		) );
+		$this->Patient->bindModel ( array (
+				'hasOne' => array (
+						'Person' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'Person.patient_uid=Patient.patient_id'
+								)
+						),
+						'Bed' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'Bed.id = Patient.bed_id'
+								)
+						),
+						'Ward' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'Ward.id = Patient.ward_id'
+								)
+						),
+						'Room' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'Room.id = Patient.room_id'
+								)
+						)
+				)
+		), false );
+		$diagnosesName = $this->NoteDiagnosis->find ( 'all', array (
+				'fields' => array (
+						'NoteDiagnosis.diagnoses_name' ,'NoteDiagnosis.code_system'
+				),
+				'conditions' => array (
+						'NoteDiagnosis.patient_id' => $patientId ['LaboratoryTestOrder'] ['patient_id']
+				)
+		) );
+
+		$patientData = $this->Patient->find ( 'first', array (
+				'conditions' => array (
+						'Patient.id' => $patientId ['LaboratoryTestOrder'] ['patient_id']
+				),
+				'fields' => array (
+						'Patient.form_received_on',
+						'Patient.tariff_standard_id',
+						'Patient.lookup_name',
+						'Patient.age',
+						'Patient.id',
+						'Patient.admission_id',
+						'Patient.person_id',
+						'Person.first_name',
+						'Person.last_name',
+						'Person.person_city_code',
+						'Person.person_local_number',
+						'Person.person_extension',
+						'Person.person_lindline_no',
+						'Person.patient_uid',
+						'Person.dob',
+						'Person.sex',
+						'Person.mobile',
+						'Patient.doctor_id',
+						'Ward.name',
+						'Room.name',
+						'Bed.bedno'
+				)
+		) );
+		$this->set ( 'patientData', $patientData );
+		$this->Laboratory->bindModel ( array (
+				'belongsTo' => array (
+						'LaboratoryTestOrder' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'LaboratoryTestOrder.laboratory_id=Laboratory.id'
+								)
+						),
+						'TestGroup' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'TestGroup.id=Laboratory.test_group_id'
+								)
+						),
+						'LaboratoryResult' => array (
+								'foreignKey' => false,
+								'fields' => array (
+										'LaboratoryResult.id',
+										'LaboratoryResult.patient_id',
+										'LaboratoryResult.laboratory_test_order_id',
+										'LaboratoryResult.laboratory_id',
+										'LaboratoryResult.is_authenticate'
+								),
+								'conditions' => array (
+										'LaboratoryResult.laboratory_test_order_id=LaboratoryTestOrder.id',
+										'LaboratoryResult.laboratory_test_order_id' => $laboratoryTestOrderIds
+								)
+						)
+				)
+				,
+				'hasMany' => array (
+						'LaboratoryCategory' => array (
+								'foreignKey' => 'laboratory_id',
+								//'order' => 'LaboratoryCategory.sort ASC',
+						),
+						'LaboratoryParameter' => array (
+								'foreignKey' => 'laboratory_id'
+						),
+						'LaboratoryHl7Result' => array (
+								'foreignKey' => 'laboratory_id',
+								'conditions' => array (
+										'LaboratoryHl7Result.laboratory_test_order_id' => $laboratoryTestOrderIds
+								)
+						)
+				)
+		), false );
+
+		$getPanelSubLab = $this->Laboratory->find ( 'all', array (
+
+				'fields' => array (
+						'Laboratory.doctor_id',
+						'TestGroup.id',
+						'LaboratoryResult.text',
+						'Laboratory.notes_display_text',
+						'Laboratory.notes',
+						'Laboratory.test_method',
+						'TestGroup.id',
+						'TestGroup.name',
+						'LaboratoryResult.create_time',
+						'LaboratoryResult.id',
+						'LaboratoryResult.id',
+						'LaboratoryResult.op_name',
+						'Laboratory.id',
+						'Laboratory.name',
+						'Laboratory.lab_type',
+						'LaboratoryTestOrder.id',
+						'LaboratoryTestOrder.patient_id',
+						'LaboratoryTestOrder.sample_received',
+						'LaboratoryTestOrder.req_no',
+						'LaboratoryTestOrder.user_id',
+						'LaboratoryResult.report_date',
+						'LaboratoryTestOrder.start_date',
+				),
+				'conditions' => array (
+						'LaboratoryTestOrder.id' => $laboratoryTestOrderIds
+				),
+				'order' => 'TestGroup.id'
+		)
+		);
+		$doctorData = $this->User->find ( 'first', array (
+				'type' => 'inner',
+				'fields' => array (
+						'User.id',
+						'User.first_name',
+						'User.last_name'
+				),
+				'conditions' => array (
+						'User.id' => $patientData ['Patient'] ['doctor_id']
+				)
+		) );
+
+		$userName = $this->User->getUsers();
+		$this->set("userName",$userName);
+		$this->set ( 'doctorData', $doctorData );
+		// debug($getPanelSubLab);exit;
+		$this->set ( 'getPanelSubLab', $getPanelSubLab );
+		$this->set ( 'optUcums', $optUcums );
+		$this->set ( 'diagnosesName', $diagnosesName );
+
+		$prefix = $this->Configuration->find ( 'first', array (
+				'conditions' => array (
+						'Configuration.name' => 'Laboratory Results',
+						'Configuration.category' => 1
+				)
+		) );
+		$authenticated = unserialize ( $prefix ['Configuration'] ['value'] );
+		$this->set ( 'authenticated', $authenticated );
+
+		foreach ( $getPanelSubLab as $keyValue => $valKey ) {
+			$exploadData = explode ( ',', $valKey ['Laboratory'] ['doctor_id'] );
+			foreach ( $exploadData as $keyVal => $dataVale ) {
+				$userId [] = $dataVale;
+			}
+		}
+
+		$drProfile = $this->DoctorProfile->find ( 'all', array (
+				'fields' => array (
+						'id',
+						'education',
+						'first_name',
+						'last_name'
+				),
+				'conditions' => array (
+						'DoctorProfile.user_id' => $userId
+				)
+		) );
+		$this->set ( 'drProfile', $drProfile );
+	}
+		
+	// To add sample, specimen_id, req_no, barcode for laboratory test order..
+	// By Swapnil G.Sharma
+	public function AddSample() {
+		$this->loadModel ( 'LaboratoryTestOrder' );
+		$this->autoRender = false;
+		$this->layout = "ajax";
+		$sample = $this->request->data ['sample'];
+		/* $received = $this->request->data ['received'];
+		 $complete = $this->request->data ['complete']; */
+		// For Sample
+		if (! empty ( $sample )) {
+			$obj = json_decode ( $sample, true );
+			$getReqNo = $this->LaboratoryTestOrder->GenerateReqNo();
+			foreach ( $obj as $kay => $arr ) {
+				$labId = $arr ['testOrderId'];
+				$patientId = $arr ['patientId'];
+
+				$getSpecimenId = $this->LaboratoryTestOrder->autoGeneratedSpecimenID( $key, $labId ); // specimenId
+				$this->LaboratoryTestOrder->getLabRequsitionQR (trim($getReqNo));  // generating bar code using requestNo and patient_id
+
+				$data ['req_no'] = $getReqNo;
+				$this->LaboratoryTestOrder->id = $labId;
+				$data ['showEdit'] = 1;
+				$data ['specimen_id'] = $getSpecimenId;
+				$data ['sample_received'] = date ( 'Y-m-d H:i:s' );
+				$data['user_id'] = $this->Session->read("userid");
+
+				$this->LaboratoryTestOrder->save ( $data );
+				$this->LaboratoryTestOrder->id = '';
+
+				$arrval [$labId] = $patientId;
+			}
+		}
+		// For Received
+		/* if (! empty ( $received )) {
+		 $rec = json_decode ( $received, true );
+		foreach ( $rec as $kay => $arrRec ) {
+		$labId_r = $arrRec ['testOrderId'];
+		$patientId_r = $arrRec ['patientId'];
+
+		$this->LaboratoryTestOrder->id = $labId_r;
+		$data ['received'] = 1;
+
+		$this->LaboratoryTestOrder->save ( $data );
+		$this->LaboratoryTestOrder->id = '';
+		}
+		} */
+
+		// For Complete
+		/* if (! empty ( $complete )) {
+		 $comp = json_decode ( $complete, true );
+		foreach ( $comp as $kay => $arrComp ) {
+		$labId_c = $arrComp ['testOrderId'];
+		$patientId_c = $arrComp ['patientId'];
+
+		$this->LaboratoryTestOrder->id = $labId_c;
+		$data ['completed'] = 1;
+
+		$this->LaboratoryTestOrder->save ( $data );
+		$this->LaboratoryTestOrder->id = '';
+		}
+		} */
+		$this->lab_dashboard ('sampleSave',1,1);
+	}
+		
+	/**
+	 * Function for ReqNo autocomplete
+	 */
+	function autocompleteForReqNo() {
+		$this->autoRender = false;
+		$this->layout = false;
+		$this->loadModel ( 'LaboratoryTestOrder' );
+
+		$searchKey = $this->params->query;
+		// debug($searchKey);exit;
+		$reqNo = $this->LaboratoryTestOrder->find ( 'all', array (
+				'fields' => array (
+						'LaboratoryTestOrder.id',
+						'LaboratoryTestOrder.req_no'
+				),
+				'conditions' => array (
+						'LaboratoryTestOrder.req_no LIKE' => "%$searchKey[term]%"
+				),
+				'order' => array (
+						'LaboratoryTestOrder.req_no' => "ASC"
+				),
+				'group' => 'LaboratoryTestOrder.req_no'
+		) );
+
+		foreach ( $reqNo as $key => $value ) {
+				
+			$returnArray [] = array (
+					'id' => $value ['LaboratoryTestOrder'] ['id'],
+					'value' => $value ['LaboratoryTestOrder'] ['req_no']
+			);
+		}
+
+		echo json_encode ( $returnArray );
+		exit ();
+	}
+		
+	/**
+	 * Function for Laboratory test order Patients autocomplete
+	 */
+	function autocompleteForPatient() {
+		$this->autoRender = false;
+		$this->layout = false;
+		$this->loadModel ( 'LaboratoryTestOrder' );
+
+		$searchKey = $this->params->query;
+		// debug($searchKey); exit;
+		$this->LaboratoryTestOrder->bindModel ( array (
+				'belongsTo' => array (
+						'Patient' => array (
+								'foreignKey' => false,
+								'conditions' => array (
+										'LaboratoryTestOrder.patient_id = Patient.id'
+								)
+						)
+				)
+		) );
+
+		$result = $this->LaboratoryTestOrder->find ( 'all', array (
+				'fields' => array (
+						'Patient.id',
+						'Patient.lookup_name',
+						'Patient.admission_id'
+				),
+				'conditions' => array (
+						'Patient.lookup_name  LIKE' => "%$searchKey[term]%"
+				),
+				'order' => array (
+						'Patient.lookup_name' => "ASC"
+				),
+				'group' => 'Patient.id'
+		) );
+
+		foreach ( $result as $key => $value ) {
+				
+			$returnArray [] = array (
+					'id' => $value ['Patient'] ['id'],
+					'value' => $value ['Patient'] ['lookup_name'] . ' ' . '(' . $value ['Patient'] ['admission_id'] . ')'
+			);
+		}
+
+		echo json_encode ( $returnArray );
+		exit ();
+	}
+	public function printSample($id) {
+		$this->layout = false;
+		$this->uses = array (
+				'Patient',
+				'Laboratory',
+				'LaboratoryTestOrder'
+		);
+		if (! $id) {
+			throw new NotFoundException ( __ ( 'Invalid Sample Id' ) );
+		} else {
+			$labPostData = explode ( "_", $id );
+				
+			$this->LaboratoryTestOrder->bindModel ( array (
+					'belongsTo' => array (
+							'Patient' => array (
+									'foreignKey' => false,
+									'conditions' => array (
+											'LaboratoryTestOrder.patient_id = Patient.id'
+									)
+							),
+							'Laboratory' => array (
+									'foreignKey' => 'laboratory_id'
+							)
+					)
+			) );
+				
+			$getData = $this->LaboratoryTestOrder->find ( 'all', array (
+					'conditions' => array (
+							'LaboratoryTestOrder.id' => $labPostData
+					),
+					'fields' => array (
+							'LaboratoryTestOrder.specimen_id',
+							'LaboratoryTestOrder.req_no',
+							'Laboratory.name',
+							'Patient.lookup_name',
+							'Patient.admission_id'
+					)
+			) );
+			$this->set ( 'getData', $getData );
+		}
+	}
+	function autocompleteForWard() {
+		$this->autoRender = false;
+		$this->layout = false;
+		$this->uses = array (
+				'Ward'
+		);
+
+		$searchKey = $this->params->query;
+		// debug($searchKey); exit;
+
+		$result = $this->Ward->find ( 'all', array (
+				'fields' => array (
+						'Ward.id',
+						'Ward.name'
+				),
+				'conditions' => array (
+						'Ward.name  LIKE' => "%$searchKey[term]%"
+				),
+				'order' => array (
+						'Ward.name' => "ASC"
+				),
+				'group' => 'Ward.id'
+		) );
+		foreach ( $result as $key => $value ) {
+				
+			$returnArray [] = array (
+					'id' => $value ['Ward'] ['id'],
+					'value' => $value ['Ward'] ['name']
+			);
+		}
+
+		echo json_encode ( $returnArray );
+		exit ();
+	}
+	function autocompleteForBed() {
+		$this->autoRender = false;
+		$this->layout = false;
+		$this->uses = array (
+				'Room',
+				'Bed'
+		);
+
+		$searchKey = $this->params->query;
+		// debug($searchKey); exit;
+		$this->Bed->bindModel ( array (
+				'belongsTo' => array (
+						'Room' => array (
+								'foreignKey' => false,
+								'condition' => array (
+										'Room.id = Bed.room_id'
+								)
+						)
+				)
+		) );
+
+		$result = $this->Room->find ( 'all', array (
+				'fields' => array (
+						'Room.id',
+						'Room.name',
+						'Room.bed_prefix'
+				),
+				'conditions' => array (
+						'Room.name  LIKE' => "%$searchKey[term]%"
+				),
+				'order' => array (
+						'Room.name' => "ASC"
+				),
+				'group' => 'Room.id'
+		) );
+		// debug($result);exit;
+		foreach ( $result as $key => $value ) {
+				
+			foreach ( $value ['Bed'] as $keyBed => $valBed ) {
+
+				$returnArray [] = array (
+						'id' => $valBed ['id'],
+						'value' => $value ['Room'] ['name'] . " " . $value ['Room'] ['bed_prefix'] . " " . $valBed ['bedno']
+				);
+			}
+		}
+
+		echo json_encode ( $returnArray );
+		exit ();
+	}
+	function laboratoryImage($patientID, $laboratoryTestOrderIds) {
+		$this->loadModel ( 'PatientDocument' );
+		$imdData = $this->PatientDocument->find ( 'all', array (
+				'fields' => array (
+						'id',
+						'filename',
+						'patient_id'
+				),
+				'conditions' => array (
+					'patient_id' => $patientID,
+					'rad_test_order_id' => $laboratoryTestOrderIds
+				)
+		) );
+		return $imdData;
+	}
+	function delete_report($patient_id = null, $patient_document_id = null, $orderId = null) {
+		if (! empty ( $patient_id ) && ! empty ( $patient_document_id )) {
+			$this->uses = array (
+					'PatientDocument'
+			);
+			$queryRes = $this->PatientDocument->read ( array (
+					'filename'
+			), $patient_document_id );
+			$this->PatientDocument->id = $patient_document_id;
+			$isRename = unlink ( "uploads/laboratory/" . $queryRes ['PatientDocument'] ['filename'] );
+			if ($isRename) {
+				$this->PatientDocument->id = $patient_document_id;
+				$result = $this->PatientDocument->delete ();
+			} else {
+				$this->Session->setFlash ( __ ( 'There is some problem while deleting record, please try again' ), 'default', array (
+						'class' => 'error'
+				) );
+				$this->redirect ( array (
+						'action' => 'entryMode',
+						'?' => array (
+								'testOrderId' => $orderId
+						)
+				) );
+			}
+			if ($result) {
+				$this->Session->setFlash ( __ ( 'Record deleted successfully' ), 'default', array (
+						'class' => 'message'
+				) );
+				$this->redirect ( array (
+						'action' => 'entryMode',
+						'?' => array (
+								'testOrderId' => $orderId
+						)
+				) );
+			}
+		} else {
+			$this->Session->setFlash ( __ ( 'There is some problem , please try again' ), 'default', array (
+					'class' => 'error'
+			) );
+			$this->redirect ( array (
+					'action' => 'entryMode',
+					'?' => array (
+							'testOrderId' => $orderId
+					)
+			) );
+		}
+	}
+	function reTest() {
+		$this->uses = array (
+				'LaboratoryTestOrder'
+		);
+		$this->autoRender = false;
+		$this->layout = "ajax";
+		$reTest = $this->request->data ['reTest'];
+		if ($reTest) {
+			$object = json_decode ( $reTest, true );
+			foreach ( $object as $key => $arr ) {
+				$lab_test_order_id = $arr ['lab_test_order_id'];
+				/*
+				 * $patientId = $arr['patientId'];
+				*
+				* $data['laboratory_id'] = $labId;
+				* $data['patient_id'] = $patientId;
+				* $data['start_date'] = date('Y-m-d H:i:s');
+				* $data['location_id'] = $this->Session->read("locationid");
+				* $data['create_time'] = date('Y-m-d H:i:s');
+				*/
+
+				// $this->LaboratoryTestOrder->save($data);
+				$this->LaboratoryTestOrder->updateAll ( array (
+						'LaboratoryTestOrder.is_retest' => 1
+				), array (
+						'LaboratoryTestOrder.id' => $lab_test_order_id
+				) );
+				$this->LaboratoryTestOrder->id = '';
+			}
+		}
+		$this->lab_dashboard ();
+	}
+	function download($patientId = null) {
+		$this->layout = false;
+		$this->autoRender = false;
+		$this->uses = array (
+				'PatientDocument'
+		);
+
+		$result = $this->PatientDocument->find ( 'all', array (
+				'conditions' => array (
+						'patient_id' => $patientId
+				)
+		) );
+		foreach ( $result as $key => $result ) {
+			$xml [] = $result ['PatientDocument'] ['filename'];
+		}
+		// create new zip opbject
+		$zip = new ZipArchive ();
+
+		// create a temp file & open it
+		$tmp_file = tempnam ( '.', '' );
+		$zip->open ( $tmp_file, ZipArchive::CREATE );
+
+		// loop through each file
+		foreach ( $xml as $file ) {
+				
+			// download file
+			$download_file = file_get_contents ( "uploads/patient_images/thumbnail/" . $file );
+				
+			// add it to the zip
+			$zip->addFromString ( basename ( $file ), $download_file );
+		}
+
+		// close zip
+		$zip->close ();
+
+		// send the file to the browser as a download
+		header ( 'Content-disposition: attachment; filename=' . $patientId . '.zip' );
+		header ( 'Content-type: application/zip' );
+		readfile ( $tmp_file );
+	}
+	function autocompleteForService() {
+		$this->autoRender = false;
+		$this->layout = false;
+		$this->uses = array (
+				'Laboratory'
+		);
+
+		$searchKey = $this->params->query;
+		// debug($searchKey); exit;
+		$result = $this->Laboratory->find ( 'all', array (
+				'fields' => array (
+						'Laboratory.id',
+						'Laboratory.name'
+				),
+				'conditions' => array (
+						'Laboratory.name  LIKE' => "%$searchKey[term]%"
+				),
+				'order' => array (
+						'Laboratory.name' => "ASC"
+				),
+				'group' => 'Laboratory.id'
+		) );
+		foreach ( $result as $key => $value ) {
+				
+			$returnArray [] = array (
+					'id' => $value ['Laboratory'] ['id'],
+					'value' => $value ['Laboratory'] ['name']
+			);
+		}
+		echo json_encode ( $returnArray );
+		exit ();
+	}
+	function autocompleteForcategory() {
+		$this->autoRender = false;
+		$this->layout = false;
+		$this->uses = array (
+				'TestGroup'
+		);
+
+		$searchKey = $this->params->query;
+		// debug($searchKey); exit;
+		$result = $this->TestGroup->find ( 'all', array (
+				'fields' => array (
+						'TestGroup.id',
+						'TestGroup.name'
+				),
+				'conditions' => array (
+						'TestGroup.name  LIKE' => "%$searchKey[term]%"
+				),
+				'order' => array (
+						'TestGroup.name' => "ASC"
+				),
+				'group' => 'TestGroup.id'
+		) );
+		foreach ( $result as $key => $value ) {
+				
+			$returnArray [] = array (
+					'id' => $value ['TestGroup'] ['id'],
+					'value' => $value ['TestGroup'] ['name']
+			);
+		}
+		echo json_encode ( $returnArray );
+		exit ();
+	}
+	function isPrint($orderId) {
+		$laboratoryTestOrderIds = explode ( "_", $orderId );
+		$this->uses = array (
+				'LaboratoryTestOrder'
+		);
+		$this->LaboratoryTestOrder->updateAll ( array (
+				'LaboratoryTestOrder.is_print' => 1
+		), array (
+				'LaboratoryTestOrder.id' => $laboratoryTestOrderIds
+		) );
+		exit ();
+	}
+	
+	/**
+	 * Function returns sample data array from inserted by  lab machine
+	 * Pooja Gupta
+	 */
+	function lab_result($sampleID){
+		 #Configure::write('debug',2);
+		/********************************************Mysql connect***************************************************/
+		   $dbhost = '192.168.8.8';
+		   $dbuser = 'labinterface';
+		   $dbpass = 'labinterface';
+		   $conn = mysql_connect($dbhost, $dbuser, $dbpass);
+		   if(! $conn )
+		   {
+		     die('Could not connect: ' . mysql_error());
+		   }
+		   mysql_select_db('lab_interface');//select database
+		   $date=date('Y-m-d');
+		   $raw_query = 'select data FROM hl7_nips where sample_id='.$sampleID.' and date like "'.$date.'"';   
+		   $query = mysql_query($raw_query,$conn);//query to execute
+		   if($query === FALSE) {
+		   	die(mysql_error()); // TODO: better error handling
+		   }
+		  $row = mysql_fetch_assoc($query);		  
+		  
+		  $string=$row['data'];
+		  mysql_close($conn);
+		/*********************************EOF mysql connect****************************************************************************/
+		
+		//Key represents parameter lab_catgory_id of cbc
+		$resultArr['identifier']=substr($string, '0','1'); //identifire
+		$resultArr['ID']=substr($string, '1','8');
+		$resultArr['sample_mode']=substr($string, '9','1');
+		$resultArr['month']=substr($string, '10','2');
+		$resultArr['day']=substr($string, '12','2');
+		$resultArr['year']=substr($string, '14','4');
+		$resultArr['hour']=substr($string, '18','2');
+		$resultArr['mins']=substr($string, '20','2');
+		$resultArr['2']['wbc']=$this->Number->format(substr($string, '22','4')*100);
+		$resultArr['lymph#']=substr($string, '26','4')/10;
+		$resultArr['mid#']=substr($string, '30','4')/10;
+		
+		/****DLC 3rd parameter of cbc report****************/
+		$resultArr['3']['4']['gran#']=substr($string, '34','4')/10;
+		$resultArr['3']['2']['lymph%']=round(substr($string, '38','3')/10);
+		$resultArr['3']['3']['mid%']=substr($string, '41','3')/10;
+		$resultArr['3']['1']['gran%']=round(substr($string, '44','3')/10);
+		/***************************************************/
+		
+		$resultArr['4']['rbc']=substr($string, '47','3')/100;
+		$resultArr['1']['hgb']=substr($string, '50','3')/10 ;
+		if(strlen($resultArr['1']['hgb'])==1){
+			$resultArr['1']['hgb']=$resultArr['1']['hgb'].'.0';
+		}
+		$resultArr['8']['mchc']=substr(chunk_split(substr($string, '54','4'), 2, '.'), 0, -1);//substr($string, '54','4')/100;
+		$resultArr['6']['mcv']=substr(chunk_split(substr($string, '58','4'), 2, '.'), 0, -1);//substr($string, '58','4')/100;
+		$resultArr['7']['mch']=substr(chunk_split(substr($string, '62','4'), 2, '.'), 0, -1);//substr($string, '62','4')/100;
+		$resultArr['rdw-cv']=substr($string, '65','3')/10;
+		$resultArr['5']['hct']=substr(chunk_split(substr($string, '68','3'), 2, '.'), 0, -1);//substr($string, '68','3')/10;
+		$resultArr['9']['plt']=number_format(substr($string, '72','4')/1000,'2'); 
+		$resultArr['mpv']=substr($string, '76','2')/10;
+		$resultArr['pdw']=substr($string, '78','3')/10;
+		$resultArr['pct']=substr($string, '81','3')/1000;
+		$resultArr['rdw-sd']=substr($string, '85','4')/100;
+		
+		/**************************Calculation of DLC out of 100********************/
+		$tot=$resultArr['3']['1']['gran%']+$resultArr['3']['2']['lymph%'];//94
+		$bal=100-$tot;//6
+		$resultArr['3']['3']['mid%']=round(($bal*60)/100);//4
+		if(strlen($resultArr['3']['3']['mid%'])==1){
+			$resultArr['3']['3']['mid%']='0'.$resultArr['3']['3']['mid%'];
+		}
+		$resultArr['3']['4']['gran#']=$bal-$resultArr['3']['3']['mid%'];//6-4
+		if(strlen($resultArr['3']['4']['gran#'])==1){
+			$resultArr['3']['4']['gran#']='0'.$resultArr['3']['4']['gran#'];
+		}
+		/**************************************************************************/
+		
+		 
+		return $resultArr;
+		
+	}
+	
+    public function savePDF() {
+    $this->autoRender = false;
+    $this->uses = array('LaboratoryResult');
+
+    if ($this->request->is('post')) {
+         $orderIds = explode('_', $this->request->data['orderId']); 
+        
+        // ✅ Numeric IDs ko filter karein (Agar koi invalid data ho to remove ho jaye)
+        $orderIds = array_filter($orderIds, 'is_numeric'); 
+        // debug($orderIds);exit;
+        $patientMobile = $this->request->data['patientMobile'];
+        $patientName = $this->request->data['patientName'];
+
+        $pdfFile = $this->request->params['form']['pdfFile'];
+        $pdfFolder = WWW_ROOT . 'files/reports/';
+        if (!file_exists($pdfFolder)) {
+            mkdir($pdfFolder, 0777, true);
+        }
+
+        // ✅ PDF File Name Generation
+        $pdfFileName = $patientName . "_" . $patientMobile . "_" . implode(',', $orderIds) . "_" . time() . ".pdf";
+        $pdfFilePath = $pdfFolder . $pdfFileName;
+        move_uploaded_file($pdfFile['tmp_name'], $pdfFilePath);
+
+        // ✅ WhatsApp Message Send Karo
+        $whatsappSent = $this->sendWhatsAppPDF($patientMobile, $pdfFilePath, $patientName);
+        // ✅ Agar WhatsApp message successful gaya to database update karo (Multiple IDs ke liye)
+        if ($whatsappSent) {
+            $this->LaboratoryResult->updateAll(
+                ['is_whatsapp_sent' => 1],  // ✅ WhatsApp Sent Status Update
+                 ['laboratory_test_order_id' => $orderIds]    // ✅ Multiple Order IDs Update Karein
+            );
+            // debug($orderIds);exit;
+
+        }
+
+        echo json_encode(['success' => true, 'pdf' => $pdfFilePath, 'whatsappSent' => $whatsappSent]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Invalid request']);
+    }
+}
+
+
+
+
+
+/**
+ * 🔹 PDF Compress Function (Ghostscript Use Karna)
+ */
+public function compressPDF($inputFile, $outputFile) {
+    $gsCommand = "gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -sOutputFile={$outputFile} {$inputFile}";
+    shell_exec($gsCommand);
+}
+
+
+public function sendWhatsAppPDF($mobile, $pdfPath, $patientName) {
+    $apiUrl = "https://public.doubletick.io/whatsapp/message/template";
+    $apiKey = "key_8sc9MP6JpQ";
+
+    $user_qr_image_url = FULL_BASE_URL . "/files/reports/" . basename($pdfPath);  
+    $Hospital_name = "Hope Group";  
+    // $mobile  = "$mobile";
+
+    $data = [
+        "messages" => [
+            [
+                "to" => "+91" . $mobile,  
+                "content" => [
+                    "templateName" => "lab_report_v2",  
+                    "language" => "en",
+                    "templateData" => [
+                        "body" => [
+                            "placeholders" => [
+                                $patientName, 
+                                $user_qr_image_url, 
+                                $Hospital_name 
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    ];
+
+    $headers = [
+        "accept: application/json",
+        "content-type: application/json",
+        "Authorization: " . $apiKey
+    ];
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_URL, $apiUrl);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+
+    $response = curl_exec($ch);
+    $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    if ($http_status == 200) {
+        return true; // ✅ WhatsApp message successfully sent
+    } else {
+        return false; // ❌ WhatsApp message failed
+    }
+}
+
+}
+?>

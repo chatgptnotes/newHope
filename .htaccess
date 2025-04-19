@@ -1,0 +1,25 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine on
+    RewriteRule ^$ app/webroot/ [L]
+    RewriteRule (.*) app/webroot/$1 [L]
+
+    # Allow direct access to backup.php without rewriting
+    RewriteRule ^backup.php$ - [L]
+
+    # Performance & Upload Settings
+    php_value max_input_vars 5000
+    php_value post_max_size 128M
+    php_value upload_max_filesize 128M
+    php_value memory_limit 512M
+    php_value max_execution_time 300
+
+    # CakePHP Default Rewrite Rule
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+
+    # CORS Header to Allow Image Loading
+    <FilesMatch "\.(jpg|jpeg|png|gif|svg|webp)$">
+        Header set Access-Control-Allow-Origin "*"
+    </FilesMatch>
+</IfModule>

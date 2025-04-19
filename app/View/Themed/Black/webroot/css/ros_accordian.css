@@ -1,0 +1,355 @@
+@CHARSET "ISO-8859-1";
+
+.ros_row{margin:2px;}
+.radio_cls{border-bottom:solid #CCCCCC 1px;}
+.icheck_line-icon{background: url(../../theme/Black/img/icons/line.png) no-repeat scroll 0 0 rgba(0, 0, 0, 0);
+    border: medium none;
+    height: 11px;
+    left: 13px;
+    margin: -5px 0 0;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    top: 50%;
+    width: 13px;}
+.radio_check label{ width:144px;
+text-align:center;
+border: 1px solid #424A4D;
+cursor: pointer;
+background: gray;
+color: white;
+padding: 2px;
+margin-top: 5px;}
+/*
+  Hide radio button (the round disc)
+  we will use just the label to create pushbutton effect
+*/
+.rad {
+    display:none; 
+    margin:10px;
+   
+}
+.rad1 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad2 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad3 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad4 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad5 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad6 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad7 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad8 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad9 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad10 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad11 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad12 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad13 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad14 {
+    display:none; 
+    margin:10px;
+   
+}
+.rad15 {
+    display:none; 
+    margin:10px;
+   
+}
+ 
+/*
+  Change the look'n'feel of labels (which are adjacent to radiobuttons).
+  Add some margin, padding to label
+*/
+.rad label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad1 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad2 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad3 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad4 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad5 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad6 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad7 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad8 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad9 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad10 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad11 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad12 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad13 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad14 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+.rad15 label {
+    display:inline-block;
+    margin:-2px;
+    padding: 4px 12px;
+    background-color: #e7e7e7;
+    border-color: #ddd;
+    width:auto;
+    background: url(/img/icons/line.png);
+    
+}
+/*
+ Change background color for label next to checked radio button
+ to make it look like highlighted button
+*/
+.rad:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad1:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad2:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad3:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad4:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad5:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad6:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad7:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad8:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad9:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad10:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad11:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad12:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad13:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad14:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}
+.rad15:checked + label { 
+   background-image: url(line.png);
+    background-color:#66CC99;
+    color:#000;
+}

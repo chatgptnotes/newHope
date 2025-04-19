@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+<newcropprescriptions>
+	<NewCropPrescription>
+		<id>1</id>
+		<description>Inj. Symbol 50 mg I/M Fortnightly x 1 Month</description>
+		<dose>1</dose>
+		<frequency>3</frequency>
+		<drug_id>1</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>2</id>
+		<description>Inj. Depomedrol 40 mg I/M weekly on Sunday x 1 Month</description>
+		<dose>1</dose>
+		<frequency>2</frequency>
+		<drug_id>2</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>3</id>
+		<description>Tab. Folitrax 20 mg once a week on Sunday after dinner x 1 Month</description>
+		<dose>1</dose>
+		<frequency>4</frequency>
+		<drug_id>3</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>4</id>
+		<description>Tab. Folvit 5 mg / Folmet daily after dinner except Sunday x 1 Month</description>
+		<dose>1</dose>
+		<frequency>4</frequency>
+		<drug_id>4</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab HCQS 200 mg Once a day after dinner x 1 Month</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Lefno / Arava 20 / 10mg Once a day after dinner x 1 Month</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Sazo 500mg Twice a day after meals x 1 Month</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Romazol – Once a day before Breakfast x 1 Month</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Naprosyn SR 750 mg Once a day after break fast x 1 Month</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Fludac / Flunil Once a day after Breakfast x 1 Month</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Tab Roma Q Once a day after Breakfast x 1 Month</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>Physiotherapy x 1 Month</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+</newcropprescriptions>
+</template>

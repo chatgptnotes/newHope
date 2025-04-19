@@ -1,0 +1,110 @@
+@charset "utf-8";
+/* CSS Document */
+
+body{
+margin:0px; 
+padding:0px;
+background:url(../img/background_bg.jpg) repeat-x;
+height:534px;
+font-family:Verdana, Arial, Helvetica, sans-serif;
+}
+
+img{border:none;}
+
+.wrapper{
+margin:0px auto;
+padding:0px;
+width:1000px;
+}
+
+.header{
+height:114px;
+margin:0px; 
+padding:0px 0px 0px 20px;
+}
+
+.banner{
+margin:0px;
+padding:0px;
+height:421px;
+background:url(../img/banner.jpg) no-repeat;
+}
+
+.login{
+width:290px;
+position:absolute;
+margin:55px 0px 0px 78px;
+}
+.login h2 {
+font-weight:normal;
+font-size:20px;
+color:#fff;
+margin:0px;
+padding:0px;
+}
+
+.loginBox {
+	font-weight:normal;
+	font-size:16px;
+	color:#fff;
+	 
+}
+
+.login span{
+font-size:13px;
+color:#fff;
+margin-top:5px;
+padding:0px;
+}
+
+.body_container{
+min-height:220px;
+margin:0px;
+padding:0px;
+background:url(../img/body_content.gif) no-repeat;
+}
+
+.footer_container{
+position:relative;
+margin:0px;
+padding:0px;
+height:224px;
+background:url(../img/footer_bg.jpg) repeat-x;
+}
+.footer{
+width:1000px;
+margin:0px auto;
+padding:0px;
+}
+
+
+
+/* ------------------ Internal Page CSS --------------------------------- */
+
+#main{
+margin:0px;
+padding:0px;
+width:100%;
+}
+
+.header_internal{
+height:70px;
+background:#0033CC url(../img/Portal_images/logo_left_bg.png) no-repeat top left;
+margin:0px;
+padding:0px;
+}
+
+.message{
+	color:green;
+	font-weight:bold;
+	font-size:15px;
+	background:#ffc;
+	text-align: center;
+}
+.error{
+	color:red;
+	font-weight:bold;
+	font-size:15px;
+	background:#ffc;
+	text-align: center;
+}

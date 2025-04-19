@@ -1,0 +1,24 @@
+<?php
+/**
+ * Hl7AdmissionType Controller
+ *
+ * PHP 5
+ *
+ * @copyright     Copyright 2011 KloudData Inc.  (http://www.klouddata.com/)
+ * @link          http://www.klouddata.com/
+ * @package       Hl7AdmissionType.Model
+ * @since         CakePHP(tm) v 2.0
+ * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @author        Pawan Meshram
+ */
+class Hl7AdmissionType extends AppModel {
+
+	public $name = 'Hl7AdmissionType';
+	public $specific = true;
+	
+	function __construct($id = false, $table = null, $ds = null) {
+        $session = new cakeSession();
+		$this->db_name =  $session->read('db_name');
+        parent::__construct($id, $table, $ds);
+    }
+}

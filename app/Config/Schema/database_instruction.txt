@@ -1,0 +1,32 @@
+DataBase Preparation 
+
+1) Remove the facility table from database.
+2) remove the facility_id from location table
+3) Remove facility foreign key constraint fro location table
+4) Remove facility_id from users table.
+
+
+Data Base dumping file - 
+
+1) Config\Schema\master.sql   - data and structure of master database.
+2) Config\Schema\slave.sql    - Structure of slave dabase.
+
+
+
+Creation of slave database
+
+1) Whenever a hospital add system will create the database for it and take a details of it on it's database table "facility_database_mappings".
+   app\Vendor\DrmhopeDB.php script does this operation.
+
+Seeding data to the slave database
+
+2) app\Vendor\SeedData.php script create the all tables for slave database using Config\Schema\slave.sql.
+
+
+Import Data in to the slave database
+
+1) app\Vendor\hope_data.sql contains all initial data which need to be in slave database. we can run app\Vendor\dump.php for importing the data.
+
+I have made two script one is shell and another is batch file for running this dump.php as a backgroud process so that database importing will run in background.
+
+

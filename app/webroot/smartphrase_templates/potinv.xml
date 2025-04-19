@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+<laboratories>
+	<Laboratory>
+		<name>S.Uric Acid</name>
+	</Laboratory>
+	<Laboratory>
+		<name>CRP</name>
+	</Laboratory>
+	<Laboratory>
+		<name>CBC</name>
+	</Laboratory>
+	<Laboratory>
+		<name>RA Factor</name>
+	</Laboratory>
+</laboratories>
+<radiologies>
+	<Radiology>
+		<name>X - Ray Lumbo-Sacral / Thorasic / Cervical Spine AP and LAT</name>
+	</Radiology>
+	<Radiology>
+		<name>MRI of Lumbo-Sacral / Thorasic / Cervical Spine</name>
+	</Radiology>
+</radiologies>
+</template>

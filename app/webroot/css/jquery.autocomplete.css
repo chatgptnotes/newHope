@@ -1,0 +1,70 @@
+.ac_results {
+	padding: 0px;
+	border: 1px solid black;
+	background-color: white;
+	overflow: hidden;
+	z-index: 99999;
+	color :black;
+	width:250px !important;
+}
+
+.ac_results ul {
+	width: 100%;
+	list-style-position: outside;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	overflow:scroll;
+	height:300px;
+}
+
+.ac_results li {
+	margin: 0px;
+	padding: 2px 5px;
+	cursor: default;
+	display: block;
+	/* 
+	if width will be 100% horizontal scrollbar will apear 
+	when scroll mode will be used
+	*/
+	/*width: 100%;*/
+	font: menu;
+	font-size: 12px;
+	/* 
+	it is very important, if line-height not setted or setted 
+	in relative units scroll will be broken in firefox
+	*/
+	line-height: 16px;
+	overflow: hidden;
+}
+
+.ac_loading {
+	background: url('../img/indicator.gif') right center no-repeat !important;
+}
+
+.ac_odd {
+	background-color: #eee;
+}
+
+.ac_over {
+	background-color: #0A246A;
+	color: white;
+}
+/*  */
+.arrow_box { position: relative; background: #88b7d5; border: 4px solid #c2e1f5; }
+.arrow_box.bottom .arrow_box-arrow {top: 0;
+  left: 50%;
+  margin-left: -5px;
+  border-bottom-color: #fff; /* black */
+  border-width: 0 5px 5px;
+}
+.arrow_box:after { border-color: rgba(136, 183, 213, 0); border-bottom-color: #88b7d5; border-width: 30px; margin-left: -30px; }
+.arrow_box:before { border-color: rgba(194, 225, 245, 0); border-bottom-color: #c2e1f5; border-width: 36px; margin-left: -36px; }
+
+/* */
+/*.ac_results-w1 {position:absolute; top:0px; left:0px; margin:6px 0 0 6px;  _background:none; _margin:1px 0 0 0; }
+.ac_results { border:1px solid #999; background:#FFF; cursor:default; text-align:left; max-height:350px; overflow:auto; margin:-6px 6px 6px -6px;   _height:350px;  _margin:0; _overflow-x:hidden; }
+.ac_results .selected { background:#F0F0F0; }
+.ac_results div { padding:2px 5px; white-space:nowrap; overflow:hidden; }
+.ac_results ul { padding:2px 5px; white-space:nowrap;   }
+.ac_results strong { font-weight:normal; color:#3399FF; }*/

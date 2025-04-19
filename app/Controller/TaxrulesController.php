@@ -1,0 +1,35 @@
+<?php
+/**
+ * Tax Rule controller
+ *
+ * PHP 5
+ *
+ * @copyright     Copyright 2011 KloudData Inc.  (http://www.klouddata.com/)
+ * @link          http://www.klouddata.com/
+ * @package       MMIS Model
+ * @since         CakePHP(tm) v 2.0
+ * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ */
+class TaxrulesController extends AppController {
+
+	public $name = 'Taxrules';
+	//public $uses = array('Product');
+	public $helpers = array('Html','Form', 'Js','Fck');
+	public $components = array('RequestHandler','Email','ImageUpload');	
+	
+	
+	
+	
+
+	public function admin_index(){
+		
+	}
+	
+	
+	public function admin_add_taxrules(){
+		
+	}
+	public function admin_edit_taxrules(){
+	
+	}
+}

@@ -1,0 +1,1 @@
+<?php echo $this->element('add_resident_note'); 

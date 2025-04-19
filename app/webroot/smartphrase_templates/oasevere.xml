@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+<newcropprescriptions>
+	<NewCropPrescription>
+		<id>1</id>
+		<description>Intraarticular infiltration with  Inj. Depomedrol 80mg</description>
+		<dose>1</dose>
+		<frequency>3</frequency>
+		<drug_id>1</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>2</id>
+		<description>Tab. Diclofenac sodium 50mg BD for 1 week</description>
+		<dose>1</dose>
+		<frequency>2</frequency>
+		<drug_id>2</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>3</id>
+		<description>Tab. Rabiperazole 20mg OD for 1 week</description>
+		<dose>1</dose>
+		<frequency>4</frequency>
+		<drug_id>3</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>4</id>
+		<description>Tab. Alprazolam .25mg HS for 1 week</description>
+		<dose>1</dose>
+		<frequency>4</frequency>
+		<drug_id>4</drug_id>
+	</NewCropPrescription>
+	<NewCropPrescription>
+		<id>5</id>
+		<description>telmisartan 40 mg tablet</description>
+		<dose>1</dose>
+		<frequency>5</frequency>
+		<drug_id>5</drug_id>
+	</NewCropPrescription>
+</newcropprescriptions>
+<newcropallergies>
+	<NewCropAllergies>
+		<id>1</id>
+		<name>peanut</name>
+		<severity>Mild</severity>
+		<reaction>None</reaction>
+		<allergy_id>1</allergy_id>
+	</NewCropAllergies>
+	<NewCropAllergies>
+		<id>2</id>
+		<name>penicillin</name>
+		<severity>Mild</severity>
+		<reaction>None</reaction>
+		<allergy_id>1</allergy_id>
+	</NewCropAllergies>
+	<NewCropAllergies>
+		<id>3</id>
+		<name>Grass Poll-Perennial Rye,Std</name>
+		<severity>Severe</severity>
+		<reaction>Itching</reaction>
+		<allergy_id>2</allergy_id>
+	</NewCropAllergies>
+	<NewCropAllergies>
+		<id>4</id>
+		<name>Kelo-Cote</name>
+		<severity>Moderate</severity>
+		<reaction>None</reaction>
+		<allergy_id>4</allergy_id>
+	</NewCropAllergies>
+</newcropallergies>
+<diagnoses>
+	<NoteDiagnosis>
+		<id>1</id>
+		<diagnoses_name>Osteoarthritis Both Knees</diagnoses_name>
+		<icd_id>715.96</icd_id>
+		<Status></Status>
+	</NoteDiagnosis>
+	<NoteDiagnosis>
+		<id></id>
+		<diagnoses_name></diagnoses_name>
+		<icd_id></icd_id>
+		<Status></Status>
+	</NoteDiagnosis>
+</diagnoses>
+<laboratories>
+	<Laboratory>
+		<name>Blood test</name>
+	</Laboratory>
+	<Laboratory>
+		<name>S.Uric Acid</name>
+	</Laboratory>
+	<Laboratory>
+		<name>CRP</name>
+	</Laboratory>
+	<Laboratory>
+		<name>CBC</name>
+	</Laboratory>
+	<Laboratory>
+		<name>RA Factor</name>
+	</Laboratory>
+</laboratories>
+<radiologies>
+	<Radiology>
+		<name>X-Ray Both Knees in standing AP and Lat</name>
+	</Radiology>
+	<Radiology>
+		<name></name>
+	</Radiology>
+</radiologies>
+</template>

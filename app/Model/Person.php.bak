@@ -1,0 +1,155 @@
+<?php
+class Person extends AppModel {
+
+	 public $useTable = 'persons'; 
+	 public $name = 'Person';  
+	 public $actsAs = array(
+	'Acl' => array('type' => 'requester'),
+	);
+	 public $specific = false;
+	 //public $actsAs = array('Cipher' => array('autoDecypt' => true));  
+	 /*function __construct($id = false, $table = null, $ds = null) {
+        $session = new cakeSession();
+		$this->db_name =  $session->read('db_name');
+        parent::__construct($id, $table, $ds);
+    } */
+
+	 public $validate = array(
+		
+		'last_name' => array(
+							'rule' => "notEmpty",
+							'message' => "Please enter last name."
+							),	 
+	    'patient_uid' => array(
+							'rule' => "notEmpty",
+							'message' => "There is some problem while saving data,Please try again",
+							'on'=>'create'
+							),	
+		'patient_uid' => array(
+							'rule' => "isUnique",
+							'message' => "There is some problem while saving data,Please try again",
+							'on'=>'create'
+							),
+	 );
+	 
+	 public function getPersonDetailsByID($id=null){
+	 		return $this->find("first",
+ 								array('fields'=>array('*,Initial.name'),'conditions'=>array('Person.id'=>$id)));
+	 }
+	 
+	 function insertPerson($data =array(),$action='insert'){
+	 	
+	 		$session     = new cakeSession();
+	 		$userid 	 = $session->read('userid') ;
+	 		$locationId  = $session->read('locationid') ;
+	 		 
+    		if($action=='update'){ 	    	 	 
+	            $data["Person"]["modify_time"] = date("Y-m-d H:i:s");	           
+	            $data["Person"]["modified_by"] = empty($userid)?'1':$userid;
+	            $data["Person"]["location_id"] = $locationId ;
+    		}else{
+    			$data["Person"]["create_time"] = date("Y-m-d H:i:s");
+	            $data["Person"]["modify_time"] = date("Y-m-d H:i:s");
+	            $data["Person"]["created_by"]  = empty($userid)?'1':$userid;
+	            $data["Person"]["modified_by"] = empty($userid)?'1':$userid;
+	            $data["Person"]["location_id"] = $locationId ;
+    		}             		 
+			$this->create();
+            $this->save($data);	
+	 }
+	 
+	 function getUIDPatientDetailsByPatientID($patient_id=null){
+		 	$this->bindModel(array(
+	 								'belongsTo' => array( 											 
+															'Patient' =>array('foreignKey'=>false,
+		 	 																 'conditions'=>array('Patient.patient_id=Person.patient_uid')
+		 	 												)
+	    												)));
+	    	return $this->find('first',array('conditions'=>array('Patient.id'=>$patient_id)));
+	 }
+	 
+	function getUIDPatientDetailsByPatientIDQR($patient_id=null){
+		 	$this->bindModel(array(
+	 								'belongsTo' => array( 											 
+															'Patient' =>array('foreignKey'=>false,
+		 	 																 'conditions'=>array('Patient.patient_id=Person.patient_uid')
+		 	 												)
+	    												)));
+	    	return $this->find('first',array('fields'=>array('Initial.name,Person.first_name,Person.first_name,Person.last_name,Person.age,Person.sex,Person.mobile,
+	    													  Person.credit_type_id,Person.photo,Person.patient_uid,Person.plot_no,Person.taluka,Person.district,
+	    													  Person.city,Person.landmark,Person.state,Person.pin_code,Person.blood_group,Person.allergies'),'conditions'=>array('Patient.id'=>$patient_id)));
+	 }
+	 
+	 function updateSponsorDetails($requestData=array(),$id){
+	 		if($id) $data['Person']['id'] = $id;
+	 		$data["Person"]['name_of_ip']  = $requestData['Patient']['name_of_ip']; 	   		 
+    		$data["Person"]['relation_to_employee']  = $requestData['Patient']['relation_to_employee'];
+    		//update executive_emp_id_no or non_executive_emp_id_no
+		 	if(!empty($requestData['Patient']['executive_emp_id_no'])){
+		 		$data["Person"]['non_executive_emp_id_no']  = '';
+		 		$data["Person"]['emp_id_suffix']  = '';
+		 		$data["Person"]['executive_emp_id_no']  = $requestData['Patient']['executive_emp_id_no'];
+		 	}  
+		 	if(!empty($requestData['Patient']['non_executive_emp_id_no'])){
+		 		$data["Person"]['executive_emp_id_no']  = '';
+		 		$data["Person"]['non_executive_emp_id_no']  = $requestData['Patient']['non_executive_emp_id_no'];
+		 		$data["Person"]['emp_id_suffix']  = $requestData['Patient']['emp_id_suffix'];
+		 	}
+		 	//EOF update 
+    		 
+    		 
+    		$data["Person"]['designation']  =$requestData['Patient']['designation'];
+    		$data["Person"]['insurance_number']  = $requestData['Patient']['insurance_number'];
+    		$data["Person"]['sponsor_company']  = $requestData['Patient']['sponsor_company'];
+    		$data["Person"]['instruction']  = $requestData['Patient']['instructions'];    
+    		
+    		$data["Person"]['age']  = $requestData['Patient']['age'];
+    		$data["Person"]['sex']  = $requestData['Patient']['sex'];
+    		$data["Person"]['patient_file']  = $requestData['Patient']['patient_file'];
+    		$data["Person"]['case_summery_link']  = $requestData['Patient']['case_summery_link'];
+    		
+    		//sponsor details
+    		$data["Person"]['payment_category']  = $requestData['Patient']['payment_category'];
+    		if($data["Person"]['payment_category']=='card'){
+	    		if($requestData['Patient']['credit_type_id'] == 1) {
+		    		$data["Person"]['credit_type_id']  = $requestData['Patient']['credit_type_id']; 	   		 
+		    		$data["Person"]['corporate_location_id']  = $requestData['Patient']['corporate_location_id'];
+		    		$data["Person"]['corporate_id']  = $requestData['Patient']['corporate_id'];
+		    		$data["Person"]['corporate_sublocation_id']  = $requestData['Patient']['corporate_sublocation_id'] ;
+		    		$data["Person"]['corporate_otherdetails']  =$requestData['Patient']['corporate_otherdetails'];
+	    		}else{
+	    			$data["Person"]['credit_type_id']  = $requestData['Patient']['credit_type_id'];
+	    			$data["Person"]['insurance_type_id']  = $requestData['Patient']['insurance_type_id'];
+	    			$data["Person"]['insurance_company_id']  = $requestData['Patient']['insurance_company_id'];
+	    		} 
+    		}else if($data["Person"]['payment_category']=='cash'){
+    				$data["Person"]['credit_type_id']  = ''; 	   		 
+		    		$data["Person"]['corporate_location_id']  = '';
+		    		$data["Person"]['corporate_id']  = '';
+		    		$data["Person"]['corporate_sublocation_id']  = '' ;
+		    		$data["Person"]['corporate_otherdetails']  ='';
+	    		 
+	    			$data["Person"]['credit_type_id']  = '';
+	    			$data["Person"]['insurance_type_id']  = '';
+	    			$data["Person"]['insurance_company_id']  = '';
+    		}
+    		 
+    		$this->save($data);
+	 }
+	 
+/*
+ * 
+ * make the initial letter capital before saving.
+ * 
+ */
+    public function beforeSave() {
+		if (isset($this->data[$this->alias]['first_name'])) {
+                        $this->data[$this->alias]['first_name'] = ucfirst($this->data[$this->alias]['first_name']);
+        }
+        if (isset($this->data[$this->alias]['last_name'])) {
+                        $this->data[$this->alias]['last_name'] = ucfirst($this->data[$this->alias]['last_name']);
+        } 
+              
+		return true;
+	}
+} 

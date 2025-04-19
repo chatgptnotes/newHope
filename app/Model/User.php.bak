@@ -1,0 +1,371 @@
+<?php
+class User extends AppModel {
+
+	public $name = 'User';
+	public $actsAs = array(
+	'Acl' => array('type' => 'requester'),
+	);
+	public $specific = false;
+	public $cacheQueries = false ;
+
+	public $belongsTo = array('City' => array('className'    => 'City',
+                                                  'foreignKey'    => 'city_id'
+                                                 ),
+                                  'State' => array('className'    => 'State',
+                                                   'foreignKey'    => 'state_id'
+                                                 ),
+                                  'Country' => array('className'    => 'Country',
+                                                     'foreignKey'    => 'country_id'
+                                                 ),
+                                  'Role' => array('className'    => 'Role',
+                                                     'foreignKey'    => 'role_id'
+                                                 ),
+                                  'Initial' => array('className'    => 'Initial',
+                                                     'foreignKey'    => 'initial_id'
+                                                 ),
+								 											 
+                                  );
+       public $virtualFields = array(
+    							'full_name' => 'CONCAT(Initial.Name," ",User.first_name," ", User.last_name)'
+						 	);
+        public $validate = array(
+            'first_name' => array(
+			'rule' => "notEmpty",
+			'message' => "Please enter first name."
+			),
+			'last_name' => array(
+			'rule' => "notEmpty",
+			'message' => "Please enter last name."
+			),
+            'gender' => array(
+			'rule' => "notEmpty",
+			'message' => "Please enter gender."
+			),
+            /*'designation' => array(
+			'rule' => "notEmpty",
+			'message' => "Please select designation."
+			),
+			'address1' => array(
+			'rule' => "notEmpty",
+			'message' => "Please enter address."
+			),
+            'country_id' => array(
+			'rule' => "notEmpty",
+			'message' => "Please select country."
+			),
+            'state_id' => array(
+			'rule' => "notEmpty",
+			'message' => "Please select state."
+			),*/
+            'email' => array(
+			'rule' => "email",
+			'message' => "Email is already exist, please try another one."
+			),
+            /*'phone1' => array(
+			'rule' => "notEmpty",
+			'message' => "Please enter phone."
+			),
+            'mobile' => array(
+			'rule' => "notEmpty",
+			'message' => "Please enter mobile."
+			),*/
+            'username' => array(
+			'rule' => array('checkUnique'),
+			'on' => 'create',
+			'message' => "Username is already taken elsewhere in the application."
+			)
+                );
+
+               public function checkUnique($check){
+                //$check will have value: array('username' => 'some-value')
+                $extraContions = array('is_deleted' => 0);
+                $conditonsval = array_merge($check,$extraContions);
+                $countUser = $this->find( 'count', array('conditions' => $conditonsval, 'recursive' => -1) );
+                if($countUser >0) {
+                  return false;
+                } else {
+                  return true;
+                }
+               }
+			
+	public function parentNode() {
+		if (!$this->id && empty($this->data)) {
+			return null;
+		}
+		$data = $this->data;
+		if (empty($this->data)) {
+			$data = $this->read();
+		}
+		if (!isset($data['User']['role_id']) || !$data['User']['role_id']) {
+			return null;
+		} else {
+			return array('Role' => array('id' => $data['User']['role_id']));
+		}
+	}
+	 
+	public function afterSave($created) {
+		if ($created) {
+			/*$parent = $this->parentNode();
+			$parent = $this->node($parent);
+			$node = $this->node();
+			$aro = $node[0];
+			$aro['Aro']['parent_id'] = $parent[0]['Aro']['id'];
+			$this->Aro->save($aro);*/
+                        // save to doctor if user role is doctor //
+                        $rolename = Classregistry::init('Role')->find('first', array('conditions' => array('Role.id' => $this->data['User']['role_id']), 'fields' => array('Role.name'), 'recursive' => -1));
+                        if(strtolower($rolename['Role']['name']) == strtolower("Treating Consultant") || $rolename['Role']['name'] == "Registrar" || $rolename['Role']['name'] == "registrar") {
+                                // set is registrar if exist //
+                                if($rolename['Role']['name'] == "Registrar" || $rolename['Role']['name'] == "registrar") {
+                                 $this->data['DoctorProfile']['is_registrar'] = 1;
+                                } else {
+                                 $this->data['DoctorProfile']['is_registrar'] = 0;
+                                }
+                        	$this->data['DoctorProfile']['doctor_name'] = ucfirst($this->data['User']['first_name'])." ".ucfirst($this->data['User']['middle_name'])." ".ucfirst($this->data['User']['last_name']);
+                                $this->data['DoctorProfile']['first_name'] = ucfirst($this->data['User']['first_name']);
+                                $this->data['DoctorProfile']['last_name'] = ucfirst($this->data['User']['last_name']);
+                                $this->data['DoctorProfile']['middle_name'] = ucfirst($this->data['User']['middle_name']);
+                                $this->data['DoctorProfile']['dateofbirth'] = $this->data['User']['dob'];
+                        	$this->data['DoctorProfile']['location_id'] = $this->data['User']['location_id'];
+                         	$this->data['DoctorProfile']['user_id'] = $this->getLastInsertID();
+               			$this->data['DoctorProfile']['created_by'] = AuthComponent::user('id');
+               			$this->data['DoctorProfile']['create_time'] = date("Y-m-d H:i:s");
+                        	Classregistry::init('DoctorProfile')->create();
+                        	Classregistry::init('DoctorProfile')->save($this->data);
+                        }
+		} else {
+                // if doctor user updated then update doctor tables//
+                  $checkRoleType = Classregistry::init('User')->find('first', array('conditions' => array('User.id' => $this->data['User']['id']), 'fields' => array('Role.name')));
+                  if(strtolower($checkRoleType['Role']['name']) == strtolower("Treating Consultant") || $checkRoleType['Role']['name'] == "Registrar" || $checkRoleType['Role']['name'] == "registrar") {
+                    if(isset($this->data['User']['first_name'])) {
+                        // set is registrar if exist //
+			if($checkRoleType['Role']['name'] == "Registrar" || $checkRoleType['Role']['name'] == "registrar") {
+				$this->data['DoctorProfile']['is_registrar'] = '1';
+			} else {
+				$this->data['DoctorProfile']['is_registrar'] = '0';
+			}
+			$this->data['DoctorProfile']['doctor_name'] =  "'".ucfirst($this->data['User']['first_name'])." ".ucfirst($this->data['User']['middle_name'])." ".ucfirst($this->data['User']['last_name'])."'";
+			$this->data['DoctorProfile']['first_name'] = "'".ucfirst($this->data['User']['first_name'])."'";
+			$this->data['DoctorProfile']['last_name'] = "'".ucfirst($this->data['User']['last_name'])."'";
+			$this->data['DoctorProfile']['middle_name'] = "'".ucfirst($this->data['User']['middle_name'])."'";
+			$this->data['DoctorProfile']['dateofbirth'] = "'".$this->data['User']['dob']."'";
+			$this->data['DoctorProfile']['modified_by'] = "'".AuthComponent::user('id')."'";
+			$this->data['DoctorProfile']['modify_time'] = "'".date("Y-m-d H:i:s")."'";
+			Classregistry::init('DoctorProfile')->unbindModel(array('belongsTo' => array('Department')));
+			Classregistry::init('DoctorProfile')->updateAll($this->data['DoctorProfile'], array('DoctorProfile.user_id' => $this->data['User']['id']));
+                    } else {
+                        // if change password action not happened //
+                        if($this->data["User"]["is_deleted"] == 1){
+                        $this->data['DoctorProfile']['is_deleted'] = "'1'";
+			$this->data['DoctorProfile']['modified_by'] = "'".AuthComponent::user('id')."'";
+			$this->data['DoctorProfile']['modify_time'] = "'".date("Y-m-d H:i:s")."'";
+			//Classregistry::init('DoctorProfile')->unbindModel(array('belongsTo' => array('User', 'Department')));
+			Classregistry::init('DoctorProfile')->unbindModel(array('belongsTo' => array('Department')));
+			Classregistry::init('DoctorProfile')->updateAll($this->data['DoctorProfile'], array('DoctorProfile.user_id' => $this->data['User']['id']));
+                        }
+                    }
+                  }
+                }
+	}
+
+	public function beforeSave() {
+		if (isset($this->data[$this->alias]['password'])) {
+                        $this->data[$this->alias]['password'] = sha1($this->data[$this->alias]['password']);
+        }
+	    if (isset($this->data[$this->alias]['first_name'])) {
+                        $this->data[$this->alias]['first_name'] = ucfirst($this->data[$this->alias]['first_name']);
+        }
+	    if (isset($this->data[$this->alias]['middle_name'])) {
+                        $this->data[$this->alias]['middle_name'] = ucfirst($this->data[$this->alias]['middle_name']);
+        }   
+	    if (isset($this->data[$this->alias]['last_name'])) {
+                        $this->data[$this->alias]['last_name'] = ucfirst($this->data[$this->alias]['last_name']);
+        }     
+		return true;
+	}
+	
+	public function getDoctorsByLocation($location_id=null){
+		//$this->recursive = -1; 
+		$this->unbindModel(array(
+ 						'belongsTo' => array('State','City','Country'))); 
+		$this->bindModel(array(
+ 						'hasOne' => array('DoctorProfile'=>array('foreignKey'=>'user_id'))));
+		$details =  $this->find('all',array('fields'=>array('User.full_name','User.id'),'conditions'=>array('Role.name'=>'treating consultant','User.location_id'=>$location_id,'User.is_active'=>1,'DoctorProfile.is_deleted'=>0,'DoctorProfile.is_registrar'=>0, 'User.is_deleted'=>0)));
+		$return_arr =array();
+		foreach($details as $key =>$value){
+			foreach($details[$key] as $lastnode){
+				$return_arr[$lastnode['id']]  =  $lastnode['full_name'] ;
+			}
+			 
+		}
+		return $return_arr;
+	}
+	
+	function getHospitalId(){
+		
+	}
+	
+	 function __construct($id = false, $table = null, $ds = null) {
+	 	$session = new cakeSession();
+		if($session->read('db_name')!="")
+	 		{
+				$this->specific = true;
+				$this->db_name =  $session->read('db_name');
+			} 
+        parent::__construct($id, $table, $ds);
+    } 
+	function getLocationId(){
+		$session = new CakeSession();
+		return $session->read('locationid');
+	}
+	
+	public function getDoctorByID($doctor_id=null){      
+      		if(!empty($doctor_id)){	
+      			$this->unbindModel(array(
+ 						'belongsTo' => array('State','City','Country')));  
+      			$this->bindModel(array(
+ 								'belongsTo' => array( 											 
+								'Initial' =>array( 'foreignKey'=>'initial_id'))));
+      			return $this->find('first',array('fields'=>array('CONCAT(Initial.name," ",User.first_name, " ", User.last_name) as fullname','mobile'),
+      			'conditions'=>array('User.id'=>$doctor_id),'recursive'=>1));
+      		}
+        }
+
+/*
+* get all doctor list by locaiton
+*
+*/
+        public function getDoctorList($locationid) {
+          $doctorArrayId = array();
+          $getAllDoctors = $this->find('all', array('conditions' => array('User.is_deleted' => 0, 'Role.name' => 'treating consultant', 'User.location_id' => $locationid), 'fields' => array('User.id')));
+          foreach($getAllDoctors as $getAllDoctorsVal) {
+              $doctorArrayId[] = $getAllDoctorsVal['User']['id'];
+          }
+          return $doctorArrayId;
+        }
+        
+        function getUserByID($id=null,$fields=array()){     
+        	return $this->find('first', array('conditions' => array('User.id' => $id), 'fields' => $fields, 'recursive' => 1));
+        	//return $this->read($fields,$id);
+        }
+/*
+*
+* send auto generated password to the users
+*
+*/
+        function sendUserPasswordMail($data=null, $genratepass=null) {
+            App::uses('CakeEmail', 'Network/Email');
+            // get hospital details of register user //
+            $hospitalDetail = Classregistry::init('Facility')->find('first', array('conditions' => array('Facility.id' => $this->data['User']['facility_id']), 'fields' => array('Facility.name')));
+            if(!empty($hospitalDetail['Facility']['name'])) {
+            	$hospitalName = $hospitalDetail['Facility']['name'];
+            } else {
+            	$hospitalName = 'Hope Hospital Nagpur';
+            }
+            $email = new CakeEmail();
+            $email->config('default');
+            $email->template('usercreation','usercreation');
+            $email->emailFormat('html');
+            $email->viewVars(array('username' => $data['User']['username'], 'password' => $genratepass, 'hospitalName' => $hospitalName));
+            $email->subject('Account Creation Mail::'.$hospitalName);
+            $email->to(array($data['User']['email']));
+			$email->bcc(array('santoshy@klouddata.com'));
+            $email->from(array('santoshy@klouddata.com' => $hospitalName));
+            $email->send();
+            return true;
+        }
+        
+        
+        function getAnaesthesistAndNone($is_anaesthesist){
+		  	$session = new CakeSession(); 
+          	 
+           	$this->virtualFields = array(
+    							'doctor_name' => 'CONCAT(Initial.name, " ", DoctorProfile.doctor_name)'
+							);
+			$this->unbindModel(array( 'belongsTo' => array('City','State','Country','Role','Initial')   )); 
+                                  
+          	$this->bindModel(array('belongsTo'=>array('Initial' => array('foreignKey' =>'initial_id'),
+          								'DoctorProfile' => array( 'foreignKey' => false,'conditions' => array('User.id = DoctorProfile.user_id')),
+          								 'Department' => array( 'foreignKey' => false,'conditions' => array('Department.id = DoctorProfile.department_id')),
+          											) 
+          						  ));
+          	if($is_anaesthesist){
+          		return $this->find('list',array('fields'=>array('DoctorProfile.user_id','doctor_name'),
+      						'conditions'=>array('User.is_deleted'=>0, 'DoctorProfile.is_deleted'=>0,'User.location_id'=>$session->read('locationid'), 'DoctorProfile.is_registrar'=>0,'Department.name  LIKE'=> "%Anaesthesia%"),
+      						'contain' => array('User', 'Initial'), 'recursive' => 1));	
+          	}else{
+          		return $this->find('list',array('fields'=>array('DoctorProfile.user_id','doctor_name'),
+      						'conditions'=>array('User.is_deleted'=>0, 'DoctorProfile.is_deleted'=>0,'User.location_id'=>$session->read('locationid'), 'DoctorProfile.is_registrar'=>0,'Department.name NOT LIKE'=> "%Anaesthesia%"),
+      						'contain' => array('User', 'Initial'), 'recursive' => 1));
+          	}
+      	 	
+         } 
+         
+         function getUsersByRole($role_id){
+         	if(empty($role_id)) return ;
+         	$session = new cakeSession();
+         		 
+         	$this->unbindModel(array( 'belongsTo' => array('City','State','Country','Role','Initial')   )); 
+                                  
+          	$this->bindModel(array('belongsTo'=>array('Initial' => array('foreignKey' =>'initial_id'))
+          						  ));
+	    	return $this->find('list',array('conditions'=>array('role_id'=>$role_id,'location_id'=>$session->read('locationid'),'is_deleted'=>0),
+	    				'fields'=>array('full_name'), 'recursive' => 1));
+	     }
+	     
+	     //return all userse for logged location
+	     function getUsers(){
+	     	 
+         	$session = new cakeSession();
+         		 
+         	$this->unbindModel(array( 'belongsTo' => array('City','State','Country','Role','Initial')   )); 
+                                  
+          	$this->bindModel(array('belongsTo'=>array('Initial' => array('foreignKey' =>'initial_id'))
+          						  ));
+	    	return $this->find('list',array('conditions'=>array('location_id'=>$session->read('locationid'),'is_deleted'=>0),
+	    				'fields'=>array('full_name'), 'recursive' => 1));
+	     }
+	     
+		function getPathologist(){
+			$session = new cakeSession();
+    		$queryData  = $this->find('list',array('conditions'=>array('Role.name'=>Configure::read('pathologist'),
+    		'User.location_id '=>array($session->read('locationid'),$session->read('locationid')),'User.is_deleted'=>0),'fields'=>array('User.id','User.full_name'), 'recursive' => 1));
+    		
+    		return $queryData ;
+    	}
+    	
+		function getRadiologist(){
+			$session = new cakeSession();
+    		$queryData  = $this->find('list',array('conditions'=>array('Role.name'=>Configure::read('radiologist'),
+    		'User.location_id '=>array($session->read('locationid'),$session->read('locationid')),'User.is_deleted'=>0),'fields'=>array('User.id','User.full_name'), 'recursive' => 1));
+    		
+    		return $queryData ;
+    	}
+    	
+/*
+ * 
+ *  get surgeon list
+ * 
+ */
+    	function getSurgeonlist(){
+		  	$session = new CakeSession(); 
+          	 
+           	$this->virtualFields = array(
+    							'doctor_name' => 'CONCAT(Initial.name, " ", DoctorProfile.doctor_name)'
+							);
+			$this->unbindModel(array( 'belongsTo' => array('City','State','Country','Role','Initial')   )); 
+                                  
+          	$this->bindModel(array('belongsTo'=>array('Initial' => array('foreignKey' =>'initial_id'),
+          								'DoctorProfile' => array( 'foreignKey' => false,'conditions' => array('User.id = DoctorProfile.user_id')),
+          								 'Department' => array( 'foreignKey' => false,'conditions' => array('Department.id = DoctorProfile.department_id')),
+          											) 
+          						  ));
+          	
+          		return $this->find('list',array('fields'=>array('DoctorProfile.user_id','doctor_name'),
+      						'conditions'=>array('User.is_deleted'=>0, 'DoctorProfile.is_deleted'=>0,'User.location_id'=>$session->read('locationid'), 'DoctorProfile.is_surgeon'=>1),
+      						'contain' => array('User', 'Initial'), 'recursive' => 1));
+          	
+      	 	
+         } 
+    	
+}
+?>

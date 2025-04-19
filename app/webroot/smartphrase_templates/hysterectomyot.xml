@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?><template>
+<newcropprescriptions>
+<NewCropPrescription><id>0</id>
+<description>MEZOLAM-10ML INJ</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: MEZOLAM-10ML INJ ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>1396</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>1</id>
+<description>PYROLATE INJ 10ML(VAIL)</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: PYROLATE INJ 10ML(VAIL) ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>1820</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>2</id>
+<description>SOLOCEF 1GM INJ</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: SOLOCEF 1GM INJ ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>2029</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>3</id>
+<description>NEOROF-1%-10ML</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: NEOROF-1%-10ML ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>1506</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>4</id>
+<description>NEOROF-1%-20ML</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: NEOROF-1%-20ML ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>1507</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>5</id>
+<description>DICLOMED INJ</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: DICLOMED INJ ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>593</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>6</id>
+<description>MONOLOC 2ML INJ</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: MONOLOC 2ML INJ ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>9865</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>7</id>
+<description>NS 500 ML.</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>2</quantity>
+<display>1 TAB:: NS 500 ML. ---   : AS DIRECTED / 2 X  # 2</display>
+<drug_id>2826</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>8</id>
+<description>RL 500 ML.</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>2</quantity>
+<display>1 TAB:: RL 500 ML. ---   : AS DIRECTED / 2 X  # 2</display>
+<drug_id>2827</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>9</id>
+<description>DNS 500 ML.</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>2</quantity>
+<display>1 TAB:: DNS 500 ML. ---   : AS DIRECTED / 2 X  # 2</display>
+<drug_id>2766</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>10</id>
+<description>SYRINGE-10ML</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>4</quantity>
+<display>1 TAB:: SYRINGE-10ML ---   : AS DIRECTED / 2 X  # 4</display>
+<drug_id>3334</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>11</id>
+<description>SYRINGE  5 ML</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>4</quantity>
+<display>1 TAB:: SYRINGE  5 ML ---   : AS DIRECTED / 2 X  # 4</display>
+<drug_id>2128</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>12</id>
+<description>SYRINGE 2ML</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>2</quantity>
+<display> 1 TAB:: SYRINGE 2ML ---   : AS DIRECTED / 2 X  # 2</display>
+<drug_id>2127</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>13</id>
+<description>VICRYL 0-1 2421 LOTUS</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: VICRYL 0-1 2421 LOTUS ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>11094</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>14</id>
+<description>VICRYL 0 NEW 2534 R.C-LOTUS</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: VICRYL 0 NEW 2534 R.C-LOTUS ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>11146</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>15</id>
+<description>VICRYL 3-0 NEW LOTUS R.C 2402</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: VICRYL 3-0 NEW LOTUS R.C 2402 ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>11189</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+<NewCropPrescription><id>16</id>
+<description>VICRYL 2-0 2382 LOTUS</description>
+<dose>0</dose>
+<doseForm>1</doseForm>
+<route>2</route>
+<frequency>2</frequency>
+<quantity>1</quantity>
+<display>1 TAB:: VICRYL 2-0 2382 LOTUS ---   : AS DIRECTED / 2 X  # 1</display>
+<drug_id>11410</drug_id><days></days><strength>1</strength><dosage>1</dosage><Active>1</Active></NewCropPrescription>
+</newcropprescriptions>
+<TariffLists>
+</TariffLists>
+</template>
